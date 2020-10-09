@@ -9,7 +9,8 @@ count_TE(
   strandMode = 1,
   ann_file = NULL,
   eval_unique_r = TRUE,
-  ignore_strand = FALSE
+  ignore_strand = TRUE,
+  singleEnd = FALSE
 )
 }
 \arguments{
@@ -22,7 +23,8 @@ The strand mode is a per-object switch on
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 objects that controls the behavior of the strand getter. See
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
-class for further detail.}
+class for further detail. If \code{singleEnd = TRUE}, then use either
+\code{strandMode = NULL} or do not specify the \code{strandMode} parameter.}
 
 \item{ann_file}{(Default NULL) A single string containing the path and name
 of the endogenous retrovirus (ERVs) or TE annotation file (including the
@@ -39,7 +41,7 @@ reads. If TRUE, the unique reads not passing one or more filters from the
 ERVmap pipeline, except for the "AS - XS >= 5" filter, will be discarded to
 compute TEs expression.}
 
-\item{ignore_strand}{(Default FALSE) A logical which defines if the strand
+\item{ignore_strand}{(Default TRUE) A logical which defines if the strand
 should be taken into consideration when computing the overlap between reads
 and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
 \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
@@ -49,16 +51,19 @@ the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
 any alignment which overlaps with the element in the annotations regardless
 of the strand. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}}.}
+
+\item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
+(\code{TRUE}) or paired-end (\code{FALSE}).}
 }
 \value{
 A `SummarizedExperiment` object representing containing the read
-counts for each sample and element in the annotations file. Each sample is 
-represented as a column and each row corresponds to an element in the 
-annotations. Column names are extracted from the binary 'BAM' file name of 
+counts for each sample and element in the annotations file. Each sample is
+represented as a column and each row corresponds to an element in the
+annotations. Column names are extracted from the binary 'BAM' file name of
 each sample.
 }
 \description{
-\code{count_TE} quantifies the expression of transposable elements (TE) at 
+\code{count_TE} quantifies the expression of transposable elements (TE) at
 the locus level. The approach used by this function is based on the pipeline
 described by
 \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)},
@@ -95,8 +100,8 @@ purpose.
 \dontrun{path_bam_files_sorted <- "Documents/RNAseq/BAMfiles_sorted"
 
 table_counts <- count_TE(path_bam_files_sorted, strandMode = 2,
-                        eval_unique_r = TRUE,
-                        ignore_strand = FALSE)}
+                        eval_unique_r = TRUE, ignore_strand = TRUE),
+                        singleEnd = FALSE }
 
 }
 \references{
