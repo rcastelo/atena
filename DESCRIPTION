@@ -1,15 +1,27 @@
 Package: atena
 Type: Package
-Title: Analysis of transposable elements
-Description: Analysis and quantification of expression in transposable elements from genome-wide high-throughput RNA sequencing data.
-Version: 0.99.1
-Authors@R: c(person("Beatriz", "Calvo-Serra", role=c("aut", "cre"),
-                    email = "beatriz.calvo@upf.edu"),
-             person("Robert", "Castelo", role="aut",
-                    email = "robert.castelo@upf.edu"))
-License: Artistic-2.0
-Depends: R (>= 3.5), GenomicAlignments (>= 1.24.0), Rsamtools (>= 2.4.0)
-Imports: rtracklayer (>= 1.48.0), S4Vectors, GenomeInfoDb, SummarizedExperiment,
-         GenomicRanges
+Title: Expression quantification of transposable elements
+Version: 0.0.0.9000
+Authors@R: c(
+  person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
+  person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
+Description: Package able to quantify locus-specific expression of transposable 
+    elements from genome-wide high-throughput RNA sequencing data. The core of 
+    this tool is based on the ERVmap pipeline (Tokuyama et al., 2018), which 
+    processes reads following conservative filtering criteria to provide 
+    reliable raw count data for each genomic region encompassing a transposable 
+    element.
+License: GPL-3
 Encoding: UTF-8
-biocViews: Annotation, FunctionalPrediction, GenePrediction, GeneExpression, Transcriptomics, RNASeq
+LazyData: true
+Depends:
+    GenomicAlignments (>= 1.24.0),
+    Rsamtools (>= 2.4.0),
+    R (>= 2.10)
+Imports: 
+    rtracklayer (>= 1.48.0),
+    S4Vectors,
+    GenomeInfoDb,
+    SummarizedExperiment,
+    GenomicRanges
+RoxygenNote: 7.1.1
