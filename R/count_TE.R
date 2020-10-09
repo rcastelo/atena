@@ -301,7 +301,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
 
         table_counts[,i] <- assay(overlap)
 
-        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        sample_name <- gsub("\\.bam", "", names(bfl)[i])
         colnames(table_counts)[i] <- sample_name
 
         print(paste("Sample", sample_name, "done!", sep = " "))
@@ -393,7 +393,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
 
         table_counts[,i] <- assay(overlap)
 
-        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        sample_name <- gsub("\\.bam", "", names(bfl)[i])
         colnames(table_counts)[i] <- sample_name
 
         print(paste("Sample", sample_name, "done!", sep = " "))
@@ -572,7 +572,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
 
         table_counts[,i] <- assay(overlap)
 
-        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        sample_name <- gsub("\\.bam", "", names(bfl)[i])
         colnames(table_counts)[i] <- sample_name
 
         print(paste("Sample", sample_name, "done!", sep = " "))
@@ -661,7 +661,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
 
         table_counts[,i] <- assay(overlap)
 
-        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        sample_name <- gsub("\\.bam", "", names(bfl)[i])
         colnames(table_counts)[i] <- sample_name
 
         print(paste("Sample", sample_name, "done!", sep = " "))
