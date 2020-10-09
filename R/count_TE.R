@@ -1,6 +1,6 @@
 #' Quantification of Transposable Elements based on ERVmap pipeline
 #'
-#' \code{count_TE} quantifies the expression of transposable elements (TE) at 
+#' \code{count_TE} quantifies the expression of transposable elements (TE) at
 #' the locus level. The approach used by this function is based on the pipeline
 #' described by
 #' \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)},
@@ -41,7 +41,8 @@
 #'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #'   objects that controls the behavior of the strand getter. See
 #'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
-#'   class for further detail.
+#'   class for further detail. If \code{singleEnd = TRUE}, then use either
+#'   \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
 #'
 #' @param ann_file (Default NULL) A single string containing the path and name
 #'   of the endogenous retrovirus (ERVs) or TE annotation file (including the
@@ -58,7 +59,7 @@
 #' ERVmap pipeline, except for the "AS - XS >= 5" filter, will be discarded to
 #' compute TEs expression.
 #'
-#' @param ignore_strand (Default FALSE) A logical which defines if the strand
+#' @param ignore_strand (Default TRUE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
 #' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
@@ -69,11 +70,13 @@
 #' of the strand. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
 #'
+#' @param singleEnd (Default FALSE) Logical value indicating if reads are single
+#' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
 #' @return A `SummarizedExperiment` object representing containing the read
-#' counts for each sample and element in the annotations file. Each sample is 
-#' represented as a column and each row corresponds to an element in the 
-#' annotations. Column names are extracted from the binary 'BAM' file name of 
+#' counts for each sample and element in the annotations file. Each sample is
+#' represented as a column and each row corresponds to an element in the
+#' annotations. Column names are extracted from the binary 'BAM' file name of
 #' each sample.
 #'
 #' @seealso
@@ -85,8 +88,8 @@
 #' \dontrun{path_bam_files_sorted <- "Documents/RNAseq/BAMfiles_sorted"
 #'
 #' table_counts <- count_TE(path_bam_files_sorted, strandMode = 2,
-#'                         eval_unique_r = TRUE,
-#'                         ignore_strand = FALSE)}
+#'                         eval_unique_r = TRUE, ignore_strand = TRUE),
+#'                         singleEnd = FALSE }
 #'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
@@ -104,9 +107,9 @@
 
 count_TE <- function(path_bam_files_sorted, strandMode = 1,
                      ann_file = NULL, eval_unique_r = TRUE,
-                     ignore_strand = FALSE) {
+                     ignore_strand = TRUE, singleEnd = FALSE) {
 
-  ERVmap_ann <- r_XS <- reads_to_keep <- NULL
+  reads_to_keep <- NULL
 
   # -- Importing HERVs coordinates
 
@@ -142,161 +145,538 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
     }
   }
 
+  if (singleEnd) {
+    # -- Reading some alignments of the BAM files to see if they contain the
+    # "NH", "XS", "AS" and "NM" tags
+    bam_files <- list.files(path_bam_files_sorted, pattern = "\\.bam$",
+                            full.names = TRUE)
+    bfl <- BamFileList(bam_files, yieldSize = 100)
 
-  # -- Reading the BAM files
-  bam_files <- list.files(path_bam_files_sorted, pattern = "\\.bam$",
-                          full.names = TRUE)
-  bfl <- BamFileList(bam_files, asMates = TRUE, yieldSize = 10000000)
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                           isDuplicate = FALSE,
+                           isNotPassingQualityControls = FALSE)
 
-  sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
-                         isProperPair = TRUE,
-                         isDuplicate = FALSE,
-                         isNotPassingQualityControls = FALSE)
+    param <- ScanBamParam(flag = sbflags,
+                          tag = c("nM", "NM", "AS", "NH", "XS"),
+                          what = scanBamWhat())
 
-  param <- ScanBamParam(flag = sbflags,
-                        tag = c("nM", "NM", "AS", "NH", "XS"),
-                        what = scanBamWhat(),
-                        tagFilter = list(NH = c(2:10000)))
+    NH_tag <- NULL
+    NM_tag <- NULL
+    nM_tag <- NULL
+    AS_tag <- NULL
+    XS_tag <- NULL
 
+    for (i in 1:length(bfl)) {
 
-  table_counts <- matrix(nrow = length(ERV_ann), ncol = length(bfl))
+      file <- bfl[[i]]
+      open(file)
+      r_test <- readGAlignments(file, use.names = TRUE, param = param)
 
-
-  for (i in 1:length(bfl)) {
-
-    file <- bfl[[i]]
-    open(file)
-
-    r_multi_filtered <- NULL
-
-    while (length(r <- readGAlignmentPairs(file, use.names=TRUE,
-                                           param=param,
-                                           strandMode=strandMode))) {
-
-      if (is.null(names(r))) {
-        stop("The GAlignmentPairs object must have names")
-      }
-
-      r <- atena::getSuboptimalAlignScore(r, strandMode = strandMode)
-
-      # Now that the XS tag has been obtained for the multi-mapping reads, the
-      # ERVmap pipeline will be applied to these alignments
-
-      cigar_first <- explodeCigarOpLengths(cigar(first(r_XS)), ops = c("H","S"))
-      cigar_last <- explodeCigarOpLengths(cigar(last(r_XS)), ops = c("H","S"))
-
-      SH_clipping_first <- lapply(cigar_first, function(x) sum(unlist(x)))
-      SH_clipping_last <- lapply(cigar_last, function(x) sum(unlist(x)))
-
-      # AS - XS >= 5 filter
-      AS_XS_filter <- (mcols(first(r_XS))$AS - mcols(first(r_XS))$XS) >= 5 |
-        (mcols(last(r_XS))$AS - mcols(last(r_XS))$XS) >= 5
-      AS_XS_filter[is.na(AS_XS_filter)] <- FALSE
-
-      # Filtering alignments considering all filters
-      r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r_XS))) < 0.02 |
-                      (unlist(SH_clipping_last) / qwidth(last(r_XS))) < 0.02 ) &
-        ((mcols(first(r_XS))$NM / qwidth(first(r_XS))) < 0.02 |
-           (mcols(last(r_XS))$NM / qwidth(last(r_XS))) < 0.02)  &
-        AS_XS_filter
-
-      if (is.null(r_multi_filtered)) {
-        r_multi_filtered <- r_XS[r_to_keep]
-      }
-      else {
-        r_multi_filtered <- c(r_multi_filtered, r_XS[r_to_keep])
-      }
+      # Testing, for each sample, if the files contain the different tags
+      NH_tag[i] <- ifelse(all(is.na(mcols(r_test)$NH)), FALSE, TRUE)
+      NM_tag[i] <- ifelse(all(is.na(mcols(r_test)$NM)), FALSE, TRUE)
+      nM_tag[i] <- ifelse(all(is.na(mcols(r_test)$nM)), FALSE, TRUE)
+      AS_tag[i] <- ifelse(all(is.na(mcols(r_test)$AS)), FALSE, TRUE)
+      XS_tag[i] <- ifelse(all(grepl("\\d", (mcols(r_test)$XS))), TRUE, FALSE)
 
     }
 
+    # -- Setting the parameters for reading the BAM files
+    bfl <- BamFileList(bam_files, yieldSize = 1000000)
 
-    # Now the alignments corresponding to unique reads are read
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
-                           isSupplementaryAlignment = FALSE,
+                           isDuplicate = FALSE,
+                           isNotPassingQualityControls = FALSE)
+
+    param <- ScanBamParam(flag = sbflags,
+                          tag = c("nM", "NM", "AS", "NH", "XS"),
+                          what = scanBamWhat())
+
+    # If neither NH nor XS tags are available, the suboptimal alignment score
+    # cannot be computed and the 3rd filter cannot be applied. Plus, unique
+    # reads cannot be differentiated from multi-mapping reads
+    if (!all(NH_tag) & !all(XS_tag)) {
+
+      if (eval_unique_r == FALSE) {
+        stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
+      }
+
+      warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat())
+
+    } else if (all(NH_tag) & !all(XS_tag)) {
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat(),
+                            tagFilter = list(NH = c(2:10000)))
+
+    } else if (!all(NH_tag) & all(XS_tag)) {
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat(),
+                            tagFilter = list(XS = c(1:10000)))
+
+    } else {
+      stop("Error: an error occurred when reading the tags from the BAM files.")
+    }
+
+    table_counts <- matrix(nrow = length(ERV_ann), ncol = length(bfl))
+    colnames(table_counts) <- gsub("\\.bam", "", names(bfl))
+
+
+    for (i in 1:length(bfl)) {
+
+      file <- bfl[[i]]
+      open(file)
+
+      r_multi_filtered <- NULL
+
+      while (length(r <- readGAlignments(file, use.names = TRUE, param = param))) {
+
+
+        # Compute the suboptimal alignment score (equivalent to XS tag in BWA)
+        # only if the score is not available in the BAM file and the NH tag is
+        # available
+        if (all(NH_tag) & !all(XS_tag)) {
+
+          if (is.null(names(r))) {
+            stop("The GAlignmentPairs object must have names")
+          }
+
+          r <- atena::getSuboptimalAlignScore(r, strandMode = strandMode)
+        }
+
+
+        # The first filter is always applied
+        cigar <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
+        SH_clipping <- lapply(cigar, function(x) sum(unlist(x)))
+
+        # The second filter is always applied but when the NM tag is not
+        # available the nM tag can be used instead.
+        if (all(NM_tag)) {
+          NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
+        } else if (all(nM_tag)) {
+          NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
+        } else {
+          stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+        }
+
+
+        # The third filter (AS - XS >= 5) cannot be applied when neither the NH
+        # tag nor the XS tag are available
+        if (!all(NH_tag) & !all(XS_tag)) {
+          AS_XS_filter <- rep(TRUE, length(r))
+        } else {
+          AS_XS_filter <- (mcols(r)$AS - mcols(r)$XS) >= 5
+          AS_XS_filter[is.na(AS_XS_filter)] <- FALSE
+        }
+
+        # Filtering alignments considering all filters
+        r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) & NM_filter & AS_XS_filter
+
+        if (is.null(r_multi_filtered)) {
+          r_multi_filtered <- r[r_to_keep]
+        }
+        else {
+          r_multi_filtered <- c(r_multi_filtered, r[r_to_keep])
+        }
+
+      }
+
+
+      # If the NH and XS are not provided, both unique reads and multimapping
+      #  reads have already been filtered in the previous step
+      if (!all(NH_tag) & !all(XS_tag)) {
+
+        close(file)
+
+        # Joining the alignments corresponding to multi-mapping and unique reads
+        r_total <- r_multi_filtered
+
+        overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
+                                     ignore.strand = ignore_strand, mode = Union,
+                                     inter.feature = FALSE, singleEnd = TRUE)
+
+        table_counts[,i] <- assay(overlap)
+
+        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        colnames(table_counts)[i] <- sample_name
+
+        print(paste("Sample", sample_name, "done!", sep = " "))
+
+        # If not, if the user wants to filter unique reads, they will be filtered
+        # (only the first 2 filters). Instead, if the user does not want to filter
+        # unique reads, they will not be filtered, but they will be considered for
+        # computing HERV raw counts.
+
+      } else {
+
+        # Now the alignments corresponding to unique reads are read
+        sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                               isSupplementaryAlignment = FALSE,
+                               isDuplicate = FALSE,
+                               isNotPassingQualityControls = FALSE)
+
+
+        if (!all(NH_tag) & all(XS_tag)) {
+
+          # If the NH is not available but the XS is, only unique reads can be be
+          # read by reading those in which XS = 0.
+          param <- ScanBamParam(flag = sbflags,
+                                tag = c("nM", "NM", "AS", "NH", "XS"),
+                                what = scanBamWhat(),
+                                tagFilter = list(XS = 0))
+        } else {
+          param <- ScanBamParam(flag = sbflags,
+                                tag = c("nM","NM","AS","NH","XS"),
+                                what = scanBamWhat(),
+                                tagFilter = list(NH = 1)) # Read only unique reads
+        }
+
+        r_unique <- NULL
+
+        while (length(r <- readGAlignments(file, use.names = TRUE,
+                                           param = param))) {
+
+          # If the user wants the unique reads to pass the filters in ERVmap, run
+          # ERVmap (except for the "AS - XS > 5" filter) on the unique reads
+          if (eval_unique_r) {
+
+            cigar <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
+            SH_clipping <- lapply(cigar, function(x) sum(unlist(x)))
+
+            if (all(NM_tag)) {
+              NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
+            } else if (all(nM_tag)) {
+              NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
+            } else {
+              stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+            }
+
+            # Filtering alignments considering all filters
+            r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) &
+              NM_filter & AS_XS_filter
+
+            if (is.null(r_unique)) {
+              r_unique <- r[r_to_keep]
+            } else {
+              r_unique <- c(r_unique, r[r_to_keep])
+            }
+
+            # If the user does not want the unique reads to be filtered, but
+            # instead wants to include all unique alignments in the analysis
+            # (discarding unmapped, unpaired, duplicated and not passing
+            # quality control reads), then:
+
+          } else {
+            if (is.null(r_unique)) {
+              r_unique <- r
+            }
+            else {
+              r_unique <- c(r_unique,r)
+            }
+
+          }
+
+        }
+
+        close(file)
+
+        # Joining the alignments corresponding to multi-mapping and unique reads
+        r_total <- c(r_multi_filtered, r_unique)
+
+        overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
+                                     ignore.strand = ignore_strand, mode = Union,
+                                     inter.feature = FALSE, singleEnd = TRUE)
+
+        table_counts[,i] <- assay(overlap)
+
+        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        colnames(table_counts)[i] <- sample_name
+
+        print(paste("Sample", sample_name, "done!", sep = " "))
+      }
+    }
+
+  } else {
+    # -- Reading some alignments of the BAM files to see if they contain the
+    # "NH", "XS", "AS" and "NM" tags
+    bam_files <- list.files(path_bam_files_sorted, pattern = "\\.bam$",
+                            full.names = TRUE)
+    bfl <- BamFileList(bam_files, asMates = TRUE, yieldSize = 100)
+
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isProperPair = TRUE,
                            isDuplicate = FALSE,
                            isNotPassingQualityControls = FALSE)
 
     param <- ScanBamParam(flag = sbflags,
-                          tag = c("nM","NM","AS","NH","XS"),
-                          tagFilter = list(NH = 1)) # Read only unique reads
+                          tag = c("nM", "NM", "AS", "NH", "XS"),
+                          what = scanBamWhat())
 
-    r_unique <- NULL
+    NH_tag <- NULL
+    NM_tag <- NULL
+    nM_tag <- NULL
+    AS_tag <- NULL
+    XS_tag <- NULL
 
-    while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
-                                           param = param,
-                                           strandMode = strandMode))) {
+    for (i in 1:length(bfl)) {
 
-      # If the user wants the unique reads to pass the filters in ERVmap, run
-      # ERVmap (except for the "AS - XS > 5" filter) on the unique reads
-      if (eval_unique_r) {
+      file <- bfl[[i]]
+      open(file)
+      r_test <- readGAlignmentPairs(file, use.names = TRUE,
+                                    param = param,
+                                    strandMode = strandMode)
 
-        cigar_first <- explodeCigarOpLengths(cigar(first(r_XS)), ops =c("H","S"))
-        cigar_last <- explodeCigarOpLengths(cigar(last(r_XS)), ops = c("H", "S"))
+      # Testing, for each sample, if the files contain the different tags
+      NH_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$NH)), FALSE, TRUE)
+      NM_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$NM)), FALSE, TRUE)
+      nM_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$nM)), FALSE, TRUE)
+      AS_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$AS)), FALSE, TRUE)
+      XS_tag[i] <- ifelse(all(grepl("\\d", (mcols(first(r_test))$XS))), TRUE, FALSE)
+
+    }
+
+
+    # -- Setting the parameters for reading the BAM files
+
+    bfl <- BamFileList(bam_files, asMates = TRUE, yieldSize = 1000000)
+
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                           isProperPair = TRUE,
+                           isDuplicate = FALSE,
+                           isNotPassingQualityControls = FALSE)
+
+
+    # If neither NH nor XS tags are available, the suboptimal alignment score
+    # cannot be computed and the 3rd filter cannot be applied. Plus, unique
+    # reads cannot be differentiated from multi-mapping reads
+    if (!all(NH_tag) & !all(XS_tag)) {
+
+      if (eval_unique_r == FALSE) {
+        stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
+      }
+
+      warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat())
+
+    } else if (all(NH_tag) & !all(XS_tag)) {
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat(),
+                            tagFilter = list(NH = c(2:10000)))
+
+    } else if (!all(NH_tag) & all(XS_tag)) {
+      param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", "XS"),
+                            what = scanBamWhat(),
+                            tagFilter = list(XS = c(1:10000)))
+
+    } else {
+      stop("Error: an error occurred when reading the tags from the BAM files.")
+    }
+
+    table_counts <- matrix(nrow = length(ERV_ann), ncol = length(bfl))
+    colnames(table_counts) <- gsub("\\.bam", "", names(bfl))
+
+
+    for (i in 1:length(bfl)) {
+
+      file <- bfl[[i]]
+      open(file)
+
+      r_multi_filtered <- NULL
+
+      while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
+                                             param = param,
+                                             strandMode = strandMode))) {
+
+
+        # Compute the suboptimal alignment score (equivalent to XS tag in BWA)
+        # only if the score is not available in the BAM file and the NH tag is
+        # available
+        if (all(NH_tag) & !all(XS_tag)) {
+
+          if (is.null(names(r))) {
+            stop("The GAlignmentPairs object must have names")
+          }
+
+          r <- atena::getSuboptimalAlignScore(r, strandMode = strandMode)
+        }
+
+
+        # The first filter is always applied
+        cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops = c("H","S"))
+        cigar_last <- explodeCigarOpLengths(cigar(last(r)), ops = c("H","S"))
 
         SH_clipping_first <- lapply(cigar_first, function(x) sum(unlist(x)))
         SH_clipping_last <- lapply(cigar_last, function(x) sum(unlist(x)))
 
-        r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r_XS))) < 0.02 |
-                        (unlist(SH_clipping_last)/ qwidth(last(r_XS))) < 0.02) &
-          ((mcols(first(r_XS))$NM / qwidth(first(r_XS))) < 0.02 |
-             (mcols(last(r_XS))$NM / qwidth(last(r_XS))) < 0.02)
 
-        if (is.null(r_unique)) {
-          r_unique <- r[reads_to_keep]
+        # The second filter is always applied but when the NM tag is not
+        # available the nM tag can be used instead.
+        if (all(NM_tag)) {
+          NM_filter <- (mcols(first(r))$NM / qwidth(first(r))) < 0.02 |
+            (mcols(last(r))$NM / qwidth(last(r))) < 0.02
+
+        } else if (all(nM_tag)) {
+          NM_filter <- (mcols(first(r))$nM / qwidth(first(r))) < 0.02 |
+            (mcols(last(r))$nM / qwidth(last(r))) < 0.02
+        } else {
+          stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+        }
+
+
+        # The third filter (AS - XS >= 5) cannot be applied when neither the NH
+        # tag nor the XS tag are available
+        if (!all(NH_tag) & !all(XS_tag)) {
+          AS_XS_filter <- rep(TRUE, length(r))
+        } else {
+          AS_XS_filter <- (mcols(first(r))$AS - mcols(first(r))$XS) >= 5 |
+            (mcols(last(r))$AS - mcols(last(r))$XS) >= 5
+          AS_XS_filter[is.na(AS_XS_filter)] <- FALSE
+        }
+
+        # Filtering alignments considering all filters
+        r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r))) < 0.02 |
+                        (unlist(SH_clipping_last) / qwidth(last(r))) < 0.02 ) &
+          NM_filter & AS_XS_filter
+
+        if (is.null(r_multi_filtered)) {
+          r_multi_filtered <- r[r_to_keep]
         }
         else {
-          r_unique <- c(r_unique, r[reads_to_keep])
-        }
-      }
-
-      # If the user does not want to select only the unique reads that pass the
-      # ERVmap filters, but instead wants to include all unique alignments in
-      # the analysis (discarding unmapped, unpaired, duplicated and not passing
-      # quality control reads), then:
-
-      else {
-        if (is.null(r_unique)) {
-          r_unique <- r
-        }
-        else {
-          r_unique <- c(r_unique,r)
+          r_multi_filtered <- c(r_multi_filtered, r[r_to_keep])
         }
 
       }
 
+
+      # If the NH and XS are not provided, in the previous step both unique
+      # reads and multimapping reads have already been filtered
+      if (!all(NH_tag) & !all(XS_tag)) {
+
+        close(file)
+
+        # Joining the alignments corresponding to multi-mapping and unique reads
+        r_total <- r_multi_filtered
+
+        overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
+                                     ignore.strand = ignore_strand,
+                                     strandMode = strandMode, mode = Union,
+                                     inter.feature = FALSE, singleEnd = FALSE)
+
+        table_counts[,i] <- assay(overlap)
+
+        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        colnames(table_counts)[i] <- sample_name
+
+        print(paste("Sample", sample_name, "done!", sep = " "))
+
+      # If not, if the user wants to filter unique reads, they will be filtered
+      # (only the first 2 filters). Instead, if the user does not want to filter
+      # unique reads, they will not be filtered, but they will be considered for
+      # computing HERV raw counts.
+
+      } else {
+
+        # Now the alignments corresponding to unique reads are read
+        sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                               isSupplementaryAlignment = FALSE,
+                               isProperPair = TRUE,
+                               isDuplicate = FALSE,
+                               isNotPassingQualityControls = FALSE)
+
+
+        if (!all(NH_tag) & all(XS_tag)) {
+
+          # If the NH is not available but the XS is, only unique reads can be be
+          # read by reading those in which XS = 0.
+            param <- ScanBamParam(flag = sbflags,
+                                  tag = c("nM", "NM", "AS", "NH", "XS"),
+                                  what = scanBamWhat(),
+                                  tagFilter = list(XS = 0))
+        } else {
+            param <- ScanBamParam(flag = sbflags,
+                                  tag = c("nM","NM","AS","NH","XS"),
+                                  what = scanBamWhat(),
+                                  tagFilter = list(NH = 1)) # Read only unique reads
+        }
+
+        r_unique <- NULL
+
+        while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
+                                               param = param,
+                                               strandMode = strandMode))) {
+
+          # If the user wants the unique reads to pass the filters in ERVmap, run
+          # ERVmap (except for the "AS - XS > 5" filter) on the unique reads
+          if (eval_unique_r) {
+
+            cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops =c("H","S"))
+            cigar_last <- explodeCigarOpLengths(cigar(last(r)), ops = c("H", "S"))
+
+            SH_clipping_first <- lapply(cigar_first, function(x) sum(unlist(x)))
+            SH_clipping_last <- lapply(cigar_last, function(x) sum(unlist(x)))
+
+            r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r))) < 0.02 |
+                            (unlist(SH_clipping_last)/ qwidth(last(r))) < 0.02) &
+              ((mcols(first(r))$NM / qwidth(first(r))) < 0.02 |
+                 (mcols(last(r))$NM / qwidth(last(r))) < 0.02)
+
+            if (is.null(r_unique)) {
+              r_unique <- r[r_to_keep]
+            } else {
+              r_unique <- c(r_unique, r[r_to_keep])
+            }
+
+            # If the user does not want the unique reads to be filtered, but
+            # instead wants to include all unique alignments in the analysis
+            # (discarding unmapped, unpaired, duplicated and not passing
+            # quality control reads), then:
+
+          } else {
+              if (is.null(r_unique)) {
+                r_unique <- r
+              }
+              else {
+                r_unique <- c(r_unique,r)
+              }
+            }
+        }
+
+        close(file)
+
+        # Joining the alignments corresponding to multi-mapping and unique reads
+        r_total <- c(r_multi_filtered, r_unique)
+
+        overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
+                                     ignore.strand = ignore_strand,
+                                     strandMode=strandMode, mode = Union,
+                                     inter.feature = FALSE, singleEnd = FALSE)
+
+        table_counts[,i] <- assay(overlap)
+
+        sample_name <- gsub("\\.bam", "", names(bfl)[1])
+        colnames(table_counts)[i] <- sample_name
+
+        print(paste("Sample", sample_name, "done!", sep = " "))
+      }
     }
-
-    close(file)
-
-    # Joining the alignments corresponding to multi-mapping and unique reads
-    r_total <- c(r_multi_filtered, r_unique)
-
-    overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
-                                 ignore.strand = ignore_strand,
-                                 strandMode=strandMode, mode = Union,
-                                 inter.feature = FALSE, singleEnd = FALSE)
-
-    table_counts[,i] <- assay(overlap)
-
-    sample_name <- gsub("\\.bam", "",
-                        grep("\\.bam", strsplit(path(file), "/")[[1]],
-                             value = TRUE))
-    colnames(table_counts)[i] <- sample_name
-
-    print(paste("Sample", sample_name, "done!", sep = " "))
-
   }
-  
-  
-  df_coord <- data.frame(chr =  seqnames(ERV_ann), 
-                          start = start(ranges(ERV_ann)), 
-                          end = end(ranges(ERV_ann)),
-                          strand = strand(ERV_ann))
-  
+
+  df_coord <- data.frame(chr =  seqnames(ERV_ann),
+                         start = start(ranges(ERV_ann)),
+                         end = end(ranges(ERV_ann)),
+                         strand = strand(ERV_ann))
+
   table_counts_coord <- cbind(df_coord, table_counts)
   rownames(table_counts_coord) <- rowData(overlap)$name
-  
+
   return(SummarizedExperiment::makeSummarizedExperimentFromDataFrame(table_counts_coord))
 
 }
