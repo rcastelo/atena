@@ -105,6 +105,7 @@
 
 
 
+
 count_TE <- function(path_bam_files_sorted, strandMode = 1,
                      ann_file = NULL, eval_unique_r = TRUE,
                      ignore_strand = TRUE, singleEnd = FALSE) {
