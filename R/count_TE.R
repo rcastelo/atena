@@ -73,8 +73,8 @@
 #' @param singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @return A `SummarizedExperiment` object representing containing the read
-#' counts for each sample and element in the annotations file. Each sample is
+#' @return A `SummarizedExperiment` object containing the read counts for
+#' each sample and element in the annotations file. Each sample is
 #' represented as a column and each row corresponds to an element in the
 #' annotations. Column names are extracted from the binary 'BAM' file name of
 #' each sample.
