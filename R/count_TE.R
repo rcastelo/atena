@@ -85,11 +85,10 @@
 #' \code{\link{getSuboptimalAlignScore}}
 #'
 #' @examples
-#' \dontrun{path_bam_files_sorted <- "Documents/RNAseq/BAMfiles_sorted"
+#' path_bam_files_sorted <- system.file("extdata", package = "atena")
 #'
-#' table_counts <- count_TE(path_bam_files_sorted, strandMode = 2,
-#'                         eval_unique_r = TRUE, ignore_strand = TRUE),
-#'                         singleEnd = FALSE }
+#' jong_HERV_se <- count_TE(path_bam_files_sorted, eval_unique_r = TRUE,
+#'                          ignore_strand = TRUE), singleEnd = TRUE }
 #'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
@@ -105,11 +104,9 @@
 
 
 
-count_TE <- function(path_bam_files_sorted, strandMode = 1,
+count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                      ann_file = NULL, eval_unique_r = TRUE,
-                     ignore_strand = TRUE, singleEnd = FALSE) {
-
-  reads_to_keep <- NULL
+                     ignore_strand = TRUE) {
 
   # -- Importing HERVs coordinates
 
@@ -234,7 +231,6 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
       open(file)
 
       while (length(r <- readGAlignments(file, use.names = TRUE, param = param))) {
-
 
         # Compute the suboptimal alignment score (equivalent to XS tag in BWA)
         # only if the score is not available in the BAM file and the NH tag is
@@ -374,7 +370,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
       sample_name <- gsub("\\.bam", "", names(bfl)[i])
       colnames(table_counts)[i] <- sample_name
 
-      print(paste("Sample", sample_name, "done!", sep = " "))
+      message(paste("Sample", sample_name, "done!", sep = " "))
     }
 
 
@@ -669,7 +665,7 @@ count_TE <- function(path_bam_files_sorted, strandMode = 1,
 
       sample_name <- gsub("\\.bam", "", names(bfl)[i])
       colnames(table_counts)[i] <- sample_name
-      print(paste("Sample", sample_name, "done!", sep = " "))
+      message(paste("Sample", sample_name, "done!", sep = " "))
 
     }
   }
