@@ -123,14 +123,12 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
     if (ERV_format == "bed") {
       ERV_ann <- rtracklayer::import.bed(ann_file)
 
-    } else {
-      if (ERV_format == "gtf" | ERV_format == "gff") {
-        ERV_ann <- rtracklayer::readGFF(ann_file)
-        ERV_ann_granges <- GenomicRanges::makeGRangesFromDataFrame(ERV_ann)
-        mcols(ERV_ann_granges) <- ERV_ann$gene_id
-        colnames(mcols(ERV_ann_granges))[1] <- "name"
-        ERV_ann <- ERV_ann_granges
-      }
+    } else if (ERV_format == "gtf" | ERV_format == "gff") {
+      ERV_ann <- rtracklayer::readGFF(ann_file)
+      ERV_ann_granges <- GenomicRanges::makeGRangesFromDataFrame(ERV_ann)
+      mcols(ERV_ann_granges) <- ERV_ann$gene_id
+      colnames(mcols(ERV_ann_granges))[1] <- "name"
+      ERV_ann <- ERV_ann_granges
     }
 
     # Changing "seqnames" to match the ones from the reads
@@ -156,8 +154,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                            isNotPassingQualityControls = FALSE)
 
     param <- ScanBamParam(flag = sbflags,
-                          tag = c("nM", "NM", "AS", "NH", "XS"),
-                          what = scanBamWhat())
+                          tag = c("nM", "NM", "AS", "NH", "XS"))
 
     NH_tag <- NULL
     NM_tag <- NULL
@@ -170,6 +167,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
       file <- bfl[[i]]
       open(file)
       r_test <- readGAlignments(file, use.names = TRUE, param = param)
+      close(file)
 
       # Testing, for each sample, if the files contain the different tags
       NH_tag[i] <- ifelse(all(is.na(mcols(r_test)$NH)), FALSE, TRUE)
@@ -187,10 +185,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                            isDuplicate = FALSE,
                            isNotPassingQualityControls = FALSE)
 
-    param <- ScanBamParam(flag = sbflags,
-                          tag = c("nM", "NM", "AS", "NH", "XS"),
-                          what = scanBamWhat())
-
     # If neither NH nor XS tags are available, the suboptimal alignment score
     # cannot be computed and the 3rd filter cannot be applied. Plus, unique
     # reads cannot be differentiated from multi-mapping reads
@@ -202,19 +196,16 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
       param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat())
+                            tag = c("nM", "NM", "AS", "NH", "XS"))
 
     } else if (all(NH_tag) & !all(XS_tag)) {
       param <- ScanBamParam(flag = sbflags,
                             tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat(),
                             tagFilter = list(NH = c(2:10000)))
 
     } else if (!all(NH_tag) & all(XS_tag)) {
       param <- ScanBamParam(flag = sbflags,
                             tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat(),
                             tagFilter = list(XS = c(1:10000)))
 
     } else {
@@ -273,16 +264,20 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
           NM_filter & AS_XS_filter
 
         r_total <- r[r_to_keep]
+        rm(r)
+
         overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
                                      ignore.strand = ignore_strand,
                                      mode = Union, inter.feature = FALSE,
                                      singleEnd = TRUE)
+        rm(r_total)
 
         if (all(is.na(table_counts[,i]))) {
           table_counts[,i] <- assay(overlap)
         } else {
           table_counts[,i] <- table_counts[,i] + assay(overlap)
         }
+
 
       }
 
@@ -307,16 +302,14 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
         if (!all(NH_tag) & all(XS_tag)) {
 
-          # If the NH is not available but the XS is, only unique reads can be
+          # If the NH is not available but the XS is, unique reads can be
           # read by reading those in which XS = 0.
           param <- ScanBamParam(flag = sbflags,
                                 tag = c("nM", "NM", "AS", "NH", "XS"),
-                                what = scanBamWhat(),
                                 tagFilter = list(XS = 0))
         } else {
           param <- ScanBamParam(flag = sbflags,
                                 tag = c("nM","NM","AS","NH","XS"),
-                                what = scanBamWhat(),
                                 tagFilter = list(NH = 1)) #Read only unique reads
         }
 
@@ -340,8 +333,8 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
             # Filtering alignments considering all filters
             r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) & NM_filter
-
             r_unique <- r[r_to_keep]
+            rm(r)
 
             # If the user does not want the unique reads to be filtered, but
             # instead wants to include all unique alignments in the analysis
@@ -349,12 +342,14 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
             # quality control reads), then:
           } else {
             r_unique <- r
+            rm(r)
           }
 
-          overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
+          overlap <- summarizeOverlaps(features = ERV_ann, reads = r_unique,
                                        ignore.strand = ignore_strand,
                                        mode = Union, inter.feature = FALSE,
                                        singleEnd = TRUE)
+          rm(r_unique)
 
           if (all(is.na(table_counts[,i]))) {
             table_counts[,i] <- assay(overlap)
@@ -388,8 +383,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                            isNotPassingQualityControls = FALSE)
 
     param <- ScanBamParam(flag = sbflags,
-                          tag = c("nM", "NM", "AS", "NH", "XS"),
-                          what = scanBamWhat())
+                          tag = c("nM", "NM", "AS", "NH", "XS"))
 
     NH_tag <- NULL
     NM_tag <- NULL
@@ -404,13 +398,15 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
       r_test <- readGAlignmentPairs(file, use.names = TRUE,
                                     param = param,
                                     strandMode = strandMode)
+      close(file)
 
       # Testing, for each sample, if the files contain the different tags
       NH_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$NH)), FALSE, TRUE)
       NM_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$NM)), FALSE, TRUE)
       nM_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$nM)), FALSE, TRUE)
       AS_tag[i] <- ifelse(all(is.na(mcols(first(r_test))$AS)), FALSE, TRUE)
-      XS_tag[i] <- ifelse(all(grepl("\\d", (mcols(first(r_test))$XS))), TRUE, FALSE)
+      XS_tag[i] <- ifelse(all(grepl("\\d", (mcols(first(r_test))$XS))),
+                          TRUE, FALSE)
 
     }
 
@@ -418,12 +414,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
     # -- Setting the parameters for reading the BAM files
 
     bfl <- BamFileList(bam_files, asMates = TRUE, yieldSize = 100000)
-
-    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
-                           isProperPair = TRUE,
-                           isDuplicate = FALSE,
-                           isNotPassingQualityControls = FALSE)
-
 
     # If neither NH nor XS tags are available, the suboptimal alignment score
     # cannot be computed and the 3rd filter cannot be applied. Plus, unique
@@ -436,19 +426,16 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
       param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat())
+                            tag = c("nM", "NM", "AS", "NH", "XS"))
 
     } else if (all(NH_tag) & !all(XS_tag)) {
       param <- ScanBamParam(flag = sbflags,
                             tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat(),
                             tagFilter = list(NH = c(2:10000)))
 
     } else if (!all(NH_tag) & all(XS_tag)) {
       param <- ScanBamParam(flag = sbflags,
                             tag = c("nM", "NM", "AS", "NH", "XS"),
-                            what = scanBamWhat(),
                             tagFilter = list(XS = c(1:10000)))
 
     } else {
@@ -463,9 +450,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       file <- bfl[[i]]
       open(file)
-
-      r_multi_filtered_f <- NULL
-      r_multi_filtered_l <- NULL
 
       while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
                                              param = param,
@@ -485,7 +469,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
         r_first <- first(r)
         r_last <- last(r)
-
         rm(r)
 
         # The first filter is always applied
@@ -532,17 +515,16 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
 
         # Selecting the filtered fragments, considering the two fragments of a
-        # paired-end read as independent
-        r_multi_filtered_f <- r_first[r_to_keep_f]
-        r_multi_filtered_l <- r_last[r_to_keep_l]
-
-        # Joining the fragments into a unique object
-        r_total <- c(r_multi_filtered_f, r_multi_filtered_l)
+        # paired-end read as independent and Joining the fragments into a
+        # unique object
+        r_total <- c(r_first[r_to_keep_f], r_last[r_to_keep_l])
+        rm(r_first, r_last)
 
         # Computing read counts for each element
         overlap <- summarizeOverlaps(features = ERV_ann, reads = r_total,
                                      ignore.strand = ignore_strand,
                                      mode = Union, inter.feature = FALSE)
+        rm(r_total)
 
         if (all(is.na(table_counts[,i]))) {
           table_counts[,i] <- assay(overlap)
@@ -559,10 +541,10 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
         close(file)
 
       } else {
-        ## If not, if the user wants to filter unique reads, they will be filtered
-        ## (only the first 2 filters). Instead, if the user does not want to filter
-        ## unique reads, they will not be filtered, but they will be considered for
-        ## computing HERV raw counts.
+        ## If not, if the user wants to filter unique reads, they will be
+        ## filtered (only the first 2 filters). Instead, if the user does not
+        ## want to filter unique reads, they will not be filtered, but they
+        ## will be considered for computing HERV raw counts.
 
         # Now the alignments corresponding to unique reads are read
         sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
@@ -578,19 +560,12 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
           # read by reading those in which XS = 0.
           param <- ScanBamParam(flag = sbflags,
                                 tag = c("nM", "NM", "AS", "NH", "XS"),
-                                what = scanBamWhat(),
                                 tagFilter = list(XS = 0))
         } else {
           param <- ScanBamParam(flag = sbflags,
                                 tag = c("nM","NM","AS","NH","XS"),
-                                what = scanBamWhat(),
                                 tagFilter = list(NH = 1)) # Read only unique reads
         }
-
-        r_first <- NULL
-        r_last <- NULL
-        r_unique_f <- NULL
-        r_unique_l <- NULL
 
         while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
                                                param = param,
@@ -631,10 +606,8 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
             r_to_keep_l <- ((unlist(SH_clipping_last) / qwidth(r_last)) < 0.02) &
               NM_filter_last
 
-            r_unique_f <- r_first[r_to_keep_f]
-            r_unique_l <- r_last[r_to_keep_l]
-
-            r_unique <- c(r_unique_f, r_unique_l)
+            r_unique <- c(r_first[r_to_keep_f], r_last[r_to_keep_l])
+            rm(r_first, r_last)
 
 
             # If the user does not want the unique reads to be filtered, but
@@ -644,6 +617,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
           } else {
               r_unique <- c(r_first, r_last)
+              rm(r_first, r_last)
           }
 
           # Computing read counts for each element
