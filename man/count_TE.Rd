@@ -6,17 +6,20 @@
 \usage{
 count_TE(
   path_bam_files_sorted,
+  singleEnd = FALSE,
   strandMode = 1,
   ann_file = NULL,
   eval_unique_r = TRUE,
-  ignore_strand = TRUE,
-  singleEnd = FALSE
+  ignore_strand = TRUE
 )
 }
 \arguments{
 \item{path_bam_files_sorted}{Character vector indicating the location where
 the sorted by Query-name BAM files resulting from the \code{\link{sort_bam}}
 function are located.}
+
+\item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
+(\code{TRUE}) or paired-end (\code{FALSE}).}
 
 \item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
 The strand mode is a per-object switch on
@@ -29,10 +32,11 @@ class for further detail. If \code{singleEnd = TRUE}, then use either
 \item{ann_file}{(Default NULL) A single string containing the path and name
 of the endogenous retrovirus (ERVs) or TE annotation file (including the
 extension of the file). The allowed file formats are BED and GTF / GFF
-version 2. When \code{ann_file} is not specified (\code{ann_file} == NULL),
+version 2. When \code{ann_file} is not specified (\code{ann_file = NULL}),
 the human endogenous retroviruses annotations published by
 \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}
-will be used instead.}
+will be used instead. These annotations are not strand-specific, so
+\code{ignore_strand} must be \code{ignore_strand = TRUE}.}
 
 \item{eval_unique_r}{(Default TRUE) Logical value indicating whether to apply
 the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
@@ -51,13 +55,10 @@ the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
 any alignment which overlaps with the element in the annotations regardless
 of the strand. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}}.}
-
-\item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
-(\code{TRUE}) or paired-end (\code{FALSE}).}
 }
 \value{
-A `SummarizedExperiment` object representing containing the read
-counts for each sample and element in the annotations file. Each sample is
+A `SummarizedExperiment` object containing the read counts for
+each sample and element in the annotations file. Each sample is
 represented as a column and each row corresponds to an element in the
 annotations. Column names are extracted from the binary 'BAM' file name of
 each sample.
@@ -97,11 +98,10 @@ element in the annotation file. The
 purpose.
 }
 \examples{
-\dontrun{path_bam_files_sorted <- "Documents/RNAseq/BAMfiles_sorted"
+path_bam_files_sorted <- system.file("extdata", package = "atena")
 
-table_counts <- count_TE(path_bam_files_sorted, strandMode = 2,
-                        eval_unique_r = TRUE, ignore_strand = TRUE),
-                        singleEnd = FALSE }
+jong_HERV_se <- count_TE(path_bam_files_sorted, eval_unique_r = TRUE,
+                         ignore_strand = TRUE), singleEnd = TRUE)
 
 }
 \references{
