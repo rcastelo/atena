@@ -47,10 +47,11 @@
 #' @param ann_file (Default NULL) A single string containing the path and name
 #'   of the endogenous retrovirus (ERVs) or TE annotation file (including the
 #'   extension of the file). The allowed file formats are BED and GTF / GFF
-#'   version 2. When \code{ann_file} is not specified (\code{ann_file} == NULL),
+#'   version 2. When \code{ann_file} is not specified (\code{ann_file = NULL}),
 #'   the human endogenous retroviruses annotations published by
 #'   \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}
-#'   will be used instead.
+#'   will be used instead. These annotations are not strand-specific, so
+#'   \code{ignore_strand} must be \code{ignore_strand = TRUE}.
 #'
 #' @param eval_unique_r (Default TRUE) Logical value indicating whether to apply
 #' the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
@@ -166,7 +167,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       file <- bfl[[i]]
       open(file)
-      r_test <- readGAlignments(file, use.names = TRUE, param = param)
+      r_test <- readGAlignments(file, param = param)
       close(file)
 
       # Testing, for each sample, if the files contain the different tags
@@ -183,7 +184,8 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isDuplicate = FALSE,
-                           isNotPassingQualityControls = FALSE)
+                           isNotPassingQualityControls = FALSE,
+                           isSupplementaryAlignment = FALSE)
 
     # If neither NH nor XS tags are available, the suboptimal alignment score
     # cannot be computed and the 3rd filter cannot be applied. Plus, unique
@@ -221,7 +223,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
       file <- bfl[[i]]
       open(file)
 
-      while (length(r <- readGAlignments(file, use.names = TRUE, param = param))) {
+      while (length(r <- readGAlignments(file, param = param))) {
 
         # Compute the suboptimal alignment score (equivalent to XS tag in BWA)
         # only if the score is not available in the BAM file and the NH tag is
@@ -247,7 +249,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
         } else if (all(nM_tag)) {
           NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
         } else {
-          stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+          stop("Error: Neither the NM tag nor the nM tag are available in the BAM file. At least one of them is needed to apply the 2nd filter.")
         }
 
         # The third filter (AS - XS >= 5) cannot be applied when neither the NH
@@ -281,13 +283,11 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       }
 
-      if (!all(NH_tag) & !all(XS_tag)) {
+      close(file)
+
+      if (any(c(all(NH_tag),all(XS_tag)))) {
         ## If the NH and XS are not provided, in the previous step both unique
         ## reads and multimapping reads have already been filtered
-
-        close(file)
-
-      } else {
         ## If not, if the user wants to filter unique reads, they will be
         ## filtered (only the first 2 filters). Instead, if the user does not
         ## want to filter unique reads, they will not be filtered, but they
@@ -298,7 +298,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                                isSupplementaryAlignment = FALSE,
                                isDuplicate = FALSE,
                                isNotPassingQualityControls = FALSE)
-
 
         if (!all(NH_tag) & all(XS_tag)) {
 
@@ -313,12 +312,14 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                                 tagFilter = list(NH = 1)) #Read only unique reads
         }
 
-        while (length(r <- readGAlignments(file, use.names = TRUE,
-                                           param = param))) {
+        open(file)
+
+        while (length(r <- readGAlignments(file, param = param))) {
 
           # If the user wants the unique reads to pass the filters in ERVmap,
           # run ERVmap (except for the "AS - XS > 5" filter) on the unique reads
           if (eval_unique_r) {
+            print(r)
 
             cigar <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
             SH_clipping <- lapply(cigar, function(x) sum(unlist(x)))
@@ -336,20 +337,23 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
             r_unique <- r[r_to_keep]
             rm(r)
 
+            overlap <- summarizeOverlaps(features = ERV_ann, reads = r_unique,
+                                         ignore.strand = ignore_strand,
+                                         mode = Union, inter.feature = FALSE,
+                                         singleEnd = TRUE)
+            rm(r_unique)
+
             # If the user does not want the unique reads to be filtered, but
             # instead wants to include all unique alignments in the analysis
             # (discarding unmapped, unpaired, duplicated and not passing
             # quality control reads), then:
           } else {
-            r_unique <- r
+            overlap <- summarizeOverlaps(features = ERV_ann, reads = r,
+                                         ignore.strand = ignore_strand,
+                                         mode = Union, inter.feature = FALSE,
+                                         singleEnd = TRUE)
             rm(r)
           }
-
-          overlap <- summarizeOverlaps(features = ERV_ann, reads = r_unique,
-                                       ignore.strand = ignore_strand,
-                                       mode = Union, inter.feature = FALSE,
-                                       singleEnd = TRUE)
-          rm(r_unique)
 
           if (all(is.na(table_counts[,i]))) {
             table_counts[,i] <- assay(overlap)
@@ -380,6 +384,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isProperPair = TRUE,
                            isDuplicate = FALSE,
+                           isSupplementaryAlignment = FALSE,
                            isNotPassingQualityControls = FALSE)
 
     param <- ScanBamParam(flag = sbflags,
@@ -493,7 +498,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
           stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
         }
 
-
         # The third filter (AS - XS >= 5) cannot be applied when neither the NH
         # tag nor the XS tag are available
         if (!all(NH_tag) & !all(XS_tag)) {
@@ -534,13 +538,11 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
       }
 
-      if (!all(NH_tag) & !all(XS_tag)) {
+      close(file)
+
+      if (any(all(NH_tag) & all(XS_tag))) {
         ## If the NH and XS are not provided, in the previous step both unique
         ## reads and multimapping reads have already been filtered
-
-        close(file)
-
-      } else {
         ## If not, if the user wants to filter unique reads, they will be
         ## filtered (only the first 2 filters). Instead, if the user does not
         ## want to filter unique reads, they will not be filtered, but they
@@ -567,10 +569,10 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                                 tagFilter = list(NH = 1)) # Read only unique reads
         }
 
-        while (length(r <- readGAlignmentPairs(file, use.names = TRUE,
-                                               param = param,
-                                               strandMode = strandMode))) {
+        open(file)
 
+        while (length(r <- readGAlignmentPairs(file, param = param,
+                                               strandMode = strandMode))) {
           r_first <- first(r)
           r_last <- last(r)
           rm(r)
@@ -607,23 +609,20 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
               NM_filter_last
 
             r_unique <- c(r_first[r_to_keep_f], r_last[r_to_keep_l])
-            rm(r_first, r_last)
-
 
             # If the user does not want the unique reads to be filtered, but
             # instead wants to include all unique alignments in the analysis
             # (discarding unmapped, unpaired, duplicated and not passing
             # quality control reads), then:
-
           } else {
               r_unique <- c(r_first, r_last)
-              rm(r_first, r_last)
           }
 
           # Computing read counts for each element
           overlap <- summarizeOverlaps(features = ERV_ann, reads = r_unique,
                                        ignore.strand = ignore_strand,
                                        mode = Union, inter.feature = FALSE)
+          rm(r_first, r_last, r_unique)
 
           if (all(is.na(table_counts[,i]))) {
             table_counts[,i] <- assay(overlap)
