@@ -319,7 +319,6 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
           # If the user wants the unique reads to pass the filters in ERVmap,
           # run ERVmap (except for the "AS - XS > 5" filter) on the unique reads
           if (eval_unique_r) {
-            print(r)
 
             cigar <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
             SH_clipping <- lapply(cigar, function(x) sum(unlist(x)))
