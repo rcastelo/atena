@@ -360,7 +360,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
             table_counts[,i] <- table_counts[,i] + assay(overlap)
           }
         }
-        gc()
+        gc() #garbage collector
         close(file)
 
       }
@@ -632,7 +632,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
         }
 
         close(file)
-        gc()
+        gc() #garbage collector
 
       }
 
