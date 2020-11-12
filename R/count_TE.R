@@ -197,38 +197,39 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
                            isNotPassingQualityControls = FALSE,
                            isSupplementaryAlignment = FALSE)
 
-    # If neither NH nor XS tags are available, the suboptimal alignment score
-    # cannot be computed and the 3rd filter cannot be applied. Plus, unique
-    # reads cannot be differentiated from multi-mapping reads
-    if (!all(NH_tag) & !all(XS_tag)) {
-
-      if (eval_unique_r == FALSE) {
-        stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
-      }
-
-      warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"))
-
-    } else if (all(NH_tag) & !all(XS_tag)) {
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(NH = c(2:10000)))
-
-    } else if (!all(NH_tag) & all(XS_tag)) {
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(XS = c(1:10000)))
-
-    } else {
-      stop("Error: an error occurred when reading the tags from the BAM files.")
-    }
 
     table_counts <- matrix(nrow = length(ERV_ann), ncol = length(bfl))
     colnames(table_counts) <- gsub("\\.bam", "", names(bfl))
 
 
     for (i in 1:length(bfl)) {
+
+      # If neither NH nor XS tags are available, the suboptimal alignment score
+      # cannot be computed and the 3rd filter cannot be applied. Plus, unique
+      # reads cannot be differentiated from multi-mapping reads
+      if (!all(NH_tag) & !all(XS_tag)) {
+
+        if (eval_unique_r == FALSE) {
+          stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
+        }
+
+        warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"))
+
+      } else if (all(NH_tag) & !all(XS_tag)) {
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"),
+                              tagFilter = list(NH = c(2:10000)))
+
+      } else if (!all(NH_tag) & all(XS_tag)) {
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"),
+                              tagFilter = list(XS = c(1:10000)))
+
+      } else {
+        stop("Error: an error occurred when reading the tags from the BAM files.")
+      }
 
       file <- bfl[[i]]
       open(file)
@@ -427,38 +428,44 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
 
     bfl <- BamFileList(bam_files, asMates = TRUE, yieldSize = 100000)
 
-    # If neither NH nor XS tags are available, the suboptimal alignment score
-    # cannot be computed and the 3rd filter cannot be applied. Plus, unique
-    # reads cannot be differentiated from multi-mapping reads
-    if (!all(NH_tag) & !all(XS_tag)) {
-
-      if (eval_unique_r == FALSE) {
-        stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
-      }
-
-      warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"))
-
-    } else if (all(NH_tag) & !all(XS_tag)) {
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(NH = c(2:10000)))
-
-    } else if (!all(NH_tag) & all(XS_tag)) {
-      param <- ScanBamParam(flag = sbflags,
-                            tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(XS = c(1:10000)))
-
-    } else {
-      stop("Error: an error occurred when reading the tags from the BAM files.")
-    }
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                           isProperPair = TRUE,
+                           isDuplicate = FALSE,
+                           isSupplementaryAlignment = FALSE,
+                           isNotPassingQualityControls = FALSE)
 
     table_counts <- matrix(nrow = length(ERV_ann), ncol = length(bfl))
     colnames(table_counts) <- gsub("\\.bam", "", names(bfl))
 
 
     for (i in 1:length(bfl)) {
+
+      # If neither NH nor XS tags are available, the suboptimal alignment score
+      # cannot be computed and the 3rd filter cannot be applied. Plus, unique
+      # reads cannot be differentiated from multi-mapping reads
+      if (!all(NH_tag) & !all(XS_tag)) {
+
+        if (eval_unique_r == FALSE) {
+          stop("Error in 'eval_unique_r = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must also be filtered.")
+        }
+
+        warning("Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. At least one of the two tags is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"))
+
+      } else if (all(NH_tag) & !all(XS_tag)) {
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"),
+                              tagFilter = list(NH = c(2:10000)))
+
+      } else if (!all(NH_tag) & all(XS_tag)) {
+        param <- ScanBamParam(flag = sbflags,
+                              tag = c("nM", "NM", "AS", "NH", "XS"),
+                              tagFilter = list(XS = c(1:10000)))
+
+      } else {
+        stop("Error: an error occurred when reading the tags from the BAM files.")
+      }
 
       file <- bfl[[i]]
       open(file)
