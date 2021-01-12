@@ -10,7 +10,8 @@ count_TE(
   strandMode = 1,
   ann_file = NULL,
   eval_unique_r = TRUE,
-  ignore_strand = TRUE
+  ignore_strand = TRUE,
+  mode = "original"
 )
 }
 \arguments{
@@ -55,6 +56,15 @@ the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
 any alignment which overlaps with the element in the annotations regardless
 of the strand. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}}.}
+
+\item{mode}{(Default "original") Character string indicating the counting
+mode for paired-end data. When \code{mode = "original"}, the counting method
+present in the ERVmap original pipeline will be applied: each mate of a
+paired-end read is counted once (two mates mapping to the same element result
+in a count of 2). Instead, if \code{mode = "atena"}, when the two mates of
+a paired-end read map to the same element, they are counted as a single hit.
+
+(\code{TRUE}) or paired-end (\code{FALSE}).}
 }
 \value{
 A `SummarizedExperiment` object containing the read counts for
@@ -101,7 +111,7 @@ purpose.
 path_bam_files_sorted <- system.file("extdata", package = "atena")
 
 jong_HERV_se <- count_TE(path_bam_files_sorted, eval_unique_r = TRUE,
-                         ignore_strand = TRUE), singleEnd = TRUE)
+                         ignore_strand = TRUE, singleEnd = TRUE)
 
 }
 \references{

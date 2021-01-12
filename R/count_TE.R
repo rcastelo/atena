@@ -98,7 +98,7 @@
 #' path_bam_files_sorted <- system.file("extdata", package = "atena")
 #'
 #' jong_HERV_se <- count_TE(path_bam_files_sorted, eval_unique_r = TRUE,
-#'                          ignore_strand = TRUE), singleEnd = TRUE)
+#'                          ignore_strand = TRUE, singleEnd = TRUE)
 #'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
