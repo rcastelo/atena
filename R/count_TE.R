@@ -121,7 +121,7 @@ count_TE <- function(path_bam_files_sorted, singleEnd = FALSE, strandMode = 1,
   # -- Importing HERVs coordinates
 
   if (is.null(ann_file)) {
-    ERV_ann <- ERVmap_ann
+    ERV_ann <- ERVmap_ann()
 
   } else {
 

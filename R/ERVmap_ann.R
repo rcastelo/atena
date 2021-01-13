@@ -1,12 +1,13 @@
 #' Annotations of human endogenous retroviruses from ERVmap in
 #' \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}
 #'
-#' Annotations of human endogenous retroviruses (HERVs) published in
+#' \code{ERVmap_ann()} provides the annotations of
+#' human endogenous retroviruses (HERVs) published in
 #' \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)} for
 #' the ERVmap pipeline. These include 3220 curated autonomous HERVs that mirror
 #' full-length proviruses.
 #'
-#' @format A \code{GRanges} object with 3220 ranges and 2 metadata columns:
+#' @return A \code{GRanges} object with 3220 ranges and 2 metadata columns:
 #' \describe{
 #'   \item{seqnames}{chromosome in which the HERV is located}
 #'   \item{ranges}{start and end positions of the HERV in the chromosome}
@@ -18,9 +19,16 @@
 #' }
 #' @source \url{https://github.com/mtokuyama/ERVmap/blob/master/ERVmap.bed}
 #'
+#' @examples
+#' ERVmap_ann()
+#'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
 #' endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
-"ERVmap_ann"
+#' @export
+ERVmap_ann <- function() {
+  ann <- readRDS(file.path(system.file("extdata", package="atena"), "ERVmap_ann.rds"))
+  ann
+}
