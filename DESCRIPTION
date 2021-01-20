@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Expression quantification of transposable elements
-Version: 0.99.1
+Version: 0.99.2
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
