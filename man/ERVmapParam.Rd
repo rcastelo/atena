@@ -66,7 +66,6 @@ This function serves the purpose of building an object of the
 class \code{ERVmapParam-class}.
 }
 \examples{
-library(Rsamtools)
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()

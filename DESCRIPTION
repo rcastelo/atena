@@ -1,27 +1,29 @@
 Package: atena
 Type: Package
-Title: Expression quantification of transposable elements
+Title: Analysis of Transposable Elements
 Version: 0.99.2
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
-Description: Package able to quantify locus-specific expression of transposable 
-    elements from genome-wide high-throughput RNA sequencing data. The core of 
-    this tool is based on the ERVmap pipeline (Tokuyama et al., 2018), which 
-    processes reads following conservative filtering criteria to provide 
-    reliable raw count data for each genomic region encompassing a transposable 
-    element.
-License: GPL-3
+Description: Quantify expression of transposable elements from RNA-seq data through
+    different methods, including ERVmap (Tokuyama et al., 2018) and Telescope
+    (Bendall et al., 2019).
+License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
 Depends:
-    GenomicAlignments (>= 1.24.0),
-    Rsamtools (>= 2.4.0),
     R (>= 3.5)
 Imports: 
+    BiocGenerics,
+    BiocParallel,
+    GenomicAlignments (>= 1.24.0),
+    Rsamtools (>= 2.4.0),
     rtracklayer (>= 1.48.0),
     S4Vectors,
     GenomeInfoDb,
     SummarizedExperiment,
-    GenomicRanges
+    GenomicRanges,
+    reticulate,
+    basilisk,
+    basilisk.utils
 RoxygenNote: 7.1.1

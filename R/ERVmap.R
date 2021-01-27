@@ -49,7 +49,6 @@
 #' @return A \code{ERVmapParam-class} object.
 #'
 #' @examples
-#' library(Rsamtools)
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
 #' annot <- ERVmap_ann()
@@ -82,9 +81,9 @@ ERVmapParam <- function(bfl, annotations,
 
 #' @importFrom BiocGenerics path
 #' @export
-#' @aliases path,ERVmapParam-method
+#' @aliases path,AtenaParam-method
 #' @rdname ERVmapParam-class
-setMethod("path", "ERVmapParam",
+setMethod("path", "AtenaParam",
           function(object) {
             path(object@bfl)
           })
@@ -117,15 +116,27 @@ setMethod("show", "ERVmapParam",
             cat("\n")
           })
 
-#' Quantify transposable element expression using ERVmap
+#' Quantify transposable element expression
 #'
-#' Using an \code{ERVmapParam} object as input, the
+#' Giving an \code{AtenaParam} object as input, the
 #' \code{qtex()} method quantifies the expression of transposable
-#' elements (TEs) using the ERVmap algorithm. If you use this
-#' method please cite Tokuyama et al. (2018).
+#' elements (TEs). The particular algorithm to perform the
+#' quantification will be selected depending on the specific
+#' sub-class of input \code{AtenaParam} object, see argument
+#' \code{x} below.
 #'
-#' @param x An \code{ERVmapParam} object. It should be built
-#' using the constructor function \code{\link{ERVmapParam}}.
+#' @param x An \code{AtenaParam} object of one of the following
+#' subclasses:
+#' \itemize{
+#'   \item A \code{ERVmapParam} object built using the constructor
+#'         function \code{\link{ERVmapParam}()}. This object will
+#'         trigger \code{qtex()} to use the algorithm by
+#'         Tokuyama et al. (2018).
+#'   \item A \code{TelescopeParam} object built using the constructor
+#'         function \code{\link{TelescopeParam}()}. This object will
+#'         trigger \code{qtex()} to use the algorithm by
+#'         Bendall et al. (2019).
+#' }
 #'
 #' @return A \code{SummarizedExperiment} object.
 #'
@@ -134,13 +145,19 @@ setMethod("show", "ERVmapParam",
 
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
-#' endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+#' endogenous retroviruses. PNAS, 115(50):12565-12572, 2018.
 #' \url{https://doi.org/10.1073/pnas.1814589115}
+#'
+#' @references
+#' Bendall ML et al. Telescope: characterization of the retrotranscriptome by
+#' accurate estimation of transposable element expression.
+#' PLOS Computational Biology, 15:e1006453, 2019.
+#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
 #' @export
 #' @aliases qtex
 #' @aliases qtex,ERVmapParam-method
-#' @rdname qtex-ERVmap
+#' @rdname qtex
 setMethod("qtex", "ERVmapParam",
           function(x) {
             cat("ERVmap!!\n")

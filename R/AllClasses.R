@@ -11,6 +11,13 @@
 #' @rdname AtenaParam-class
 #' @importClassesFrom Rsamtools BamFileList
 #' @importClassesFrom GenomicRanges GRanges
+#'
+#' @references
+#' Bendall et al. Telescope: characterization of the retrotranscriptome by
+#' accurate estimation of transposable element expression.
+#' PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
+#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
+#'
 #' @export
 #' @exportClass
 setClass("AtenaParam",
@@ -60,6 +67,11 @@ setClass("AtenaParam",
 #' a single hit and singletons, reads with unmapped pairs and other fragments
 #' are not counted.
 #' 
+#' @references
+#' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
+#' endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+#' \url{https://doi.org/10.1073/pnas.1814589115}
+#'
 #' @name ERVmapParam-class
 #' @rdname ERVmapParam-class
 #' @export

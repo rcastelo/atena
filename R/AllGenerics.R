@@ -1,1 +1,1 @@
-setGeneric("qtex", function(x) standardGeneric("qtex"))
+setGeneric("qtex", function(x, ...) standardGeneric("qtex"))

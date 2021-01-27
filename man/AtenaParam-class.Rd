@@ -16,3 +16,9 @@ provided to several functions in the atena package.
 \item{\code{annotations}}{A 'GRanges' object.}
 }}
 
+\references{
+Bendall et al. Telescope: characterization of the retrotranscriptome by
+accurate estimation of transposable element expression.
+PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
+\url{https://doi.org/10.1371/journal.pcbi.1006453}
+}

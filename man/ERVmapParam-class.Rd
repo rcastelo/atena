@@ -3,11 +3,11 @@
 \docType{class}
 \name{ERVmapParam-class}
 \alias{ERVmapParam-class}
-\alias{path,ERVmapParam-method}
+\alias{path,AtenaParam-method}
 \alias{show,ERVmapParam-method}
 \title{ERVmap parameter class}
 \usage{
-\S4method{path}{ERVmapParam}(object)
+\S4method{path}{AtenaParam}(object)
 
 \S4method{show}{ERVmapParam}(object)
 }
@@ -57,3 +57,8 @@ a single hit and singletons, reads with unmapped pairs and other fragments
 are not counted.}
 }}
 
+\references{
+Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
+endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+\url{https://doi.org/10.1073/pnas.1814589115}
+}
