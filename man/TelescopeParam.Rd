@@ -7,24 +7,29 @@
 TelescopeParam(bfl, annotations, opts = list(quiet = TRUE))
 }
 \arguments{
-\item{bfl}{A 'BamFile' or 'BamFileList' object, or a character string vector
-of BAM filenames.}
+\item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
+string vector of BAM filenames.}
 
-\item{annotations}{A 'GRanges' object. Ranges in this object should have
-names, which will be used as grouping factor for ranges forming a common locus.}
+\item{annotations}{A \code{GRanges} object. Ranges in this object should
+have names, which will be used as a grouping factor for ranges forming a
+common locus.}
 
-\item{opts}{Options to to pass to the telescope algorithm. Defaults
-correspond to those from the telescope software, with the exception of
-setting \code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
+\item{opts}{A \code{list} object specifying options to to pass to the
+telescope algorithm, where a list element name should the option name and
+its value should be the option value, which in the case of flags should be
+be set as a logical \code{TRUE} or \code{FALSE} value. Defaults correspond
+to those from the telescope software, with the exception of setting
+\code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
 The following Telescope options cannot be set: \code{--attribute},
 \code{--outdir}, \code{--exp_tag}, \code{--tempdir}, \code{--ncpu},
-\code{--skip_em}.}
+\code{--skip_em}. For a full documentation on Telescope options please
+consult \url{https://github.com/mlbendall/telescope}.}
 }
 \value{
 A \linkS4class{TelescopeParam} object.
 }
 \description{
-Build an object of the class \code{TelescopeParam-class}.
+Build an object of the class \code{TelescopeParam}.
 }
 \details{
 This is the constructor function for objects of the class

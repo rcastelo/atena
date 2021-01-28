@@ -1,33 +1,40 @@
 #' Atena parameter class
 #'
-#' This is a top-level class for storing parameters
-#' provided to several functions in the atena package.
+#' This is a virtual class from which other classes are derived
+#' for storing parameters provided to quantification methods of
+#' transposable elements from RNA-seq data.
 #'
 #' @slot bfl A 'BamFileList' object.
 #'
 #' @slot annotations A 'GRanges' object.
 #'
-#' @name AtenaParam-class
-#' @rdname AtenaParam-class
 #' @importClassesFrom Rsamtools BamFileList
 #' @importClassesFrom GenomicRanges GRanges
 #'
-#' @references
-#' Bendall et al. Telescope: characterization of the retrotranscriptome by
-#' accurate estimation of transposable element expression.
-#' PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
-#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
+#' @seealso
+#' \code{\link{ERVmapParam-class}}
+#' \code{\link{TelescopeParam-class}}
 #'
-#' @export
+#' @name AtenaParam-class
+#' @rdname AtenaParam-class
 #' @exportClass
 setClass("AtenaParam",
          representation(bfl="BamFileList",
                         annotations="GRanges"))
 
+#' @importFrom BiocGenerics path
+#' @export
+#' @aliases path,AtenaParam-method
+#' @rdname AtenaParam-class
+setMethod("path", "AtenaParam",
+          function(object) {
+            path(object@bfl)
+          })
+
 #' ERVmap parameter class
 #'
-#' This is a class for storing parameters
-#' provided to the ERVmap algorithm
+#' This is a class for storing parameters provided to the ERVmap algorithm.
+#' It is a subclass of the 'AtenaParam-class'.
 #'
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -91,8 +98,16 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @slot basiliskEnv A 'BasiliskEnvironment' object; see the
 #' \code{BasiliskEnvironment-class} in the \code{basilisk} package.
 #'
+#' @slot telescopeVersion 'character' string storing the Telescope version.
+#'
 #' @slot telescopeOptions 'list' object storing the options for the
 #' Telescope algorithm.
+#'
+#' @references
+#' Bendall et al. Telescope: characterization of the retrotranscriptome by
+#' accurate estimation of transposable element expression.
+#' PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
+#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
 #' @name TelescopeParam-class
 #' @rdname TelescopeParam-class
@@ -101,4 +116,5 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @exportClass
 setClass("TelescopeParam", contains="AtenaParam",
          representation(basiliskEnv="BasiliskEnvironment",
+                        telescopeVersion="character",
                         telescopeOptions="list"))

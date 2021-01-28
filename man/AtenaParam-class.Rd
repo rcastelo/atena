@@ -3,10 +3,15 @@
 \docType{class}
 \name{AtenaParam-class}
 \alias{AtenaParam-class}
+\alias{path,AtenaParam-method}
 \title{Atena parameter class}
+\usage{
+\S4method{path}{AtenaParam}(object)
+}
 \description{
-This is a top-level class for storing parameters
-provided to several functions in the atena package.
+This is a virtual class from which other classes are derived
+for storing parameters provided to quantification methods of
+transposable elements from RNA-seq data.
 }
 \section{Slots}{
 
@@ -16,9 +21,7 @@ provided to several functions in the atena package.
 \item{\code{annotations}}{A 'GRanges' object.}
 }}
 
-\references{
-Bendall et al. Telescope: characterization of the retrotranscriptome by
-accurate estimation of transposable element expression.
-PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
-\url{https://doi.org/10.1371/journal.pcbi.1006453}
+\seealso{
+\code{\link{ERVmapParam-class}}
+\code{\link{TelescopeParam-class}}
 }

@@ -1,19 +1,24 @@
 #' Build a Telescope parameter object
 #'
-#' Build an object of the class \code{TelescopeParam-class}.
+#' Build an object of the class \code{TelescopeParam}.
 #'
-#' @param bfl A 'BamFile' or 'BamFileList' object, or a character string vector
-#' of BAM filenames.
+#' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
+#' string vector of BAM filenames.
 #'
-#' @param annotations A 'GRanges' object. Ranges in this object should have
-#' names, which will be used as grouping factor for ranges forming a common locus.
+#' @param annotations A \code{GRanges} object. Ranges in this object should
+#' have names, which will be used as a grouping factor for ranges forming a
+#' common locus.
 #'
-#' @param opts Options to to pass to the telescope algorithm. Defaults
-#' correspond to those from the telescope software, with the exception of
-#' setting \code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
+#' @param opts A \code{list} object specifying options to to pass to the
+#' telescope algorithm, where a list element name should the option name and
+#' its value should be the option value, which in the case of flags should be
+#' be set as a logical \code{TRUE} or \code{FALSE} value. Defaults correspond
+#' to those from the telescope software, with the exception of setting
+#' \code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
 #' The following Telescope options cannot be set: \code{--attribute},
 #' \code{--outdir}, \code{--exp_tag}, \code{--tempdir}, \code{--ncpu},
-#' \code{--skip_em}.
+#' \code{--skip_em}. For a full documentation on Telescope options please
+#' consult \url{https://github.com/mlbendall/telescope}.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -94,10 +99,14 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
                                            "htslib==1.9", "intervaltree==3.0.2"),
                                 path="telescope")
   cl <- basiliskStart(pyenv)
+  tsversion <- basiliskRun(cl, function() {
+                             tsmod <- reticulate::import("telescope")
+                             tsmod[["_version"]]$VERSION
+                           })
   basiliskStop(cl)
 
   new("TelescopeParam", bfl=bfl, annotations=annotations,
-      basiliskEnv=pyenv, telescopeOptions=opts)
+      basiliskEnv=pyenv, telescopeVersion=tsversion, telescopeOptions=opts)
 }
 
 #' @importFrom GenomeInfoDb seqlevels
@@ -113,6 +122,12 @@ setMethod("show", "TelescopeParam",
                         ifelse(is.null(names(object@annotations)),
                                paste("on", .pprintnames(seqlevels(object@annotations))),
                                .pprintnames(names(object@annotations)))))
+            cat(sprintf("# Telescope version: %s\n", object@telescopeVersion))
+            opts <- object@telescopeOptions
+            opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))
+            opts_str <- paste(gsub(" TRUE", "", opts_str), collapse=" ")
+            cat("# Telescope non-default options:\n")
+            writeLines(paste0("#   ", strwrap(opts_str, width=60)))
           })
 
 #' @importFrom basilisk basiliskStart basiliskRun basiliskStop
@@ -127,7 +142,7 @@ setMethod("qtex", "TelescopeParam",
                             function(bf) {
                               tsexp <- basiliskRun(env=x@basiliskEnv,
                                                    fun=.qtex_telescope, bf=bf,
-                                                   tspar=x, BPPARAM=BPPARAM)
+                                                   tspar=x)
                             }, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             cnt
@@ -135,7 +150,7 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom reticulate import import_main
 #' @importFrom BiocGenerics path
-.qtex_telescope <- function(bf, tspar, BPPARAM) {
+.qtex_telescope <- function(bf, tspar) {
   opts <- tspar@telescopeOptions
   opts$exp_tag <- gsub(".bam", "", basename(path(bf)))
   opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))

@@ -18,7 +18,15 @@ provided to the Telescope algorithm.
 \item{\code{basiliskEnv}}{A 'BasiliskEnvironment' object; see the
 \code{BasiliskEnvironment-class} in the \code{basilisk} package.}
 
+\item{\code{telescopeVersion}}{'character' string storing the Telescope version.}
+
 \item{\code{telescopeOptions}}{'list' object storing the options for the
 Telescope algorithm.}
 }}
 
+\references{
+Bendall et al. Telescope: characterization of the retrotranscriptome by
+accurate estimation of transposable element expression.
+PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
+\url{https://doi.org/10.1371/journal.pcbi.1006453}
+}

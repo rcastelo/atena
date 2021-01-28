@@ -3,17 +3,14 @@
 \docType{class}
 \name{ERVmapParam-class}
 \alias{ERVmapParam-class}
-\alias{path,AtenaParam-method}
 \alias{show,ERVmapParam-method}
 \title{ERVmap parameter class}
 \usage{
-\S4method{path}{AtenaParam}(object)
-
 \S4method{show}{ERVmapParam}(object)
 }
 \description{
-This is a class for storing parameters
-provided to the ERVmap algorithm
+This is a class for storing parameters provided to the ERVmap algorithm.
+It is a subclass of the 'AtenaParam-class'.
 }
 \section{Slots}{
 

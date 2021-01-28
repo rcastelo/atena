@@ -79,15 +79,6 @@ ERVmapParam <- function(bfl, annotations,
       filterUniqReads=filterUniqReads, fragments=fragments)
 }
 
-#' @importFrom BiocGenerics path
-#' @export
-#' @aliases path,AtenaParam-method
-#' @rdname ERVmapParam-class
-setMethod("path", "AtenaParam",
-          function(object) {
-            path(object@bfl)
-          })
-
 #' @importFrom GenomeInfoDb seqlevels
 #' @export
 #' @aliases show,ERVmapParam-method
