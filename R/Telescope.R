@@ -5,9 +5,9 @@
 #' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
 #' string vector of BAM filenames.
 #'
-#' @param annotations A \code{GRanges} object. Ranges in this object should
-#' have names, which will be used as a grouping factor for ranges forming a
-#' common locus.
+#' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
+#' in this object should have names, which will be used as a grouping factor
+#' for ranges forming a common locus.
 #'
 #' @param opts A \code{list} object specifying options to to pass to the
 #' telescope algorithm, where a list element name should the option name and
@@ -57,12 +57,10 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
   if (!is(bfl, "BamFileList"))
     bfl <- BamFileList(bfl)
 
-  ## we may have to consider other types of objects than 'GRanges' to hold
-  ## annotations (i.e., 'GRangesList', 'TxDb' ?)
   annotationsobjname <- deparse(substitute(annotations))
   env <- parent.frame()
   if (!exists(annotationsobjname))
-    stop(sprintf("input GRranges object '%s' is not defined.", annotationsobjname))
+    stop(sprintf("input annotation object '%s' is not defined.", annotationsobjname))
 
   if (!is(annotations, "GRanges") && !is(annotations, "GRangesList"))
     stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
@@ -81,9 +79,9 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
 
   gr$locus <- names(gr)
 
-  if (is(annotations, "GRangesList"))
+  if (is(annotations, "GRangesList")) ## was a GRangesList, convert it into that
     annotations <- split(gr, names(gr))
-  else ## is a GRanges object
+  else ## was a GRanges object, leave it as such
     annotations <- gr
 
   if (!is.list(opts))
@@ -142,23 +140,6 @@ setMethod("show", "TelescopeParam",
             writeLines(paste0("#   ", strwrap(opts_str, width=60)))
           })
 
-#' @param x A \code{TelescopeParam} object containing the configuration
-#'        parameters to call the Telescope algorithm.
-#'
-#' @param phenodata A \code{data.frame} or \code{DataFrame} object storing
-#'        phenotypic data to include in the resulting
-#'        \code{SummarizedExperiment} object. If \code{phenodata} is set,
-#'        its row names will become the column names of the resulting
-#'        \linkS4class{SummarizedExperiment} object.
-#'
-#' @param BPPARAM An object of a \linkS4class{BiocParallelParam} subclass
-#'        to configure the parallel execution of the code. By default,
-#'        a \linkS4class{SerialParam} object is used, which does not use
-#'        any parallelization, with the flag \code{progress=TRUE} to show
-#'        progress through the calculations.
-#'
-#' @return A \linkS4class{SummarizedExperiment} object.
-#'
 #' @importFrom basilisk basiliskStart basiliskRun basiliskStop
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom S4Vectors DataFrame

@@ -1,10 +1,13 @@
 #' Build an ERVmap parameter object
 #'
-#' This function serves the purpose of building an object of the
-#' class \code{ERVmapParam-class}.
+#' Build an object of the class \code{ERVmapParam}
 #'
-#' @param bfl A 'BamFile' or 'BamFileList' object, or a character string vector
-#' of BAM filenames.
+#' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
+#' string vector of BAM filenames.
+#'
+#' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
+#' in this object should have names, which will be used as a grouping factor
+#' for ranges forming a common locus.
 #'
 #' @param annotations A 'GRanges' object.
 #'
@@ -46,7 +49,7 @@
 #' a single hit and singletons, reads with unmapped pairs and other fragments
 #' are not counted.
 #'
-#' @return A \code{ERVmapParam-class} object.
+#' @return A \linkS4class{ERVmapParam-class} object.
 #'
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -54,6 +57,11 @@
 #' annot <- ERVmap_ann()
 #' empar <- ERVmapParam(bamfiles, annot)
 #' empar
+#'
+#' @references
+#' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
+#' endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+#' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @export
 ERVmapParam <- function(bfl, annotations,
@@ -73,6 +81,21 @@ ERVmapParam <- function(bfl, annotations,
   }
   if (!is(bfl, "BamFileList"))
     bfl <- BamFileList(bfl)
+
+  annotationsobjname <- deparse(substitute(annotations))
+  env <- parent.frame()
+  if (!exists(annotationsobjname))
+    stop(sprintf("input annotation object '%s' is not defined.", annotationsobjname))
+
+  if (!is(annotations, "GRanges") && !is(annotations, "GRangesList"))
+    stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+                 annotationsobjname))
+
+  if (is.null(names(annotations)))
+    stop(sprintf("the annotations object '%s' has no names.", annotationsobjname))
+
+  if (is(annotations, "GRangesList"))
+    annotations <- unlist(annotations)
 
   new("ERVmapParam", bfl=bfl, annotations=annotations, singleEnd=singleEnd,
       ignoreStrand=ignoreStrand, strandMode=as.integer(strandMode),
@@ -107,49 +130,34 @@ setMethod("show", "ERVmapParam",
             cat("\n")
           })
 
-#' Quantify transposable element expression
-#'
-#' Giving an \code{AtenaParam} object as input, the
-#' \code{qtex()} method quantifies the expression of transposable
-#' elements (TEs). The particular algorithm to perform the
-#' quantification will be selected depending on the specific
-#' sub-class of input \code{AtenaParam} object, see argument
-#' \code{x} below.
-#'
-#' @param x An \code{AtenaParam} object of one of the following
-#' subclasses:
-#' \itemize{
-#'   \item A \code{ERVmapParam} object built using the constructor
-#'         function \code{\link{ERVmapParam}()}. This object will
-#'         trigger \code{qtex()} to use the algorithm by
-#'         Tokuyama et al. (2018).
-#'   \item A \code{TelescopeParam} object built using the constructor
-#'         function \code{\link{TelescopeParam}()}. This object will
-#'         trigger \code{qtex()} to use the algorithm by
-#'         Bendall et al. (2019).
-#' }
-#'
-#' @return A \code{SummarizedExperiment} object.
-#'
-#' @seealso
-#' \code{\link{ERVmapParam}}
-
-#' @references
-#' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
-#' endogenous retroviruses. PNAS, 115(50):12565-12572, 2018.
-#' \url{https://doi.org/10.1073/pnas.1814589115}
-#'
-#' @references
-#' Bendall ML et al. Telescope: characterization of the retrotranscriptome by
-#' accurate estimation of transposable element expression.
-#' PLOS Computational Biology, 15:e1006453, 2019.
-#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
-#'
+#' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom S4Vectors DataFrame
 #' @export
 #' @aliases qtex
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
-          function(x) {
-            cat("ERVmap!!\n")
+          function(x, phenodata=NULL, BPPARAM=SerialParam(progress=TRUE)) {
+            if (!is.null(phenodata)) {
+              if (nrow(phenodata) != length(x@bfl))
+                stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
+              if (is.null(rownames(phenodata)))
+                stop("'phenodata' has no row names.")
+            }
+
+            ## REPLACE BY THE PROPER CALLS TO THE ERVMAP QUANTIFICATION ALGORITHM
+            cnt <- matrix(NA, nrow=length(x@annotations), ncol=length(x@bfl),
+                          dimnames=list(names(x@annotations), names(x@bfl)))
+
+            colnames(cnt) <- gsub(".bam$", "", colnames(cnt))
+            colData <- DataFrame(row.names=colnames(cnt))
+            if (!is.null(phenodata)) {
+              colData <- phenodata
+              colnames(cnt) <- rownames(colData)
+            }
+
+            SummarizedExperiment(assays=list(counts=cnt),
+                                 rowRanges=x@annotations,
+                                 colData=colData)
           })
+

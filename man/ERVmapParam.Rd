@@ -15,8 +15,8 @@ ERVmapParam(
 )
 }
 \arguments{
-\item{bfl}{A 'BamFile' or 'BamFileList' object, or a character string vector
-of BAM filenames.}
+\item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
+string vector of BAM filenames.}
 
 \item{annotations}{A 'GRanges' object.}
 
@@ -59,11 +59,10 @@ a single hit and singletons, reads with unmapped pairs and other fragments
 are not counted.}
 }
 \value{
-A \code{ERVmapParam-class} object.
+A \linkS4class{ERVmapParam-class} object.
 }
 \description{
-This function serves the purpose of building an object of the
-class \code{ERVmapParam-class}.
+Build an object of the class \code{ERVmapParam}
 }
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -72,4 +71,9 @@ annot <- ERVmap_ann()
 empar <- ERVmapParam(bamfiles, annot)
 empar
 
+}
+\references{
+Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
+endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+\url{https://doi.org/10.1073/pnas.1814589115}
 }

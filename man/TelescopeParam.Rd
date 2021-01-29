@@ -10,9 +10,9 @@ TelescopeParam(bfl, annotations, opts = list(quiet = TRUE))
 \item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
 string vector of BAM filenames.}
 
-\item{annotations}{A \code{GRanges} object. Ranges in this object should
-have names, which will be used as a grouping factor for ranges forming a
-common locus.}
+\item{annotations}{A \code{GRanges} or \code{GRangesList} object. Elements
+in this object should have names, which will be used as a grouping factor
+for ranges forming a common locus.}
 
 \item{opts}{A \code{list} object specifying options to to pass to the
 telescope algorithm, where a list element name should the option name and
