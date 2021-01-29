@@ -64,22 +64,34 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
   if (!exists(annotationsobjname))
     stop(sprintf("input GRranges object '%s' is not defined.", annotationsobjname))
 
-  if (!is(annotations, "GRanges"))
-    stop(sprintf("annotations object '%s' is not a 'GRanges object'.", annotationsobjname))
+  if (!is(annotations, "GRanges") && !is(annotations, "GRangesList"))
+    stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+                 annotationsobjname))
 
   if (is.null(names(annotations)))
     stop(sprintf("the annotations object '%s' has no names.", annotationsobjname))
 
-  if ("locus" %in% colnames(mcols(annotations)))
-    warning("the metadata column 'locus' will be overwritten with the 'GRanges' names.")
+  gr <- annotations
+  if (is(annotations, "GRangesList"))
+    gr <- unlist(annotations)
 
-  annotations$locus <- names(annotations)
+  if ("locus" %in% colnames(mcols(gr)))
+    warning(sprintf("the metadata column 'locus' in the annotations will be overwritten with the '%s' names.",
+                    class(annotations)))
+
+  gr$locus <- names(gr)
+
+  if (is(annotations, "GRangesList"))
+    annotations <- split(gr, names(gr))
+  else ## is a GRanges object
+    annotations <- gr
 
   if (!is.list(opts))
     stop("argument 'opts' should be a 'list' object.")
 
   if (length(opts) > 0) {
-    bannedOpts <- c("attribute", "outdir", "exp_tag", "tempdir", "ncpu", "skip_em")
+    bannedOpts <- c("attribute", "no_feature_key", "outdir", "exp_tag",
+                    "tempdir", "ncpu", "skip_em")
     if (names(opts) %in% bannedOpts)
       stop(sprintf("The following Telescope options cannot be used from this package:\n  %s",
                    paste(bannedOpts, collapse=", ")))
@@ -130,14 +142,39 @@ setMethod("show", "TelescopeParam",
             writeLines(paste0("#   ", strwrap(opts_str, width=60)))
           })
 
+#' @param x A \code{TelescopeParam} object containing the configuration
+#'        parameters to call the Telescope algorithm.
+#'
+#' @param phenodata A \code{data.frame} or \code{DataFrame} object storing
+#'        phenotypic data to include in the resulting
+#'        \code{SummarizedExperiment} object. If \code{phenodata} is set,
+#'        its row names will become the column names of the resulting
+#'        \linkS4class{SummarizedExperiment} object.
+#'
+#' @param BPPARAM An object of a \linkS4class{BiocParallelParam} subclass
+#'        to configure the parallel execution of the code. By default,
+#'        a \linkS4class{SerialParam} object is used, which does not use
+#'        any parallelization, with the flag \code{progress=TRUE} to show
+#'        progress through the calculations.
+#'
+#' @return A \linkS4class{SummarizedExperiment} object.
+#'
 #' @importFrom basilisk basiliskStart basiliskRun basiliskStop
 #' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom S4Vectors DataFrame
 #' @export
 #' @aliases qtex
 #' @aliases qtex,TelescopeParam-method
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
-          function(x, BPPARAM=SerialParam()) {
+          function(x, phenodata=NULL, BPPARAM=SerialParam(progress=TRUE)) {
+            if (!is.null(phenodata)) {
+              if (nrow(phenodata) != length(x@bfl))
+                stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
+              if (is.null(rownames(phenodata)))
+                stop("'phenodata' has no row names.")
+            }
+
             cnt <- bplapply(x@bfl,
                             function(bf) {
                               tsexp <- basiliskRun(env=x@basiliskEnv,
@@ -145,7 +182,17 @@ setMethod("qtex", "TelescopeParam",
                                                    tspar=x)
                             }, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
-            cnt
+
+            colnames(cnt) <- gsub(".bam$", "", colnames(cnt))
+            colData <- DataFrame(row.names=colnames(cnt))
+            if (!is.null(phenodata)) {
+              colData <- phenodata
+              colnames(cnt) <- rownames(colData)
+            }
+
+            SummarizedExperiment(assays=list(counts=cnt),
+                                 rowRanges=x@annotations,
+                                 colData=colData)
           })
 
 #' @importFrom reticulate import import_main
@@ -179,15 +226,23 @@ setMethod("qtex", "TelescopeParam",
   dtf <- read.table(file.path(opts$outdir,
                               sprintf("%s-telescope_report.tsv", opts$exp_tag)),
                     header=TRUE)
+
+  ## place quantifications in a vector matching the order of the annotations
+  ## this also implies discarding the '__no_feature' quantification given by
+  ## Telescope. note also that, with the exception of the '__no_feature',
+  ## Telescope only outputs features that have a positive quantification.
+  mt <- match(names(tspar@annotations), dtf$transcript)
   cntvec <- rep(0L, length=length(tspar@annotations))
+  cntvec[!is.na(mt)] <- dtf$final_count[mt[!is.na(mt)]]
   names(cntvec) <- names(tspar@annotations)
-  cntvec[dtf$transcript] <- dtf$final_count
+  
   cntvec
 }
 
 ## adapted from rtracklayer/R/gff.R
-## private function to export a 'GRanges' object to a GTF file in the
-## format expected by Telescope, which has the following two requirements:
+## private function to export a 'GRanges' or 'GRangesList' object to a GTF
+## file in the GTF format expected by Telescope, which has the following two
+## requirements:
 ##
 ## (1) one column must be called 'locus' and should contain
 ## values that group features forming part of the same locus
@@ -199,6 +254,11 @@ setMethod("qtex", "TelescopeParam",
 ## src : value on the GTF source column
 
 .exportTelescopeGTF <- function(gr, fname, src="Telescope") {
+
+  if (is(gr, "GRangesList")) {
+    gr <- unlist(gr)
+  }
+
   con <- file(fname, open="wt")
   cat("", file=con) ## overwrite any existing file
   cat("##gff-version 2\n", file=con)

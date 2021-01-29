@@ -9,7 +9,7 @@
 #' @slot annotations A 'GRanges' object.
 #'
 #' @importClassesFrom Rsamtools BamFileList
-#' @importClassesFrom GenomicRanges GRanges
+#' @importClassesFrom GenomicRanges GenomicRanges_OR_GenomicRangesList
 #'
 #' @seealso
 #' \code{\link{ERVmapParam-class}}
@@ -17,10 +17,10 @@
 #'
 #' @name AtenaParam-class
 #' @rdname AtenaParam-class
-#' @exportClass
+#' @exportClass AtenaParam
 setClass("AtenaParam",
          representation(bfl="BamFileList",
-                        annotations="GRanges"))
+                        annotations="GenomicRanges_OR_GenomicRangesList"))
 
 #' @importFrom BiocGenerics path
 #' @export
@@ -81,8 +81,7 @@ setMethod("path", "AtenaParam",
 #'
 #' @name ERVmapParam-class
 #' @rdname ERVmapParam-class
-#' @export
-#' @exportClass
+#' @exportClass ERVmapParam
 setClass("ERVmapParam", contains="AtenaParam",
          representation(singleEnd="logical",
                         ignoreStrand="logical",
@@ -112,8 +111,7 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @name TelescopeParam-class
 #' @rdname TelescopeParam-class
 #' @importClassesFrom basilisk BasiliskEnvironment
-#' @export
-#' @exportClass
+#' @exportClass TelescopeParam
 setClass("TelescopeParam", contains="AtenaParam",
          representation(basiliskEnv="BasiliskEnvironment",
                         telescopeVersion="character",

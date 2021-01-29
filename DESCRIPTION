@@ -12,7 +12,8 @@ License: Artistic-2.0
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 3.5)
+    R (>= 3.5),
+    SummarizedExperiment
 Imports: 
     BiocGenerics,
     BiocParallel,
@@ -21,7 +22,6 @@ Imports:
     rtracklayer (>= 1.48.0),
     S4Vectors,
     GenomeInfoDb,
-    SummarizedExperiment,
     GenomicRanges,
     reticulate,
     basilisk,

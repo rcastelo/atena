@@ -8,24 +8,28 @@
 \usage{
 \S4method{qtex}{ERVmapParam}(x)
 
-\S4method{qtex}{TelescopeParam}(x, BPPARAM = SerialParam())
+\S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progress = TRUE))
 }
 \arguments{
-\item{x}{An \code{AtenaParam} object of one of the following
-subclasses:
-\itemize{
-  \item A \code{ERVmapParam} object built using the constructor
-        function \code{\link{ERVmapParam}()}. This object will
-        trigger \code{qtex()} to use the algorithm by
-        Tokuyama et al. (2018).
-  \item A \code{TelescopeParam} object built using the constructor
-        function \code{\link{TelescopeParam}()}. This object will
-        trigger \code{qtex()} to use the algorithm by
-        Bendall et al. (2019).
-}}
+\item{x}{A \code{TelescopeParam} object containing the configuration
+parameters to call the Telescope algorithm.}
+
+\item{phenodata}{A \code{data.frame} or \code{DataFrame} object storing
+phenotypic data to include in the resulting
+\code{SummarizedExperiment} object. If \code{phenodata} is set,
+its row names will become the column names of the resulting
+\linkS4class{SummarizedExperiment} object.}
+
+\item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
+to configure the parallel execution of the code. By default,
+a \linkS4class{SerialParam} object is used, which does not use
+any parallelization, with the flag \code{progress=TRUE} to show
+progress through the calculations.}
 }
 \value{
 A \code{SummarizedExperiment} object.
+
+A \linkS4class{SummarizedExperiment} object.
 }
 \description{
 Giving an \code{AtenaParam} object as input, the
