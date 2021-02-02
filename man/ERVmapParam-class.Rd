@@ -8,6 +8,9 @@
 \usage{
 \S4method{show}{ERVmapParam}(object)
 }
+\arguments{
+\item{object}{A \linkS4class{ERVmapParam} object.}
+}
 \description{
 This is a class for storing parameters provided to the ERVmap algorithm.
 It is a subclass of the 'AtenaParam-class'.

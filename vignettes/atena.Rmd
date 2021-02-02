@@ -1,0 +1,72 @@
+---
+title: "An introduction to the atena package"
+author:
+- name: Beatriz Calvo
+  affiliation:
+  - &id Dept. of Experimental and Health Sciences, Universitat Pompeu Fabra, Barcelona, Spain
+- name: Robert Castelo
+  affiliation: *id
+  email: robert.castelo@upf.edu
+package: "`r pkg_ver('atena')`"
+abstract: >
+  atena provides methods to quantify the expression of transposable elements within R and Bioconductor.
+vignette: >
+  %\VignetteIndexEntry{An introduction to the atena package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+bibliography: bibliography.bib
+---
+
+```{r setup, echo=FALSE}
+options(width=80)
+```
+
+# What are transposable elements
+
+Transposable elements (TEs) ...
+
+# Current available methods for quantiying TE expression
+
+Available methods for quantifying TE expression can be classified into ...
+
+* Filtering methods such as ERVmap [@tokuyama2018ervmap].
+
+* Reassignment methods such as Telescope [@bendall2019telescope].
+
+# TE annotations
+
+TE annotations can be found in ...
+
+# Using atena to quantify TE expression
+
+Quantifying TE expression with atena consists in the following two steps:
+
+1. Build a parameter object for one of the available quantification methods.
+
+2. Call the TE expression quantification method `qtex()` using the previously
+   built parameter object.
+
+## Build a parameter object for ERVmap
+
+To build a parameter object for ERVmap ...
+
+## Build a parameter object for Telescope
+
+To build a parameter object for Telescope ...
+
+## Quantify TE expression with `qtex()`
+
+To quantify TE expression we should call the `qtex()` method as follows.
+
+# Session information
+
+```{r session_info, cache=FALSE}
+sessionInfo()
+```
+
+# References

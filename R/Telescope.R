@@ -42,7 +42,9 @@
 #' PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
 #' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
+#' @importFrom methods is new
 #' @importFrom basilisk BasiliskEnvironment basiliskStart basiliskStop
+#' @importFrom basilisk.utils installConda
 #' @export
 TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
@@ -107,7 +109,7 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
                                            "cython==0.29.7", "numpy==1.16.3",
                                            "scipy==1.2.1", "pysam>=0.16.0.1",
                                            "htslib==1.9", "intervaltree==3.0.2"),
-                                path="telescope")
+                                paths="telescope")
   cl <- basiliskStart(pyenv)
   tsversion <- basiliskRun(cl, function() {
                              tsmod <- reticulate::import("telescope")
@@ -119,6 +121,8 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
       basiliskEnv=pyenv, telescopeVersion=tsversion, telescopeOptions=opts)
 }
 
+#' @param object A \linkS4class{TelescopeParam} object.
+#'
 #' @importFrom GenomeInfoDb seqlevels
 #' @export
 #' @aliases show,TelescopeParam-method
@@ -148,7 +152,7 @@ setMethod("show", "TelescopeParam",
 #' @aliases qtex,TelescopeParam-method
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
-          function(x, phenodata=NULL, BPPARAM=SerialParam(progress=TRUE)) {
+          function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
             if (!is.null(phenodata)) {
               if (nrow(phenodata) != length(x@bfl))
                 stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
@@ -176,6 +180,7 @@ setMethod("qtex", "TelescopeParam",
                                  colData=colData)
           })
 
+#' @importFrom utils read.table
 #' @importFrom reticulate import import_main
 #' @importFrom BiocGenerics path
 .qtex_telescope <- function(bf, tspar) {
@@ -234,6 +239,8 @@ setMethod("qtex", "TelescopeParam",
 ## fname : GTF filename
 ## src : value on the GTF source column
 
+#' @importFrom methods is
+#' @importFrom utils relist write.table
 .exportTelescopeGTF <- function(gr, fname, src="Telescope") {
 
   if (is(gr, "GRangesList")) {
@@ -285,23 +292,30 @@ setMethod("qtex", "TelescopeParam",
 
   builtin <- c("type", "score", "phase", "source")
   custom <- setdiff(colnames(mcols(gr)), builtin)
-  if (length(custom)) {
+  if (length(custom) > 0) {
     attrs <- mcols(gr)
-    attrs <- as.data.frame(sapply(custom, function(name) {
-                                    x <- attrs[[name]]
-                                    x_flat <- if (is(x, "List")) unlist(x, use.names=FALSE) else x
-                                    x_char <- as.character(x_flat)
-                                    x_char <- sub(" *$", "", sub("^ *", "", as.character(x_char)))
-                                    if (is(x, "List")) {
-                                      x_char[is.na(x_char)] <- "."
-                                      x_char <- pasteCollapse(relist(x_char, x))
-                                      x_char[lengths(x) == 0] <- NA
-                                    }
-                                    x_char[is.na(x_char)] <- "\r"
-                                    if (!is.numeric(x_flat))
-                                      x_char <- paste0("\"", x_char, "\"")
-                                    paste(name, x_char, sep=" ")
-                              }, simplify=FALSE))
+    ## only deals with metadata columns that store atomic types, i.e.,
+    ## not lists for instance.
+    mdcols <- lapply(custom, function(name, attrs) {
+                       x <- attrs[[name]]
+                       res <- NULL
+                       if (!is.atomic(x))
+                         warning(sprintf("skipping non-atomic metadata column %s.", name))
+                       else {
+                         x_char <- as.character(x)
+                         x_char <- sub(" *$", "", sub("^ *", "", as.character(x_char)))
+                         x_char[is.na(x_char)] <- "\r"
+                         if (!is.numeric(x))
+                           x_char <- paste0("\"", x_char, "\"")
+                         res <- paste(name, x_char, sep=" ")
+                       }
+                       res
+                       }, attrs)
+    mask <- sapply(lapply(mdcols,
+                          function(x) if (is.logical(x) && !x) NULL else x),
+                   is.null)
+    mdcols[mask] <- NULL
+    attrs <- as.data.frame(mdcols)
     attrs <- do.call(paste, c(attrs, sep="; "))
     attrs <- gsub("[^;]*?\r\"?(;|$)", "", attrs)
     attrs <- paste0(attrs, ";")

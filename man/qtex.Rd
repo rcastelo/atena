@@ -9,7 +9,7 @@
 \usage{
 \S4method{qtex}{ERVmapParam}(x, phenodata = NULL, BPPARAM = SerialParam(progress = TRUE))
 
-\S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progress = TRUE))
+\S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
 }
 \arguments{
 \item{x}{An \code{AtenaParam} object of one of the following

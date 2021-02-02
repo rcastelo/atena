@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 0.99.3
+Version: 0.99.4
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
@@ -15,6 +15,8 @@ Depends:
     R (>= 3.5),
     SummarizedExperiment
 Imports: 
+    methods,
+    utils,
     BiocGenerics,
     BiocParallel,
     GenomicAlignments (>= 1.24.0),
@@ -26,4 +28,9 @@ Imports:
     reticulate,
     basilisk,
     basilisk.utils
+Suggests:
+    BiocStyle,
+    knitr,
+    rmarkdown,
+VignetteBuilder: knitr
 RoxygenNote: 7.1.1

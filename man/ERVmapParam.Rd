@@ -59,7 +59,7 @@ a single hit and singletons, reads with unmapped pairs and other fragments
 are not counted.}
 }
 \value{
-A \linkS4class{ERVmapParam-class} object.
+A \linkS4class{ERVmapParam} object.
 }
 \description{
 Build an object of the class \code{ERVmapParam}

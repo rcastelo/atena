@@ -8,6 +8,9 @@
 \usage{
 \S4method{show}{TelescopeParam}(object)
 }
+\arguments{
+\item{object}{A \linkS4class{TelescopeParam} object.}
+}
 \description{
 This is a class for storing parameters
 provided to the Telescope algorithm.

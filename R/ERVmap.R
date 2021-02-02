@@ -49,7 +49,7 @@
 #' a single hit and singletons, reads with unmapped pairs and other fragments
 #' are not counted.
 #'
-#' @return A \linkS4class{ERVmapParam-class} object.
+#' @return A \linkS4class{ERVmapParam} object.
 #'
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -63,6 +63,7 @@
 #' endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
+#' @importFrom methods is new
 #' @export
 ERVmapParam <- function(bfl, annotations,
                         singleEnd=FALSE,
@@ -102,6 +103,8 @@ ERVmapParam <- function(bfl, annotations,
       filterUniqReads=filterUniqReads, fragments=fragments)
 }
 
+#' @param object A \linkS4class{ERVmapParam} object.
+#'
 #' @importFrom GenomeInfoDb seqlevels
 #' @export
 #' @aliases show,ERVmapParam-method
@@ -137,7 +140,7 @@ setMethod("show", "ERVmapParam",
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
-          function(x, phenodata=NULL, BPPARAM=SerialParam(progress=TRUE)) {
+          function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
             if (!is.null(phenodata)) {
               if (nrow(phenodata) != length(x@bfl))
                 stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")

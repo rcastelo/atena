@@ -8,6 +8,9 @@
 \usage{
 \S4method{path}{AtenaParam}(object)
 }
+\arguments{
+\item{object}{A \linkS4class{AtenaParam} object.}
+}
 \description{
 This is a virtual class from which other classes are derived
 for storing parameters provided to quantification methods of
@@ -16,9 +19,9 @@ transposable elements from RNA-seq data.
 \section{Slots}{
 
 \describe{
-\item{\code{bfl}}{A 'BamFileList' object.}
+\item{\code{bfl}}{A \linkS4class{BamFileList} object.}
 
-\item{\code{annotations}}{A 'GRanges' object.}
+\item{\code{annotations}}{A \linkS4class{GRanges} object.}
 }}
 
 \seealso{

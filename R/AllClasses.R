@@ -4,9 +4,9 @@
 #' for storing parameters provided to quantification methods of
 #' transposable elements from RNA-seq data.
 #'
-#' @slot bfl A 'BamFileList' object.
+#' @slot bfl A \linkS4class{BamFileList} object.
 #'
-#' @slot annotations A 'GRanges' object.
+#' @slot annotations A \linkS4class{GRanges} object.
 #'
 #' @importClassesFrom Rsamtools BamFileList
 #' @importClassesFrom GenomicRanges GenomicRanges_OR_GenomicRangesList
@@ -22,6 +22,8 @@ setClass("AtenaParam",
          representation(bfl="BamFileList",
                         annotations="GenomicRanges_OR_GenomicRangesList"))
 
+#' @param object A \linkS4class{AtenaParam} object.
+#'
 #' @importFrom BiocGenerics path
 #' @export
 #' @aliases path,AtenaParam-method
