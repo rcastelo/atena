@@ -145,19 +145,40 @@ setMethod("qtex", "ERVmapParam",
                 stop("'phenodata' has no row names.")
             }
 
-            ## REPLACE BY THE PROPER CALLS TO THE ERVMAP QUANTIFICATION ALGORITHM
-            cnt <- matrix(NA, nrow=length(x@annotations), ncol=length(x@bfl),
-                          dimnames=list(names(x@annotations), names(x@bfl)))
+            if (x@singleEnd)
+              cntmat <- .qtex_ervmap_singleend(x)
+            else
+              cntmat <- .qtex_ervmap_pairedend(x)
 
-            colnames(cnt) <- gsub(".bam$", "", colnames(cnt))
-            colData <- DataFrame(row.names=colnames(cnt))
+            colnames(cntmat) <- gsub(".bam$", "", colnames(cntmat))
+            colData <- DataFrame(row.names=colnames(cntmat))
             if (!is.null(phenodata)) {
               colData <- phenodata
               colnames(cnt) <- rownames(colData)
             }
 
-            SummarizedExperiment(assays=list(counts=cnt),
+            SummarizedExperiment(assays=list(counts=cntmat),
                                  rowRanges=x@annotations,
                                  colData=colData)
           })
 
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam
+.qtex_ervmap_singleend <- function(empar) {
+  ## REMOVEME !!
+  ## temporary matrix with NAs until the result is properly calculated
+  cntmat <- matrix(NA, nrow=length(empar@annotations), ncol=length(empar@bfl),
+                   dimnames=list(names(empar@annotations), names(empar@bfl)))
+
+  cntmat
+}
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam
+.qtex_ervmap_pairedend <- function(empar) {
+  ## REMOVEME !!
+  ## temporary matrix with NAs until the result is properly calculated
+  cntmat <- matrix(NA, nrow=length(empar@annotations), ncol=length(empar@bfl),
+                   dimnames=list(names(empar@annotations), names(empar@bfl)))
+
+  cntmat
+}
