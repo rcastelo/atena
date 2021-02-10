@@ -64,7 +64,6 @@
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @importFrom methods is new
-#' @importFrom GenomeInfoDb seqlevelsStyle
 #' @export
 ERVmapParam <- function(bfl, annotations,
                         singleEnd=FALSE,
@@ -98,11 +97,6 @@ ERVmapParam <- function(bfl, annotations,
 
   if (is(annotations, "GRangesList"))
     annotations <- unlist(annotations)
-  
-  if (seqlevelsStyle(annotations) != "UCSC") {
-    seqlevelsStyle(annotations) <- "UCSC"
-  }
-  
 
   new("ERVmapParam", bfl=bfl, annotations=annotations, singleEnd=singleEnd,
       ignoreStrand=ignoreStrand, strandMode=as.integer(strandMode),
@@ -155,10 +149,10 @@ setMethod("qtex", "ERVmapParam",
             }
 
             if (x@singleEnd)
-              cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, BPPARAM=BPPARAM)
+              cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, ervpar=x, BPPARAM=BPPARAM)
               
             else
-              cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, BPPARAM=BPPARAM)
+              cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, ervpar=x, BPPARAM=BPPARAM)
 
             cntmat <- do.call("cbind", cnt)
             colnames(cntmat) <- gsub(".bam$", "", names(x@bfl))
@@ -179,7 +173,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom GenomicAlignments summarizeOverlaps
 #' @importFrom SummarizedExperiment SummarizedExperiment
 
-.qtex_ervmap_singleend <- function(bf) {
+.qtex_ervmap_singleend <- function(bf, ervpar) {
 
   tags_df <- .get_tags_in_BAM_singleend(bf)
   yieldSize(bf) <- 100000
@@ -188,7 +182,7 @@ setMethod("qtex", "ERVmapParam",
                          isSupplementaryAlignment = FALSE)
   
   if (!tags_df$NH & !tags_df$XS) {
-    if (!x@filterUniqReads) {
+    if (!ervpar@filterUniqReads) {
       stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
     }
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
@@ -208,8 +202,8 @@ setMethod("qtex", "ERVmapParam",
   while (length(r <- readGAlignments(bf, param = param))) {
     r_total <- .ervmap_3_filters(r, tags_df)
     rm(r)
-    overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
-                                 ignore.strand = x@ignoreStrand, mode = Union,
+    overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+                                 ignore.strand = ervpar@ignoreStrand, mode = Union,
                                  inter.feature = FALSE, singleEnd = TRUE)
     rm(r_total)
     if (is.null(cnt)) {
@@ -237,11 +231,11 @@ setMethod("qtex", "ERVmapParam",
     }
     open(bf)
     while (length(r <- readGAlignments(bf, param = param))) {
-      if (x@filterUniqReads) {
+      if (ervpar@filterUniqReads) {
         r <- .ervmap_2_filters(r, tags_df)
       }
-      overlap <- summarizeOverlaps(features = x@annotations, reads = r,
-                                   ignore.strand = x@ignoreStrand,
+      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r,
+                                   ignore.strand = ervpar@ignoreStrand,
                                    mode = Union, inter.feature = FALSE,
                                    singleEnd = TRUE)
       rm(r)
@@ -256,9 +250,8 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
 #' @importFrom GenomicAlignments readGAlignments summarizeOverlaps last first
 #' @importFrom SummarizedExperiment SummarizedExperiment
-.qtex_ervmap_pairedend <- function(bf) {
-  
-  tags_df <- .get_tags_in_BAM_pairedend(bf)
+.qtex_ervmap_pairedend <- function(bf, ervpar) {
+  tags_df <- .get_tags_in_BAM_pairedend(bf, ervpar)
   yieldSize(bf) <- 100000
   asMates(bf) <- TRUE
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isProperPair = TRUE,
@@ -266,7 +259,7 @@ setMethod("qtex", "ERVmapParam",
                          isNotPassingQualityControls = FALSE)
   
   if (!tags_df$NH & !tags_df$XS) {
-    if (!x@filterUniqReads) {
+    if (!ervpar@filterUniqReads) {
       stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
     }
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
@@ -283,20 +276,20 @@ setMethod("qtex", "ERVmapParam",
   
   cnt <- NULL
   open(bf)
-  while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode))) {
-    if (x@fragments) {
+  while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = ervpar@strandMode))) {
+    if (ervpar@fragments) {
       r_first_total <- .ervmap_3_filters(first(r), tags_df)
       r_last_total <- .ervmap_3_filters(last(r), tags_df)
       r_total <- c(r_first_total, r_last_total)
       rm(r, r_first_total, r_last_total)
-      overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
-                                   ignore.strand = x@ignoreStrand,
+      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+                                   ignore.strand = ervpar@ignoreStrand,
                                    mode = Union, inter.feature = FALSE,
                                    fragments = TRUE)
     } else {
       r_total <- .ervmap_3_filters_pairedend(r, tags_df)
-      overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
-                                   ignore.strand = x@ignoreStrand,
+      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+                                   ignore.strand = ervpar@ignoreStrand,
                                    mode = Union, inter.feature = FALSE,
                                    singleEnd = FALSE, fragments = FALSE)
     }
@@ -312,7 +305,6 @@ setMethod("qtex", "ERVmapParam",
   if(tags_df$NH || tags_df$XS) {
     ## If the NH and XS are not provided, both unique reads and multimapping
     ## reads have already been filtered and counted in the previous step. 
-    
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isSupplementaryAlignment = FALSE, 
                            isDuplicate = FALSE, isProperPair = TRUE, 
@@ -327,9 +319,9 @@ setMethod("qtex", "ERVmapParam",
     }
     
     open(bf)
-    while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode))) {
-      if (x@fragments) {
-        if (x@filterUniqReads) {
+    while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = ervpar@strandMode))) {
+      if (ervpar@fragments) {
+        if (ervpar@filterUniqReads) {
           r_first_total <- .ervmap_2_filters(first(r), tags_df)
           r_last_total <- .ervmap_2_filters(last(r), tags_df)
           r_total <- c(r_first_total, r_last_total)
@@ -338,20 +330,19 @@ setMethod("qtex", "ERVmapParam",
           r_total <- c(first(r), last(r))
         }
         rm(r)
-        overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
-                                     ignore.strand = x@ignoreStrand,
+        overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+                                     ignore.strand = ervpar@ignoreStrand,
                                      mode = Union, inter.feature = FALSE,
                                      fragments = TRUE)
-        
       } else {
-        if (x@filterUniqReads) {
+        if (ervpar@filterUniqReads) {
           r_total <- .ervmap_2_filters_pairedend(r, tags_df)
         } else {
           r_total <- r
         }
         rm(r)
-        overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
-                                     ignore.strand = x@ignoreStrand,
+        overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+                                     ignore.strand = ervpar@ignoreStrand,
                                      mode = Union, inter.feature = FALSE,
                                      singleEnd = FALSE, fragments = FALSE)
       }
@@ -407,7 +398,7 @@ setMethod("qtex", "ERVmapParam",
 ## not (FALSE).
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
-.get_tags_in_BAM_pairedend <- function(bf) {
+.get_tags_in_BAM_pairedend <- function(bf, ervpar) {
   yieldSize(bf) <- 1000
   asMates(bf) <- TRUE
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
@@ -424,7 +415,7 @@ setMethod("qtex", "ERVmapParam",
   colnames(tags_df) <- tags
   
   open(bf)
-  r_test <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode)
+  r_test <- readGAlignmentPairs(bf, param = param, strandMode = ervpar@strandMode)
   close(bf)
   
   # Testing, for each sample, if the files contain the different tags
@@ -477,9 +468,9 @@ setMethod("qtex", "ERVmapParam",
 .ervmap_2_filters <- function(r, tags_df) {
   cigar_out <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
   SH_clipping <- lapply(cigar_out, function(cig) sum(unlist(cig)))
-  if (all(NM_tag)) {
+  if (tags_df$NM) {
     NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
-  } else if (all(nM_tag)) {
+  } else if (tags_df$nM) {
     NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
   } else {
     stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
