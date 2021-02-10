@@ -55,7 +55,7 @@
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
 #' annot <- ERVmap_ann()
-#' empar <- ERVmapParam(bamfiles, annot)
+#' empar <- ERVmapParam(bamfiles, annot, singleEnd = TRUE)
 #' empar
 #'
 #' @references
@@ -64,6 +64,7 @@
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @importFrom methods is new
+#' @importFrom GenomeInfoDb seqlevelsStyle
 #' @export
 ERVmapParam <- function(bfl, annotations,
                         singleEnd=FALSE,
@@ -97,6 +98,11 @@ ERVmapParam <- function(bfl, annotations,
 
   if (is(annotations, "GRangesList"))
     annotations <- unlist(annotations)
+  
+  if (seqlevelsStyle(annotations) != "UCSC") {
+    seqlevelsStyle(annotations) <- "UCSC"
+  }
+  
 
   new("ERVmapParam", bfl=bfl, annotations=annotations, singleEnd=singleEnd,
       ignoreStrand=ignoreStrand, strandMode=as.integer(strandMode),
@@ -149,11 +155,13 @@ setMethod("qtex", "ERVmapParam",
             }
 
             if (x@singleEnd)
-              cntmat <- .qtex_ervmap_singleend(x)
+              cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, BPPARAM=BPPARAM)
+              
             else
-              cntmat <- .qtex_ervmap_pairedend(x)
+              cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, BPPARAM=BPPARAM)
 
-            colnames(cntmat) <- gsub(".bam$", "", colnames(cntmat))
+            cntmat <- do.call("cbind", cnt)
+            colnames(cntmat) <- gsub(".bam$", "", names(x@bfl))
             colData <- DataFrame(row.names=colnames(cntmat))
             if (!is.null(phenodata)) {
               colData <- phenodata
@@ -166,22 +174,382 @@ setMethod("qtex", "ERVmapParam",
           })
 
 
-#' @importFrom Rsamtools scanBamFlag ScanBamParam
-.qtex_ervmap_singleend <- function(empar) {
-  ## REMOVEME !!
-  ## temporary matrix with NAs until the result is properly calculated
-  cntmat <- matrix(NA, nrow=length(empar@annotations), ncol=length(empar@bfl),
-                   dimnames=list(names(empar@annotations), names(empar@bfl)))
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom GenomicAlignments readGAlignments
+#' @importFrom GenomicAlignments summarizeOverlaps
+#' @importFrom SummarizedExperiment SummarizedExperiment
 
-  cntmat
+.qtex_ervmap_singleend <- function(bf) {
+
+  tags_df <- .get_tags_in_BAM_singleend(bf)
+  yieldSize(bf) <- 100000
+  sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isDuplicate = FALSE,
+                         isNotPassingQualityControls = FALSE,
+                         isSupplementaryAlignment = FALSE)
+  
+  if (!tags_df$NH & !tags_df$XS) {
+    if (!x@filterUniqReads) {
+      stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
+    }
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
+  } else if (tags_df$NH) {
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                          tagFilter = list(NH = c(2:10000)))
+  } else if (tags_df$XS) {
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                          tagFilter = list(XS = c(1:10000)))
+  }
+  if (!tags_df$NM & !tags_df$nM) {
+    stop("Neither the NM tag nor the nM tag are available in the BAM file. At least one of them is needed to apply the 2nd filter.")
+  }
+  
+  cnt <- NULL
+  open(bf)
+  while (length(r <- readGAlignments(bf, param = param))) {
+    r_total <- .ervmap_3_filters(r, tags_df)
+    rm(r)
+    overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
+                                 ignore.strand = x@ignoreStrand, mode = Union,
+                                 inter.feature = FALSE, singleEnd = TRUE)
+    rm(r_total)
+    if (is.null(cnt)) {
+      cnt <- assay(overlap)
+    } else {
+      cnt <- cnt + assay(overlap)
+    }
+  }
+  close(bf)
+  
+  if(tags_df$NH || tags_df$XS) {
+    ## If the NH and XS are not provided, both unique reads and multimapping
+    ## reads have already been filtered and counted in the previous step. 
+    
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                           isSupplementaryAlignment = FALSE, isDuplicate = FALSE,
+                           isNotPassingQualityControls = FALSE)
+    if (!tags_df$NH & tags_df$XS) {
+      # If NH is not available but XS is, reads with XS = 0 are considered as unique
+      param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                            tagFilter = list(XS = 0))
+    } else {
+      param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
+                            tagFilter = list(NH = 1)) #Read only unique reads
+    }
+    open(bf)
+    while (length(r <- readGAlignments(bf, param = param))) {
+      if (x@filterUniqReads) {
+        r <- .ervmap_2_filters(r, tags_df)
+      }
+      overlap <- summarizeOverlaps(features = x@annotations, reads = r,
+                                   ignore.strand = x@ignoreStrand,
+                                   mode = Union, inter.feature = FALSE,
+                                   singleEnd = TRUE)
+      rm(r)
+      cnt <- cnt + assay(overlap)
+    }
+  }
+  return(cnt)
 }
 
-#' @importFrom Rsamtools scanBamFlag ScanBamParam
-.qtex_ervmap_pairedend <- function(empar) {
-  ## REMOVEME !!
-  ## temporary matrix with NAs until the result is properly calculated
-  cntmat <- matrix(NA, nrow=length(empar@annotations), ncol=length(empar@bfl),
-                   dimnames=list(names(empar@annotations), names(empar@bfl)))
 
-  cntmat
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+#' @importFrom GenomicAlignments readGAlignments summarizeOverlaps last first
+#' @importFrom SummarizedExperiment SummarizedExperiment
+.qtex_ervmap_pairedend <- function(bf) {
+  
+  tags_df <- .get_tags_in_BAM_pairedend(bf)
+  yieldSize(bf) <- 100000
+  asMates(bf) <- TRUE
+  sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isProperPair = TRUE,
+                         isDuplicate = FALSE, isSupplementaryAlignment = FALSE,
+                         isNotPassingQualityControls = FALSE)
+  
+  if (!tags_df$NH & !tags_df$XS) {
+    if (!x@filterUniqReads) {
+      stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
+    }
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
+  } else if (tags_df$NH) {
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                          tagFilter = list(NH = c(2:10000)))
+  } else if (tags_df$XS) {
+    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                          tagFilter = list(XS = c(1:10000)))
+  }
+  if (!tags_df$NM & !tags_df$nM) {
+    stop("Neither the NM tag nor the nM tag are available in the BAM file. At least one of them is needed to apply the 2nd filter.")
+  }
+  
+  cnt <- NULL
+  open(bf)
+  while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode))) {
+    if (x@fragments) {
+      r_first_total <- .ervmap_3_filters(first(r), tags_df)
+      r_last_total <- .ervmap_3_filters(last(r), tags_df)
+      r_total <- c(r_first_total, r_last_total)
+      rm(r, r_first_total, r_last_total)
+      overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
+                                   ignore.strand = x@ignoreStrand,
+                                   mode = Union, inter.feature = FALSE,
+                                   fragments = TRUE)
+    } else {
+      r_total <- .ervmap_3_filters_pairedend(r, tags_df)
+      overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
+                                   ignore.strand = x@ignoreStrand,
+                                   mode = Union, inter.feature = FALSE,
+                                   singleEnd = FALSE, fragments = FALSE)
+    }
+    rm(r_total)
+    if (is.null(cnt)) {
+      cnt <- assay(overlap)
+    } else {
+      cnt <- cnt + assay(overlap)
+    }
+  }
+  close(bf)
+  
+  if(tags_df$NH || tags_df$XS) {
+    ## If the NH and XS are not provided, both unique reads and multimapping
+    ## reads have already been filtered and counted in the previous step. 
+    
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                           isSupplementaryAlignment = FALSE, 
+                           isDuplicate = FALSE, isProperPair = TRUE, 
+                           isNotPassingQualityControls = FALSE)
+    if (!tags_df$NH & tags_df$XS) {
+      # If NH is not available but XS is, reads with XS = 0 are considered as unique
+      param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
+                            tagFilter = list(XS = 0))
+    } else {
+      param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
+                            tagFilter = list(NH = 1)) #Read only unique reads
+    }
+    
+    open(bf)
+    while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode))) {
+      if (x@fragments) {
+        if (x@filterUniqReads) {
+          r_first_total <- .ervmap_2_filters(first(r), tags_df)
+          r_last_total <- .ervmap_2_filters(last(r), tags_df)
+          r_total <- c(r_first_total, r_last_total)
+          rm(r_first_total, r_last_total)
+        } else {
+          r_total <- c(first(r), last(r))
+        }
+        rm(r)
+        overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
+                                     ignore.strand = x@ignoreStrand,
+                                     mode = Union, inter.feature = FALSE,
+                                     fragments = TRUE)
+        
+      } else {
+        if (x@filterUniqReads) {
+          r_total <- .ervmap_2_filters_pairedend(r, tags_df)
+        } else {
+          r_total <- r
+        }
+        rm(r)
+        overlap <- summarizeOverlaps(features = x@annotations, reads = r_total,
+                                     ignore.strand = x@ignoreStrand,
+                                     mode = Union, inter.feature = FALSE,
+                                     singleEnd = FALSE, fragments = FALSE)
+      }
+      rm(r_total)
+      cnt <- cnt + assay(overlap)
+    }
+  }
+  return(cnt)
+}
+
+
+
+## Function to know which tags are present in the BAM file (single-end).
+## Input is a BamFile object. Returns a data.frame with tags as columns and the 
+## BAM file as row, indicating if each tag is present in the BAM file (TRUE) or 
+## not (FALSE).
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+.get_tags_in_BAM_singleend <- function(bf) {
+  
+  yieldSize(bf) <- 1000
+  sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                         isDuplicate = FALSE,
+                         isNotPassingQualityControls = FALSE,
+                         isSupplementaryAlignment = FALSE)
+  
+  param <- ScanBamParam(flag = sbflags,
+                        tag = c("nM", "NM", "AS", "NH", "XS"))
+  
+  tags <- param@tag
+  tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
+  colnames(tags_df) <- tags
+  
+  open(bf)
+  r_test <- readGAlignments(bf, param = param)
+  close(bf)
+  
+  # Testing, for each sample, if the files contain the different tags
+  tags_df[, "NH"] <- ifelse(all(is.na(mcols(r_test)$NH)), FALSE, TRUE)
+  tags_df[, "NM"] <- ifelse(all(is.na(mcols(r_test)$NM)), FALSE, TRUE)
+  tags_df[, "nM"] <- ifelse(all(is.na(mcols(r_test)$nM)), FALSE, TRUE)
+  tags_df[, "AS"] <- ifelse(all(is.na(mcols(r_test)$AS)), FALSE, TRUE)
+  tags_df[, "XS"] <- ifelse(all(grepl("\\d", (mcols(r_test)$XS))), TRUE, FALSE)
+  
+  return(tags_df)
+}
+
+
+
+## Function to know which tags are present in the BAM file (paired-end).
+## Input is a BamFile object. Returns a data.frame with tags as columns and the 
+## BAM file as row, indicating if each tag is present in the BAM file (TRUE) or 
+## not (FALSE).
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+.get_tags_in_BAM_pairedend <- function(bf) {
+  yieldSize(bf) <- 1000
+  asMates(bf) <- TRUE
+  sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                         isProperPair = TRUE,
+                         isDuplicate = FALSE,
+                         isNotPassingQualityControls = FALSE,
+                         isSupplementaryAlignment = FALSE)
+  
+  param <- ScanBamParam(flag = sbflags,
+                        tag = c("nM", "NM", "AS", "NH", "XS"))
+  
+  tags <- param@tag
+  tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
+  colnames(tags_df) <- tags
+  
+  open(bf)
+  r_test <- readGAlignmentPairs(bf, param = param, strandMode = x@strandMode)
+  close(bf)
+  
+  # Testing, for each sample, if the files contain the different tags
+  tags_df[, "NH"] <- ifelse(all(is.na(mcols(first(r_test))$NH)), FALSE, TRUE)
+  tags_df[, "NM"] <- ifelse(all(is.na(mcols(first(r_test))$NM)), FALSE, TRUE)
+  tags_df[, "nM"] <- ifelse(all(is.na(mcols(first(r_test))$nM)), FALSE, TRUE)
+  tags_df[, "AS"] <- ifelse(all(is.na(mcols(first(r_test))$AS)), FALSE, TRUE)
+  tags_df[, "XS"] <- ifelse(all(grepl("\\d", (mcols(first(r_test))$XS))), TRUE, FALSE)
+  
+  return(tags_df)
+}
+
+
+
+## Function to apply the 3 filters from ERVmap to a GAlignments object
+## Returns a filtered GAlignments object.
+
+#' @importFrom GenomicAlignments explodeCigarOpLengths qwidth cigar
+.ervmap_3_filters <- function(r, tags_df) {
+  # The 1st filter is always applied
+  cigar_out <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
+  SH_clipping <- lapply(cigar_out, function(cig) sum(unlist(cig)))
+  
+  # The 2nd filter is always applied (when the NM tag is not available the nM tag is used instead)
+  if (tags_df$NM) {
+    NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
+  } else {
+    NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
+  }
+  
+  # The 3rd filter cannot be applied when neither the XS tag is not available
+  if (tags_df$XS) {
+    AS_XS_filter <- (mcols(r)$AS - mcols(r)$XS) >= 5
+    AS_XS_filter[is.na(AS_XS_filter)] <- FALSE
+  } else {
+    AS_XS_filter <- rep(TRUE, length(r))
+    warning("The XS tag (from BWA) is not provided in the BAM files. This tag is needed to obtain the suboptimal alignment score. The 3rd filter (based on the suboptimal alignment score) will not be applied.")
+  }
+  
+  # Filtering alignments considering all filters
+  r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) & NM_filter & AS_XS_filter
+  r_total <- r[r_to_keep]
+  return(r_total)
+}
+
+## Function to apply the first 2 filters from ERVmap to a GAlignments object
+## Returns a filtered GAlignments object.
+
+#' @importFrom GenomicAlignments explodeCigarOpLengths qwidth cigar
+.ervmap_2_filters <- function(r, tags_df) {
+  cigar_out <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
+  SH_clipping <- lapply(cigar_out, function(cig) sum(unlist(cig)))
+  if (all(NM_tag)) {
+    NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
+  } else if (all(nM_tag)) {
+    NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
+  } else {
+    stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+  }
+  r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) & NM_filter
+  r_uniq <- r[r_to_keep]
+  return(r_uniq)
+}
+
+
+## Function to apply the 3 filters from ERVmap to a GAlignmentPairs object
+## Returns a filtered GAlignmentPairs object.
+
+#' @importFrom GenomicAlignments explodeCigarOpLengths qwidth first last
+.ervmap_3_filters_pairedend <- function(r, tags_df) {
+  # The first filter is always applied
+  cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops = c("H","S"))
+  cigar_last <- explodeCigarOpLengths(cigar(last(r)), ops = c("H","S"))
+  
+  SH_clipping_first <- lapply(cigar_first, function(x) sum(unlist(x)))
+  SH_clipping_last <- lapply(cigar_last, function(x) sum(unlist(x)))
+  
+  # The second filter is always applied but when the NM tag is not
+  # available the nM tag can be used instead.
+  if (tags_df$NM) {
+    NM_filter <- (mcols(first(r))$NM / qwidth(first(r))) < 0.02 & (mcols(last(r))$NM / qwidth(last(r))) < 0.02
+    
+  } else if (tags_df$nM) {
+    NM_filter <- (mcols(first(r))$nM / qwidth(first(r))) < 0.02 & (mcols(last(r))$nM / qwidth(last(r))) < 0.02
+  }
+  
+  # The third filter (AS - XS >= 5) cannot be applied the XS tag is not available
+  if (!tags_df$XS) {
+    AS_XS_filter <- rep(TRUE, length(r))
+  } else {
+    AS_XS_filter <- (mcols(first(r))$AS - mcols(first(r))$XS) >= 5 & (mcols(last(r))$AS - mcols(last(r))$XS) >= 5
+    AS_XS_filter[is.na(AS_XS_filter)] <- FALSE
+  }
+  
+  # Filtering alignments considering all filters
+  r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r))) < 0.02 & 
+                  (unlist(SH_clipping_last) / qwidth(last(r))) < 0.02 ) & NM_filter & AS_XS_filter
+  return(r[r_to_keep])
+}
+
+
+
+## Function to apply the 2 filters from ERVmap to a GAlignmentPairs object
+## Returns a filtered GAlignmentPairs object.
+
+#' @importFrom GenomicAlignments explodeCigarOpLengths qwidth first last
+.ervmap_2_filters_pairedend <- function(r, tags_df) {
+  # The first filter is always applied
+  cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops = c("H","S"))
+  cigar_last <- explodeCigarOpLengths(cigar(last(r)), ops = c("H","S"))
+  
+  SH_clipping_first <- lapply(cigar_first, function(x) sum(unlist(x)))
+  SH_clipping_last <- lapply(cigar_last, function(x) sum(unlist(x)))
+  
+  # The second filter is always applied but when the NM tag is not
+  # available the nM tag can be used instead.
+  if (tags_df$NM) {
+    NM_filter <- (mcols(first(r))$NM / qwidth(first(r))) < 0.02 & (mcols(last(r))$NM / qwidth(last(r))) < 0.02
+    
+  } else if (tags_df$nM) {
+    NM_filter <- (mcols(first(r))$nM / qwidth(first(r))) < 0.02 & (mcols(last(r))$nM / qwidth(last(r))) < 0.02
+  }
+  
+  # Filtering alignments considering all filters
+  r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r))) < 0.02 & 
+                  (unlist(SH_clipping_last) / qwidth(last(r))) < 0.02 ) & NM_filter
+  return(r[r_to_keep])
 }

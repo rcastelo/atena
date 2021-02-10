@@ -68,7 +68,7 @@ Build an object of the class \code{ERVmapParam}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
-empar <- ERVmapParam(bamfiles, annot)
+empar <- ERVmapParam(bamfiles, annot, singleEnd = TRUE)
 empar
 
 }

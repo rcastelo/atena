@@ -7,7 +7,7 @@
 \alias{qtex,AtenaParam-method}
 \title{Quantify transposable element expression}
 \usage{
-\S4method{qtex}{ERVmapParam}(x, phenodata = NULL, BPPARAM = SerialParam(progress = TRUE))
+\S4method{qtex}{ERVmapParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
 
 \S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
 }
