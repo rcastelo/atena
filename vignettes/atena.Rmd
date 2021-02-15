@@ -1,7 +1,7 @@
 ---
 title: "An introduction to the atena package"
 author:
-- name: Beatriz Calvo-Calvo
+- name: Beatriz Calvo-Serra
   affiliation:
   - &id Dept. of Experimental and Health Sciences, Universitat Pompeu Fabra, Barcelona, Spain
 - name: Robert Castelo
