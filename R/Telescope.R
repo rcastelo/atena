@@ -43,6 +43,7 @@
 #' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
 #' @importFrom methods is new
+#' @importFrom S4Vectors mcols
 #' @importFrom basilisk BasiliskEnvironment basiliskStart basiliskStop
 #' @importFrom basilisk.utils installConda
 #' @export
@@ -241,6 +242,7 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom methods is
 #' @importFrom utils relist write.table
+#' @importFrom S4Vectors mcols mcols<-
 .exportTelescopeGTF <- function(gr, fname, src="Telescope") {
 
   if (is(gr, "GRangesList")) {
@@ -266,7 +268,7 @@ setMethod("qtex", "TelescopeParam",
     features <- rep("feature", length(gr))
 
   scores <- mcols(gr)$score
-  if (is.null(score))
+  if (is.null(scores))
     scores <- rep(NA_real_, length(gr))
 
   strand <- strand(gr)

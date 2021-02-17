@@ -30,11 +30,11 @@ primary alignments by leveraging the information provided by
 secondary alignments of multi-mapping reads in binary 'BAM' files. In
 summary, the secondary alignments of each primary alignment are identified
 and the alignment score of the best secondary alignment is reported as the
-suboptimal alignment score. This function is called internally by
-\code{\link{count_TE}} when the suboptimal alignment score tag is not
-reported in the provided BAM files, since this information is required by
-\code{\link{count_TE}} to correctly quantify the expression of transposable
-elements.
+suboptimal alignment score. This function is called internally when using
+a \code{\link{ERVmapParam}} object in the call to \code{\link{qtex}()} and
+the suboptimal alignment score tag is not reported in the input BAM files,
+since this information is required by the ERVmap algorithm to quantify the
+expression of transposable elements.
 }
 \details{
 This function aims at replacing the 'XS' tag reported by the
@@ -72,5 +72,5 @@ getSuboptimalAlignScore(r, strandMode=2)}
 \code{\link[Rsamtools]{ScanBamParam}},
 \code{\link[GenomicAlignments]{readGAlignmentPairs}},
 \code{\link[GenomicAlignments]{GAlignmentPairs-class}},
-\code{\link{count_TE}}
+\code{\link{ERVmapParam}}
 }

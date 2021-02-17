@@ -171,8 +171,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
 #' @importFrom GenomicAlignments readGAlignments
 #' @importFrom GenomicAlignments summarizeOverlaps
-#' @importFrom SummarizedExperiment SummarizedExperiment
-
+#' @importFrom SummarizedExperiment SummarizedExperiment assay
 .qtex_ervmap_singleend <- function(bf, ervpar) {
 
   tags_df <- .get_tags_in_BAM_singleend(bf)
@@ -361,6 +360,7 @@ setMethod("qtex", "ERVmapParam",
 ## not (FALSE).
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+#' @importFrom S4Vectors mcols
 .get_tags_in_BAM_singleend <- function(bf) {
   
   yieldSize(bf) <- 1000
@@ -398,6 +398,7 @@ setMethod("qtex", "ERVmapParam",
 ## not (FALSE).
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom S4Vectors mcols
 .get_tags_in_BAM_pairedend <- function(bf, ervpar) {
   yieldSize(bf) <- 1000
   asMates(bf) <- TRUE
@@ -434,6 +435,7 @@ setMethod("qtex", "ERVmapParam",
 ## Returns a filtered GAlignments object.
 
 #' @importFrom GenomicAlignments explodeCigarOpLengths qwidth cigar
+#' @importFrom S4Vectors mcols
 .ervmap_3_filters <- function(r, tags_df) {
   # The 1st filter is always applied
   cigar_out <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
@@ -465,6 +467,7 @@ setMethod("qtex", "ERVmapParam",
 ## Returns a filtered GAlignments object.
 
 #' @importFrom GenomicAlignments explodeCigarOpLengths qwidth cigar
+#' @importFrom S4Vectors mcols
 .ervmap_2_filters <- function(r, tags_df) {
   cigar_out <- explodeCigarOpLengths(cigar(r), ops = c("H","S"))
   SH_clipping <- lapply(cigar_out, function(cig) sum(unlist(cig)))
@@ -485,6 +488,7 @@ setMethod("qtex", "ERVmapParam",
 ## Returns a filtered GAlignmentPairs object.
 
 #' @importFrom GenomicAlignments explodeCigarOpLengths qwidth first last
+#' @importFrom S4Vectors mcols
 .ervmap_3_filters_pairedend <- function(r, tags_df) {
   # The first filter is always applied
   cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops = c("H","S"))
@@ -522,6 +526,7 @@ setMethod("qtex", "ERVmapParam",
 ## Returns a filtered GAlignmentPairs object.
 
 #' @importFrom GenomicAlignments explodeCigarOpLengths qwidth first last
+#' @importFrom S4Vectors mcols
 .ervmap_2_filters_pairedend <- function(r, tags_df) {
   # The first filter is always applied
   cigar_first <- explodeCigarOpLengths(cigar(first(r)), ops = c("H","S"))

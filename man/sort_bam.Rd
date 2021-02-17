@@ -23,8 +23,9 @@ The function does not output any object. The resulting sorted files
 \code{sort_bam} allows to sort by Query-name (read ID) all binary 'BAM' files
 located in the same directory. This function is based on the
 \code{\link[Rsamtools]{sortBam}} function. This step is required
-previous to the \code{\link{count_TE}} function when the suboptimal alignment
-score tag is not specified in the 'BAM' files, in order to compute it.
+previous to the \code{\link{qtex}()} function call when the input parameter
+object is an \code{\link{ERVmapParam}} param object and the suboptimal alignment
+score tag is not specified in the input 'BAM' files, in order to compute it.
 }
 \examples{
 \dontrun{path_bam_files <- "Documents/RNAseq/BAMfiles"
@@ -33,6 +34,6 @@ sort_bam(path_bam_files, path_bam_files_sorted)}
 
 }
 \seealso{
-\code{\link{count_TE}},
+\code{\link{ERVmapParam}},
 \code{\link[Rsamtools]{sortBam}},
 }
