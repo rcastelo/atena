@@ -3,6 +3,7 @@
 export(ERVmapParam)
 export(ERVmap_ann)
 export(TelescopeParam)
+export(Telescope_ann)
 export(getSuboptimalAlignScore)
 export(sort_bam)
 exportClasses(AtenaParam)

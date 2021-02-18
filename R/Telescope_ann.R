@@ -1,0 +1,42 @@
+#' Annotations of human transposable elements (HERVs and L1 LINEs) from Telescope
+#' \href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006453}{(Bendall et al, 2019)}
+#' 
+#' \code{Telescope_ann()} provides the annotations of
+#' transposable elements (human endogenous retroviruses (HERVs) and L1 long 
+#' interspersed nuclear element (LINE)) created by Telescope authors
+#' (\href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}),
+#' available \href{https://github.com/mlbendall/telescope_annotation_db/tree/master/builds/retro.hg38.v1}{here}. 
+#' The annotations include 72,169 ranges, corresponding to 28,513 transposable 
+#' elements. This number difference is due to the fact that transcripts are 
+#' permitted to be disjoint, in order to exclude insertions of other element 
+#' types.
+#'
+#' @param type (Default \code{all}). Character vector indicating the type of
+#' elements to retrieve. Options are: \code{HERV}, which outputs annotations 
+#' from HERVs, and \code{L1}, which gets the annotations of L1 elements. 
+#' \code{all} option outputs the whole set of annotations, which includes
+#' both HERVs and L1 elements.
+#' 
+#' @return A \code{GRanges} object.
+#' 
+#' @source \url{https://github.com/mlbendall/telescope_annotation_db/blob/master/builds/retro.hg38.v1/transcripts.gtf}
+#'
+#' @examples
+#' Telescope_ann()
+#'
+#' @references
+#' Bendall ML et al. Telescope: characterization of the retrotranscriptome by
+#' accurate estimation of transposable element expression.
+#' PLOS Computational Biology, 15:e1006453, 2019.
+#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
+#'
+#' @export
+Telescope_ann <- function(type = "all") {
+  ann <- readRDS(file.path(system.file("extdata", package="atena"), "Telescope_ann.rds"))
+  if (type == "HERV") {
+    ann <- ann[mcols(ann)$source == "rmsk",]
+  } else if (type == "L1") {
+    ann <- ann[mcols(ann)$source == "l1base",]
+  }
+  ann
+}

@@ -16,7 +16,10 @@ ERVmapParam(
 }
 \arguments{
 \item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
-string vector of BAM filenames.}
+string vector of BAM filenames. In order to apply all three filters present
+in the ERVmap algorithm, reads must be aligned using Burrows-Wheeler Aligner.
+If a different aligner was used, the 3rd filter (AS - XS >= 5) from the 
+ERVmap algorithm is not applied.}
 
 \item{annotations}{A 'GRanges' object.}
 
@@ -63,6 +66,15 @@ A \linkS4class{ERVmapParam} object.
 }
 \description{
 Build an object of the class \code{ERVmapParam}
+}
+\details{
+This is the constructor function for objects of the class
+\code{ERVmapParam-class}. This type of object is the input to the
+function \code{\link{qtex}()} for quantifying expression of transposable
+elements using the ERVmap method
+\href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}. The
+ERVmap algorithm processes reads following conservative filtering criteria
+to provide reliable raw count data for each TE.
 }
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),

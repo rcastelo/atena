@@ -3,7 +3,10 @@
 #' Build an object of the class \code{ERVmapParam}
 #'
 #' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
-#' string vector of BAM filenames.
+#' string vector of BAM filenames. In order to apply all three filters present
+#' in the ERVmap algorithm, reads must be aligned using Burrows-Wheeler Aligner.
+#' If a different aligner was used, the 3rd filter (AS - XS >= 5) from the 
+#' ERVmap algorithm is not applied.
 #'
 #' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
 #' in this object should have names, which will be used as a grouping factor
@@ -49,6 +52,15 @@
 #' a single hit and singletons, reads with unmapped pairs and other fragments
 #' are not counted.
 #'
+#' @details
+#' This is the constructor function for objects of the class
+#' \code{ERVmapParam-class}. This type of object is the input to the
+#' function \code{\link{qtex}()} for quantifying expression of transposable
+#' elements using the ERVmap method
+#' \href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}. The
+#' ERVmap algorithm processes reads following conservative filtering criteria
+#' to provide reliable raw count data for each TE.
+#' 
 #' @return A \linkS4class{ERVmapParam} object.
 #'
 #' @examples
@@ -159,7 +171,7 @@ setMethod("qtex", "ERVmapParam",
             colData <- DataFrame(row.names=colnames(cntmat))
             if (!is.null(phenodata)) {
               colData <- phenodata
-              colnames(cnt) <- rownames(colData)
+              colnames(cntmat) <- rownames(colData)
             }
 
             SummarizedExperiment(assays=list(counts=cntmat),
