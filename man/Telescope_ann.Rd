@@ -5,10 +5,10 @@
 \title{Annotations of human transposable elements (HERVs and L1 LINEs) from Telescope
 \href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006453}{(Bendall et al, 2019)}}
 \source{
-\url{https://github.com/mlbendall/telescope_annotation_db/blob/master/builds/retro.hg38.v1/transcripts.gtf}
+\url{https://github.com/mlbendall/telescope_annotation_db/blob/master/builds}
 }
 \usage{
-Telescope_ann(type = "all")
+Telescope_ann(type = c("all", "HERV", "L1"), version = c("hg38", "hg19"))
 }
 \arguments{
 \item{type}{(Default \code{all}). Character vector indicating the type of
@@ -16,6 +16,9 @@ elements to retrieve. Options are: \code{HERV}, which outputs annotations
 from HERVs, and \code{L1}, which gets the annotations of L1 elements. 
 \code{all} option outputs the whole set of annotations, which includes
 both HERVs and L1 elements.}
+
+\item{version}{(Default \code{hg38}). Character string indicating the human
+genome version of the annotations (\code{hg38} or \code{hg19}).}
 }
 \value{
 A \code{GRanges} object.
@@ -24,12 +27,13 @@ A \code{GRanges} object.
 \code{Telescope_ann()} provides the annotations of
 transposable elements (human endogenous retroviruses (HERVs) and L1 long 
 interspersed nuclear element (LINE)) created by Telescope authors
-(\href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)}),
-available \href{https://github.com/mlbendall/telescope_annotation_db/tree/master/builds/retro.hg38.v1}{here}. 
-The annotations include 72,169 ranges, corresponding to 28,513 transposable 
-elements. This number difference is due to the fact that transcripts are 
-permitted to be disjoint, in order to exclude insertions of other element 
-types.
+(\href{https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006453}{Bendall et al, (2019)}). 
+Transposable elements (TE) annotations in the GRCh38/hg38 human genome assembly include 72,169 ranges, 
+corresponding to 28,513 TEs. For the GRCh37/hg19 assembly, there are 71,937
+ranges corresponding to 28,314 TEs. The number difference between
+ranges and TEs is due to the fact that some transcripts are disjoint, in 
+order to exclude insertions of other element types. Telescope, however,
+reports counts at the TE-level.
 }
 \examples{
 Telescope_ann()
