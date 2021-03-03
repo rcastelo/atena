@@ -185,25 +185,20 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom GenomicAlignments summarizeOverlaps
 #' @importFrom SummarizedExperiment SummarizedExperiment assay
 .qtex_ervmap_singleend <- function(bf, ervpar) {
-
   tags_df <- .get_tags_in_BAM_singleend(bf)
   yieldSize(bf) <- 100000
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isDuplicate = FALSE,
                          isNotPassingQualityControls = FALSE,
                          isSupplementaryAlignment = FALSE)
-  
-  if (!tags_df$NH & !tags_df$XS) {
+  if (!tags_df$NH) {
     if (!ervpar@filterUniqReads) {
-      stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
+      stop("Error in 'filterUniqReads = FALSE': the NH tag is not provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
     }
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
-  } else if (tags_df$NH) {
+  } else {
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
                           tagFilter = list(NH = c(2:10000)))
-  } else if (tags_df$XS) {
-    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
-                          tagFilter = list(XS = c(1:10000)))
-  }
+  } 
   if (!tags_df$NM & !tags_df$nM) {
     stop("Neither the NM tag nor the nM tag are available in the BAM file. At least one of them is needed to apply the 2nd filter.")
   }
@@ -225,21 +220,14 @@ setMethod("qtex", "ERVmapParam",
   }
   close(bf)
   
-  if(tags_df$NH || tags_df$XS) {
-    ## If the NH and XS are not provided, both unique reads and multimapping
+  if(tags_df$NH) {
+    ## If NH is not provided, both unique reads and multimapping
     ## reads have already been filtered and counted in the previous step. 
-    
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isSupplementaryAlignment = FALSE, isDuplicate = FALSE,
                            isNotPassingQualityControls = FALSE)
-    if (!tags_df$NH & tags_df$XS) {
-      # If NH is not available but XS is, reads with XS = 0 are considered as unique
-      param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(XS = 0))
-    } else {
-      param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
-                            tagFilter = list(NH = 1)) #Read only unique reads
-    }
+    param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
+                          tagFilter = list(NH = 1)) #Read only unique reads
     open(bf)
     while (length(r <- readGAlignments(bf, param = param))) {
       if (ervpar@filterUniqReads) {
@@ -269,17 +257,14 @@ setMethod("qtex", "ERVmapParam",
                          isDuplicate = FALSE, isSupplementaryAlignment = FALSE,
                          isNotPassingQualityControls = FALSE)
   
-  if (!tags_df$NH & !tags_df$XS) {
+  if (!tags_df$NH) {
     if (!ervpar@filterUniqReads) {
-      stop("Error in 'filterUniqReads = FALSE': Neither the NH tag nor the XS tag (from BWA) are provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
+      stop("Error in 'filterUniqReads = FALSE': the NH tag is not provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
     }
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"))
-  } else if (tags_df$NH) {
+  } else {
     param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
                           tagFilter = list(NH = c(2:10000)))
-  } else if (tags_df$XS) {
-    param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
-                          tagFilter = list(XS = c(1:10000)))
   }
   if (!tags_df$NM & !tags_df$nM) {
     stop("Neither the NM tag nor the nM tag are available in the BAM file. At least one of them is needed to apply the 2nd filter.")
@@ -293,13 +278,14 @@ setMethod("qtex", "ERVmapParam",
       r_last_total <- .ervmap_3_filters(last(r), tags_df)
       r_total <- c(r_first_total, r_last_total)
       rm(r, r_first_total, r_last_total)
-      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+      overlap <- summarizeOverlaps(features = ervpar@annotations,
+                                   reads = r_total, 
                                    ignore.strand = ervpar@ignoreStrand,
                                    mode = Union, inter.feature = FALSE,
                                    fragments = TRUE)
     } else {
       r_total <- .ervmap_3_filters_pairedend(r, tags_df)
-      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total,
+      overlap <- summarizeOverlaps(features = ervpar@annotations, reads = r_total, 
                                    ignore.strand = ervpar@ignoreStrand,
                                    mode = Union, inter.feature = FALSE,
                                    singleEnd = FALSE, fragments = FALSE)
@@ -313,22 +299,15 @@ setMethod("qtex", "ERVmapParam",
   }
   close(bf)
   
-  if(tags_df$NH || tags_df$XS) {
-    ## If the NH and XS are not provided, both unique reads and multimapping
+  if(tags_df$NH) {
+    ## If the NH is not provided, both unique reads and multimapping
     ## reads have already been filtered and counted in the previous step. 
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isSupplementaryAlignment = FALSE, 
                            isDuplicate = FALSE, isProperPair = TRUE, 
                            isNotPassingQualityControls = FALSE)
-    if (!tags_df$NH & tags_df$XS) {
-      # If NH is not available but XS is, reads with XS = 0 are considered as unique
-      param <- ScanBamParam(flag = sbflags, tag = c("nM", "NM", "AS", "NH", "XS"),
-                            tagFilter = list(XS = 0))
-    } else {
-      param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
-                            tagFilter = list(NH = 1)) #Read only unique reads
-    }
-    
+    param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
+                          tagFilter = list(NH = 1)) #Read only unique reads
     open(bf)
     while (length(r <- readGAlignmentPairs(bf, param = param, strandMode = ervpar@strandMode))) {
       if (ervpar@fragments) {
@@ -363,6 +342,7 @@ setMethod("qtex", "ERVmapParam",
   }
   return(cnt)
 }
+
 
 
 
@@ -485,10 +465,8 @@ setMethod("qtex", "ERVmapParam",
   SH_clipping <- lapply(cigar_out, function(cig) sum(unlist(cig)))
   if (tags_df$NM) {
     NM_filter <- (mcols(r)$NM / qwidth(r)) < 0.02
-  } else if (tags_df$nM) {
-    NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
   } else {
-    stop("Error: Neither the NM tag nor the nM tag are available. At least one of them is needed to apply the 2nd filter.")
+    NM_filter <- (mcols(r)$nM / qwidth(r)) < 0.02
   }
   r_to_keep <- ((unlist(SH_clipping) / qwidth(r)) < 0.02) & NM_filter
   r_uniq <- r[r_to_keep]
@@ -513,8 +491,7 @@ setMethod("qtex", "ERVmapParam",
   # available the nM tag can be used instead.
   if (tags_df$NM) {
     NM_filter <- (mcols(first(r))$NM / qwidth(first(r))) < 0.02 & (mcols(last(r))$NM / qwidth(last(r))) < 0.02
-    
-  } else if (tags_df$nM) {
+  } else {
     NM_filter <- (mcols(first(r))$nM / qwidth(first(r))) < 0.02 & (mcols(last(r))$nM / qwidth(last(r))) < 0.02
   }
   
@@ -551,8 +528,7 @@ setMethod("qtex", "ERVmapParam",
   # available the nM tag can be used instead.
   if (tags_df$NM) {
     NM_filter <- (mcols(first(r))$NM / qwidth(first(r))) < 0.02 & (mcols(last(r))$NM / qwidth(last(r))) < 0.02
-    
-  } else if (tags_df$nM) {
+  } else {
     NM_filter <- (mcols(first(r))$nM / qwidth(first(r))) < 0.02 & (mcols(last(r))$nM / qwidth(last(r))) < 0.02
   }
   
