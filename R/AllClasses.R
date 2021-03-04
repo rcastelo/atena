@@ -118,3 +118,53 @@ setClass("TelescopeParam", contains="AtenaParam",
          representation(basiliskEnv="BasiliskEnvironment",
                         telescopeVersion="character",
                         telescopeOptions="list"))
+
+#' TEtranscripts parameter class
+#'
+#' This is a class for storing parameters provided to the TEtranscripts algorithm.
+#' It is a subclass of the 'AtenaParam-class'.
+#'
+#' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
+#' (\code{TRUE}) or paired-end (\code{FALSE}).
+#'
+#' @slot strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#'   The strand mode is a per-object switch on
+#'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#'   objects that controls the behavior of the strand getter. See
+#'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#'   class for further detail. If \code{singleEnd = TRUE}, then use either
+#'   \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
+#'
+#' @slot ignoreStrand (Default TRUE) A logical which defines if the strand
+#' should be taken into consideration when computing the overlap between reads
+#' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
+#' consider those reads selected after filtering which overlap the TE or
+#' ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
+#' the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
+#' any alignment which overlaps with the element in the annotations regardless
+#' of the strand. For further details see
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
+#'
+#' @slot fragments (Default TRUE) A logical; applied to paired-end data only.
+#' When \code{fragments=TRUE} (default), the read-counting method will also
+#' count reads without mates, while when \code{fragments=FALSE} those reads
+#' will not be counted. For further details see
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @references
+#' Jin Y et al. TEtranscripts: a package for including transposable elements
+#' in differential expression analysis of RNA-seq datasets.
+#' Bioinformatics. 2015;31(22):3593-3599. DOI:
+#' \url{https://doi.org/10.1093/bioinformatics/btv422}
+#'
+#' @name TEtranscriptsParam-class
+#' @rdname TEtranscriptsParam-class
+#' @exportClass TEtranscriptsParam
+setClass("TEtranscriptsParam", contains="AtenaParam",
+         representation(singleEnd="logical",
+                        ignoreStrand="logical",
+                        strandMode="integer",
+                        fragments="logical",
+                        tolerance="numeric",
+                        maxIter="integer"))

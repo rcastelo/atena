@@ -93,7 +93,7 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
   if (length(opts) > 0) {
     bannedOpts <- c("attribute", "no_feature_key", "outdir", "exp_tag",
                     "tempdir", "ncpu", "skip_em")
-    if (names(opts) %in% bannedOpts)
+    if (any(names(opts) %in% bannedOpts))
       stop(sprintf("The following Telescope options cannot be used from this package:\n  %s",
                    paste(bannedOpts, collapse=", ")))
 
