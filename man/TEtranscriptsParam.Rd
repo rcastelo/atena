@@ -7,17 +7,30 @@
 TEtranscriptsParam(
   bfl,
   annotations,
+  aggregateby = character(0),
   singleEnd = FALSE,
   ignoreStrand = TRUE,
   strandMode = 1L,
-  fragments = TRUE
+  fragments = TRUE,
+  tolerance = 1e-04,
+  maxIter = 100
 )
 }
 \arguments{
 \item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
 string vector of BAM filenames.}
 
-\item{annotations}{A 'GRanges' object.}
+\item{annotations}{A \code{GRanges} or \code{GRangesList} object with the
+annotations to be quantified. Elements in this object should have names,
+which will be used as a grouping factor for genomic ranges forming a common
+locus, unless other metadata column names are specified in the
+\code{aggregateby} parameter.}
+
+\item{aggregateby}{Character vector with column names in the annotation
+to be used to aggregate quantifications. By default, this is an empty vector,
+which means that the names of the input \code{GRanges} or \code{GRangesList}
+object given in the \code{annotations} parameter will be used to aggregate
+quantifications.}
 
 \item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
@@ -60,7 +73,7 @@ function \code{\link{qtex}()} for quantifying expression of transposable
 elements using the TEtranscripts method
 \href{https://doi.org/10.1093/bioinformatics/btv422}{Jin et al. (2015)}. The
 TEtranscripts algorithm quantifies TE expression by using an EM algorithm
-to optimally distribute ambiguosly mapped reads.
+to optimally distribute ambiguously mapped reads.
 }
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),

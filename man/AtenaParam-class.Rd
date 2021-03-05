@@ -22,9 +22,13 @@ transposable elements from RNA-seq data.
 \item{\code{bfl}}{A \linkS4class{BamFileList} object.}
 
 \item{\code{annotations}}{A \linkS4class{GRanges} object.}
+
+\item{\code{aggregateby}}{Character vector with column names in the annotation
+to be used to aggregate quantifications.}
 }}
 
 \seealso{
 \code{\link{ERVmapParam-class}}
 \code{\link{TelescopeParam-class}}
+\code{\link{TEtranscriptsParam-class}}
 }

@@ -8,19 +8,24 @@
 #'
 #' @slot annotations A \linkS4class{GRanges} object.
 #'
+#' @slot aggregateby Character vector with column names in the annotation
+#'       to be used to aggregate quantifications.
+#'
 #' @importClassesFrom Rsamtools BamFileList
 #' @importClassesFrom GenomicRanges GenomicRanges_OR_GenomicRangesList
 #'
 #' @seealso
 #' \code{\link{ERVmapParam-class}}
 #' \code{\link{TelescopeParam-class}}
+#' \code{\link{TEtranscriptsParam-class}}
 #'
 #' @name AtenaParam-class
 #' @rdname AtenaParam-class
 #' @exportClass AtenaParam
 setClass("AtenaParam",
          representation(bfl="BamFileList",
-                        annotations="GenomicRanges_OR_GenomicRangesList"))
+                        annotations="GenomicRanges_OR_GenomicRangesList",
+                        aggregateby="character"))
 
 #' @param object A \linkS4class{AtenaParam} object.
 #'

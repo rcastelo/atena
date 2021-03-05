@@ -5,11 +5,17 @@
 #' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
 #' string vector of BAM filenames.
 #'
-#' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
-#' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus.
+#' @param annotations A \code{GRanges} or \code{GRangesList} object with the
+#' annotations to be quantified. Elements in this object should have names,
+#' which will be used as a grouping factor for genomic ranges forming a common
+#' locus, unless other metadata column names are specified in the
+#' \code{aggregateby} parameter.
 #'
-#' @param annotations A 'GRanges' object.
+#' @param aggregateby Character vector with column names in the annotation
+#' to be used to aggregate quantifications. By default, this is an empty vector,
+#' which means that the names of the input \code{GRanges} or \code{GRangesList}
+#' object given in the \code{annotations} parameter will be used to aggregate
+#' quantifications.
 #'
 #' @param singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -46,7 +52,7 @@
 #' elements using the TEtranscripts method
 #' \href{https://doi.org/10.1093/bioinformatics/btv422}{Jin et al. (2015)}. The
 #' TEtranscripts algorithm quantifies TE expression by using an EM algorithm
-#' to optimally distribute ambiguosly mapped reads.
+#' to optimally distribute ambiguously mapped reads.
 #' 
 #' @return A \linkS4class{TEtranscriptsParam} object.
 #'
@@ -65,11 +71,13 @@
 #'
 #' @importFrom methods is new
 #' @export
-TEtranscriptsParam <- function(bfl, annotations,
+TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
                                singleEnd=FALSE,
                                ignoreStrand=TRUE,
                                strandMode=1L,
-                               fragments=TRUE) {
+                               fragments=TRUE,
+                               tolerance=0.0001,
+                               maxIter=100) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
     stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
 
@@ -91,14 +99,21 @@ TEtranscriptsParam <- function(bfl, annotations,
     stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
                  annotationsobjname))
 
-  if (is.null(names(annotations)))
-    stop(sprintf("the annotations object '%s' has no names.", annotationsobjname))
+  if (length(aggregateby) > 0)
+    if (any(!aggregateby %in% colnames(mcols(annotations))))
+        stop(sprintf("%s not in metadata columns of the annotations object.",
+             paste(aggregateby[!aggregateby %in% colnames(mcols(annotations))])))
+
+  if (is.null(names(annotations)) && length(aggregateby) == 0)
+    stop(sprintf("the annotations object '%s' has no names and no aggregation metada columns have been specified.", annotationsobjname))
 
   if (is(annotations, "GRangesList"))
     annotations <- unlist(annotations)
 
-  new("TEtranscriptsParam", bfl=bfl, annotations=annotations, singleEnd=singleEnd,
-      ignoreStrand=ignoreStrand, strandMode=as.integer(strandMode), fragments=fragments)
+  new("TEtranscriptsParam", bfl=bfl, annotations=annotations,
+      aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+      strandMode=as.integer(strandMode), fragments=fragments,
+      tolerance=tolerance, maxIter=as.integer(maxIter))
 }
 
 #' @param object A \linkS4class{TEtranscriptsParam} object.
@@ -112,10 +127,14 @@ setMethod("show", "TEtranscriptsParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# annotations (%d): %s\n", length(object@annotations),
+            cat(sprintf("# annotations (%s length %d): %s\n", class(object@annotations),
+                        length(object@annotations),
                         ifelse(is.null(names(object@annotations)),
                                paste("on", .pprintnames(seqlevels(object@annotations))),
                                .pprintnames(names(object@annotations)))))
+            cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
+                                                        paste(object@aggregateby, collapse=", "),
+                                                        paste(class(object@annotations), "names"))))
             cat(sprintf("# %s, %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -130,6 +149,7 @@ setMethod("show", "TEtranscriptsParam",
 
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom S4Vectors DataFrame
+#' @importFrom GenomicRanges GRangesList
 #' @export
 #' @aliases qtex
 #' @aliases qtex,TEtranscriptsParam-method
@@ -156,20 +176,27 @@ setMethod("qtex", "TEtranscriptsParam",
               colnames(cntmat) <- rownames(colData)
             }
 
+            annot <- x@annotations
+            if (length(x@aggregateby) > 0) {
+              f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
+              annot <- GRangesList(split(annot, f))
+            }
+
             SummarizedExperiment(assays=list(counts=cntmat),
-                                 rowRanges=x@annotations,
+                                 rowRanges=annot,
                                  colData=colData)
           })
 
-.qtex_tetx_pairedend <- function(ttpar) {
+.qtex_tetx_pairedend <- function(bf, ttpar) {
   stop("TEtranscripts not yet available for paired-end data.")
 }
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom GenomicRanges width
 #' @importFrom GenomicAlignments readGAlignments qwidth
 #' @importFrom S4Vectors queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums
-.qtex_tetx_singleend <- function(ttpar) {
+#' @importFrom Matrix Matrix rowSums colSums t
+.qtex_tetx_singleend <- function(bf, ttpar) {
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                          isDuplicate=FALSE,
                          isNotPassingQualityControls=FALSE,
@@ -178,13 +205,13 @@ setMethod("qtex", "TEtranscriptsParam",
   param <- ScanBamParam(flag=sbflags, tag="AS")
 
   open(bf)
-  open(bf)
-  multialignments <- readGAlignments(bf, param=param)
+  ## use.names=TRUE is important to get the read names
+  multialignments <- readGAlignments(bf, use.names=TRUE, param=param)
   close(bf)
 
   teann <- ttpar@annotations
   ovmulti <- findOverlaps(multialignments, teann,
-                          ignore.strand=ttpar@ignore.strand)
+                          ignore.strand=ttpar@ignoreStrand)
 
   ## fetch all different read names from the overlapping alignments
   read_names <- unique(names(multialignments)[queryHits(ovmulti)])
@@ -210,11 +237,12 @@ setMethod("qtex", "TEtranscriptsParam",
   namesovar <- names(multialignments[queryHits(ovmulti)])
   avgReadLength <- mean(qwidth(multialignments[unique(namesovar)]))
 
-  ## Pi stores probabilities of expression corrected by the
-  ## effective length of the corresponding annotations as defined
+  ## Pi, corresponding to rho in Equations (1), (2) and (3) in
+  ## Jin et al. (2015), stores probabilities of expression for each
+  ## transcript, corrected for its effective length as defined
   ## in Eq. (1) of Jin et al. (2015)
   Pi <- colSums(Qmat)
-  elen <- width(tt@annotations) - avgReadLength + 1
+  elen <- width(ttpar@annotations) - avgReadLength + 1
   Pi[elen > 0] <- Pi[elen > 0] / elen[elen > 0]
   Pi[elen <= 0] <- 0
   Pi <- Pi / sum(Pi)
@@ -224,15 +252,40 @@ setMethod("qtex", "TEtranscriptsParam",
   while (delta >= ttpar@tolerance && i < ttpar@maxIter) {
     X <- .ttEstep(Qmat, Pi)
     Pi2 <- .ttMstep(X)
-    delta <- sum(abs(Pi2-Pi))
+    delta <- max(abs(Pi2-Pi))
     Pi <- Pi2
+    ## correct for transcript effective length
     Pi[elen > 0] <- Pi[elen > 0] / elen[elen > 0]
     Pi[elen <= 0] <- 0
+
+    ## re-normalize
     Pi <- Pi / sum(Pi)
     i <- i + 1
     cat(sprintf("Iteration %d of %d: delta=%.6f tol=%.6f\n",
-                ttpar@maxIter, delta, ttpar@tolerance))
+                i, ttpar@maxIter, delta, ttpar@tolerance))
   }
+
+  ## use the estimated transcript expression probabilities
+  ## to finally distribute ambiguously mapping reads
+  probmassbyread <- as.vector(ovalnmat %*% Pi)
+  cntvec <- rowSums(t(ovalnmat / probmassbyread) * Pi)
+
+  ## aggregate quantifications if necessary
+  if (length(ttpar@aggregateby) > 0) {
+    f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
+    stopifnot(length(f) == length(cntvec)) ## QC
+    cntvec <- tapply(cntvec, f, sum)
+  }
+
+  cntvec
+}
+
+#' @importFrom GenomicRanges mcols
+f <- .factoraggregateby <- function(ann, aggby) {
+  stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
+  spfstr <- paste(rep("%s", length(aggby)), collapse=":")
+  f <- do.call("sprintf", c(spfstr, as.list(mcols(teann)[, aggby])))
+  f
 }
 
 .ttEstep <- function(Q, Pi) {
@@ -252,5 +305,3 @@ setMethod("qtex", "TEtranscriptsParam",
   z[mask] <- NA
   sum(X * log(z), na.rm=TRUE)
 }
-
-
