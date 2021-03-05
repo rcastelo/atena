@@ -77,7 +77,7 @@ TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
                                strandMode=1L,
                                fragments=TRUE,
                                tolerance=0.0001,
-                               maxIter=100) {
+                               maxIter=100L) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
     stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
 
@@ -196,6 +196,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom GenomicAlignments readGAlignments qwidth
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t
+#' @importFrom SQUAREM squarem
 .qtex_tetx_singleend <- function(bf, ttpar) {
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                          isDuplicate=FALSE,
@@ -247,23 +248,12 @@ setMethod("qtex", "TEtranscriptsParam",
   Pi[elen <= 0] <- 0
   Pi <- Pi / sum(Pi)
 
-  i <- 0
-  delta <- 99
-  while (delta >= ttpar@tolerance && i < ttpar@maxIter) {
-    X <- .ttEstep(Qmat, Pi)
-    Pi2 <- .ttMstep(X)
-    delta <- max(abs(Pi2-Pi))
-    Pi <- Pi2
-    ## correct for transcript effective length
-    Pi[elen > 0] <- Pi[elen > 0] / elen[elen > 0]
-    Pi[elen <= 0] <- 0
-
-    ## re-normalize
-    Pi <- Pi / sum(Pi)
-    i <- i + 1
-    cat(sprintf("Iteration %d of %d: delta=%.6f tol=%.6f\n",
-                i, ttpar@maxIter, delta, ttpar@tolerance))
-  }
+  ## as specified in Jin et al. (2015), use the SQUAREM algorithm
+  ## to achieve faster EM convergence
+  emres <- squarem(p=Pi, Q=Qmat, elen=elen,
+                   fixptfn=.ttFixedPointFun,
+                   control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
+  Pi <- emres$par
 
   ## use the estimated transcript expression probabilities
   ## to finally distribute ambiguously mapping reads
@@ -297,6 +287,15 @@ f <- .factoraggregateby <- function(ann, aggby) {
 .ttMstep <- function(X) {
   Pi <- colSums(X) / sum(X)
   Pi
+}
+
+.ttFixedPointFun <- function(Pi, Q, elen) {
+  X <- .ttEstep(Q, Pi)
+  Pi2 <- .ttMstep(X)
+  Pi2[elen > 0] <- Pi2[elen > 0] / elen[elen > 0]
+  Pi2[elen <= 0] <- 0
+  Pi2 <- Pi2 / sum(Pi2)
+  return(Pi2)
 }
 
 .llh <- function(X, Pi, Q) {

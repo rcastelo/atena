@@ -13,7 +13,7 @@ TEtranscriptsParam(
   strandMode = 1L,
   fragments = TRUE,
   tolerance = 1e-04,
-  maxIter = 100
+  maxIter = 100L
 )
 }
 \arguments{
