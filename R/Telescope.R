@@ -43,6 +43,7 @@
 #' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
 #' @importFrom methods is new
+#' @importFrom Rsamtools BamFileList
 #' @importFrom S4Vectors mcols
 #' @importFrom basilisk BasiliskEnvironment basiliskStart basiliskStop
 #' @importFrom basilisk.utils installConda

@@ -157,6 +157,16 @@ setClass("TelescopeParam", contains="AtenaParam",
 #' will not be counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
+#' @slot tolerance A positive numeric scalar storing the minimum tolerance
+#' above which the SQUAREM algorithm (Du and Varadhan, 2020) keeps iterating.
+#' Default is \code{1e-4} and this value is passed to the \code{tol} parameter
+#' of the \code{\link[SQUAREM]{squarem}()} function.
+#'
+#' @slot maxIter A positive integer scalar storing the maximum number of
+#' iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
+#' is 100 and this value is passed to the \code{maxiter} parameter of the
+#' \code{\link[SQUAREM]{squarem}()} function.
+#'
 #' @references
 #' Jin Y et al. TEtranscripts: a package for including transposable elements
 #' in differential expression analysis of RNA-seq datasets.

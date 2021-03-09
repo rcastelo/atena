@@ -70,6 +70,7 @@
 #' \url{https://doi.org/10.1093/bioinformatics/btv422}
 #'
 #' @importFrom methods is new
+#' @importFrom Rsamtools BamFileList
 #' @export
 TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
                                singleEnd=FALSE,
@@ -88,7 +89,7 @@ TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
                    paste(paste("  ", bfl), collapse="\n")))
   }
   if (!is(bfl, "BamFileList"))
-    bfl <- BamFileList(bfl)
+    bfl <- BamFileList(bfl, asMates=!singleEnd)
 
   annotationsobjname <- deparse(substitute(annotations))
   env <- parent.frame()
@@ -163,10 +164,7 @@ setMethod("qtex", "TEtranscriptsParam",
                 stop("'phenodata' has no row names.")
             }
 
-            if (x@singleEnd)
-              cnt <- bplapply(x@bfl, .qtex_tetx_singleend, ttpar=x, BPPARAM=BPPARAM)
-            else
-              cnt <- bplapply(x@bfl, .qtex_tetx_pairedend, ttpar=x, BPPARAM=BPPARAM)
+            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, BPPARAM=BPPARAM)
 
             cntmat <- do.call("cbind", cnt)
             colnames(cntmat) <- gsub(".bam$", "", names(x@bfl))
@@ -178,7 +176,7 @@ setMethod("qtex", "TEtranscriptsParam",
 
             annot <- x@annotations
             if (length(x@aggregateby) > 0) {
-              f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
+              f <- .factoraggregateby(x@annotations, x@aggregateby)
               annot <- GRangesList(split(annot, f))
             }
 
@@ -187,95 +185,19 @@ setMethod("qtex", "TEtranscriptsParam",
                                  colData=colData)
           })
 
-.qtex_tetx_pairedend <- function(bf, ttpar) {
-  stop("TEtranscripts not yet available for paired-end data.")
-}
-
-#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
-#' @importFrom GenomicRanges width
-#' @importFrom GenomicAlignments readGAlignments qwidth
-#' @importFrom S4Vectors queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums colSums t
-#' @importFrom SQUAREM squarem
-.qtex_tetx_singleend <- function(bf, ttpar) {
-  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                         isDuplicate=FALSE,
-                         isNotPassingQualityControls=FALSE,
-                         isSecondary=TRUE)
-
-  param <- ScanBamParam(flag=sbflags, tag="AS")
-
-  open(bf)
-  ## use.names=TRUE is important to get the read names
-  multialignments <- readGAlignments(bf, use.names=TRUE, param=param)
-  close(bf)
-
-  teann <- ttpar@annotations
-  ovmulti <- findOverlaps(multialignments, teann,
-                          ignore.strand=ttpar@ignoreStrand)
-
-  ## fetch all different read names from the overlapping alignments
-  read_names <- unique(names(multialignments)[queryHits(ovmulti)])
-
-  ## build a matrix representation of the overlapping alignments
-  ## with reads on the rows and transcripts on the columns and
-  ## a cell (i, j) set to TRUE if read i aligns to transcript j
-  ## when a read i aligns more than once to the same transcript j
-  ## this is represented only once in the matrix
-  ovalnmat <- Matrix(FALSE, nrow=length(read_names), ncol=length(teann),
-                                        dimnames=list(read_names, names(teann)))
-  mt <- match(names(multialignments)[queryHits(ovmulti)], read_names)
-  ovalnmat[cbind(mt, subjectHits(ovmulti))] <- TRUE
-
-  ## the Qmat matrix stores row-wise the probability that read i maps to
-  ## a transcript j, assume uniform probabilities by now
-  Qmat <- Matrix(0, nrow=length(read_names), ncol=length(teann),
-                                dimnames=list(read_names, names(teann)))
-  Qmat[ovalnmat] <- 1
-  Qmat <- Qmat / rowSums(ovalnmat)
-
-  ## figure out average overlapping-read length
-  namesovar <- names(multialignments[queryHits(ovmulti)])
-  avgReadLength <- mean(qwidth(multialignments[unique(namesovar)]))
-
-  ## Pi, corresponding to rho in Equations (1), (2) and (3) in
-  ## Jin et al. (2015), stores probabilities of expression for each
-  ## transcript, corrected for its effective length as defined
-  ## in Eq. (1) of Jin et al. (2015)
-  Pi <- colSums(Qmat)
-  elen <- width(ttpar@annotations) - avgReadLength + 1
-  Pi[elen > 0] <- Pi[elen > 0] / elen[elen > 0]
-  Pi[elen <= 0] <- 0
-  Pi <- Pi / sum(Pi)
-
-  ## as specified in Jin et al. (2015), use the SQUAREM algorithm
-  ## to achieve faster EM convergence
-  emres <- squarem(p=Pi, Q=Qmat, elen=elen,
-                   fixptfn=.ttFixedPointFun,
-                   control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
-  Pi <- emres$par
-
-  ## use the estimated transcript expression probabilities
-  ## to finally distribute ambiguously mapping reads
-  probmassbyread <- as.vector(ovalnmat %*% Pi)
-  cntvec <- rowSums(t(ovalnmat / probmassbyread) * Pi)
-
-  ## aggregate quantifications if necessary
-  if (length(ttpar@aggregateby) > 0) {
-    f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
-    stopifnot(length(f) == length(cntvec)) ## QC
-    cntvec <- tapply(cntvec, f, sum)
-  }
-
-  cntvec
-}
-
 #' @importFrom GenomicRanges mcols
 f <- .factoraggregateby <- function(ann, aggby) {
   stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
   spfstr <- paste(rep("%s", length(aggby)), collapse=":")
-  f <- do.call("sprintf", c(spfstr, as.list(mcols(teann)[, aggby])))
+  f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
   f
+}
+
+.correctForTxEffectiveLength <- function(x, elen) {
+  x[elen > 0] <- x[elen > 0] / elen[elen > 0]
+  ## x[elen <= 0] <- 0 ## (apparently this is done in the Python code
+  x <- x / sum(x)      ##  but we don't do it here to avoid numerical instability)
+  x
 }
 
 .ttEstep <- function(Q, Pi) {
@@ -292,10 +214,8 @@ f <- .factoraggregateby <- function(ann, aggby) {
 .ttFixedPointFun <- function(Pi, Q, elen) {
   X <- .ttEstep(Q, Pi)
   Pi2 <- .ttMstep(X)
-  Pi2[elen > 0] <- Pi2[elen > 0] / elen[elen > 0]
-  Pi2[elen <= 0] <- 0
-  Pi2 <- Pi2 / sum(Pi2)
-  return(Pi2)
+  Pi2 <- .correctForTxEffectiveLength(Pi2, elen)
+  Pi2
 }
 
 .llh <- function(X, Pi, Q) {
@@ -303,4 +223,139 @@ f <- .factoraggregateby <- function(ann, aggby) {
   mask <- z == 0
   z[mask] <- NA
   sum(X * log(z), na.rm=TRUE)
+}
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom GenomicRanges width
+#' @importFrom GenomicAlignments readGAlignments readGAlignmentsList qwidth
+#' @importFrom GenomicAlignments readGAlignmentPairs first last
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom SQUAREM squarem
+.qtex_tetranscripts <- function(bf, ttpar) {
+  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                         isDuplicate=FALSE,
+                         isNotPassingQualityControls=FALSE,
+                         isSecondary=TRUE)
+
+  param <- ScanBamParam(flag=sbflags, tag="AS")
+
+  open(bf)
+  ## use.names=TRUE is important to get the read names
+  multialignments <- NULL
+  if (ttpar@singleEnd)
+    multialignments <- readGAlignments(bf, use.names=TRUE, param=param)
+  else {
+    if (ttpar@fragments)
+      multialignments <- readGAlignmentsList(bf, use.names=TRUE, param=param)
+    else
+      multialignments <- readGAlignmentPairs(bf, use.names=TRUE, param=param)
+  }
+  close(bf)
+
+  teann <- ttpar@annotations
+
+  ## find overlaps between multimapping reads and annotations
+  ovmulti <- findOverlaps(multialignments, teann,
+                          ignore.strand=ttpar@ignoreStrand)
+
+  ## fetch all different read names from the overlapping alignments
+  read_names <- unique(names(multialignments)[queryHits(ovmulti)])
+
+  ## fetch all different transcripts from the overlapping alignments
+  tx_idx <- unique(subjectHits(ovmulti))
+
+  ## build a matrix representation of the overlapping alignments
+  ## with reads on the rows and transcripts on the columns and
+  ## a cell (i, j) set to TRUE if read i aligns to transcript j
+  ## when a read i aligns more than once to the same transcript j
+  ## this is represented only once in the matrix
+  ovalnmat <- Matrix(FALSE, nrow=length(read_names), ncol=length(tx_idx),
+                                        dimnames=list(read_names, NULL))
+  mt1 <- match(names(multialignments)[queryHits(ovmulti)], read_names)
+  mt2 <- match(subjectHits(ovmulti), tx_idx)
+  ovalnmat[cbind(mt1, mt2)] <- TRUE
+
+  ## the Qmat matrix stores row-wise the probability that read i maps to
+  ## a transcript j, assume uniform probabilities by now
+  Qmat <- Matrix(0, nrow=length(read_names), ncol=length(tx_idx),
+                 dimnames=list(read_names, NULL))
+  Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+  Qmat <- Qmat / rowSums(ovalnmat)
+
+  ## figure out average overlapping-read length
+  avgReadLength <- NA_integer_
+  if (length(read_names) <= 1000)
+    avgReadLength <- mean(width(ranges(multialignments[read_names])))
+  else {
+    sam <- sample(1:length(read_names), size=1000, replace=TRUE)
+    avgReadLength <- mean(width(ranges(multialignments[read_names[sam]])))
+  }
+
+  ## Pi, corresponding to rho in Equations (1), (2) and (3) in
+  ## Jin et al. (2015), stores probabilities of expression for each
+  ## transcript, corrected for its effective length as defined
+  ## in Eq. (1) of Jin et al. (2015)
+  Pi <- colSums(Qmat)
+  elen <- width(teann[tx_idx]) - avgReadLength + 1
+  Pi <- .correctForTxEffectiveLength(Pi, elen)
+
+  ## as specified in Jin et al. (2015), use the SQUAREM algorithm
+  ## to achieve faster EM convergence
+  emres <- squarem(p=Pi, Q=Qmat, elen=elen,
+                   fixptfn=.ttFixedPointFun,
+                   control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
+  Pi <- emres$par
+  Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+  Pi <- Pi / sum(Pi)
+
+  ## use the estimated transcript expression probabilities
+  ## to finally distribute ambiguously mapping reads
+  probmassbyread <- as.vector(ovalnmat %*% Pi)
+  cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+  cntvec <- rep(0, length(teann))
+  cntvec[tx_idx] <- cntvecovtx
+
+  ## add unique aligned reads discarding those overlapping more than
+  ## one feature
+
+  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                         isDuplicate=FALSE,
+                         isNotPassingQualityControls=FALSE,
+                         isSecondary=FALSE)
+
+  param <- ScanBamParam(flag=sbflags, tag="AS")
+
+  open(bf)
+  ## use.names=TRUE is important to get the read names
+  uniqalignments <- NULL
+  if (ttpar@singleEnd)
+    uniqalignments <- readGAlignments(bf, use.names=TRUE, param=param)
+  else {
+    if (ttpar@fragments)
+      uniqalignments <- readGAlignmentsList(bf, use.names=TRUE, param=param)
+    else
+      uniqalignments <- readGAlignmentPairs(bf, use.names=TRUE, param=param)
+  }
+  close(bf)
+
+  ## find overlaps of unique-mapping alignments with TE annotations
+  ovuniq <- findOverlaps(uniqalignments, teann, ignore.strand=TRUE)
+
+  ## discard unique-mapping alignments overlapping more than one TE
+  whuniqalnTEs <- which(countSubjectHits(ovuniq) == 1L)
+  ovuniq <- ovuniq[subjectHits(ovuniq) %in% whuniqalnTEs]
+  uniqcntvec <- countSubjectHits(ovuniq)
+
+  ## add multi-mapping and unique-mapping counts
+  cntvec <- cntvec + uniqcntvec
+
+  ## aggregate quantifications if necessary
+  if (length(ttpar@aggregateby) > 0) {
+    f <- .factoraggregateby(teann, ttpar@aggregateby)
+    stopifnot(length(f) == length(cntvec)) ## QC
+    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+  }
+
+  as.integer(cntvec)
 }

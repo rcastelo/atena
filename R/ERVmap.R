@@ -76,6 +76,7 @@
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @importFrom methods is new
+#' @importFrom Rsamtools BamFileList
 #' @export
 ERVmapParam <- function(bfl, annotations,
                         singleEnd=FALSE,
