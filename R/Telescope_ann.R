@@ -35,7 +35,7 @@
 #' \url{https://doi.org/10.1371/journal.pcbi.1006453}
 #'
 #' @export
-Telescope_ann <- function(type = c("all", "HERV", "L1"), version = c("hg38", "hg19")) {
+Telescope_ann <- function(type = c("all"), version = c("hg38")) {
   if (version == "hg38") {
     ann <- readRDS(file.path(system.file("extdata", package="atena"), "Telescope_ann_hg38.rds"))
   } else {

@@ -65,7 +65,8 @@ Quantification of TE expression with `atena` consists in the following two steps
 
 ## Building a parameter object for ERVmap
 
-As mentioned, `atena` implements the ERVmap method for TE expression quantification. In order to use this approach, first, an object of the class `ERVmapParam` is build using the `ERVmapParam()` function. In this example, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` argument is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` argument is used to define if the read counting method (`summarizeOverlaps` from the [*GenomicAlignments*](https://bioconductor.org/packages/release/bioc/html/GenomicAlignments.html) package) takes the strand of reads and elements into account or not. Moreover, note that the `filterUniqReads` argument is set to `FALSE`. This causes all the "unique" reads to be considered when computing TE expression without previously filtering these unique reads using the filters applied to multi-mapping reads. This contrasts with the "original" approach presented by ERVmap authors [@tokuyama2018ervmap], which apply the filtering to both unique and multi-mapping reads. 
+As mentioned, `atena` implements the ERVmap method for TE expression quantification. In order to use this approach, first, an object of the class `ERVmapParam` is build using the `ERVmapParam()` function. In this example, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` argument is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` argument is used to define if the read counting method (`summarizeOverlaps` from the [*GenomicAlignments*](https://bioconductor.org/packages/release/bioc/html/GenomicAlignments.html) package) takes the strand of reads and elements into account or not. Moreover, note that the `filterUniqReads` argument is set to `TRUE` in order to apply the filtering criteria to unique reads, apart from multi-mapping reads, as proposed by ERVmap authors [@tokuyama2018ervmap]. Conversely, when `filterUniqReads = FALSE`, all the unique reads are considered when computing TE expression without previously filtering them. However, in order for `atena` to be able to distinguish between unique and multi-mapping reads, when `filterUniqReads = FALSE`, the NH tag must be present in the BAM file.
+
 
 ```{r, message=FALSE, warning=FALSE}
 library(atena)
@@ -85,12 +86,14 @@ In the case of paired-end BAM files, two additional arguments can be specified. 
 
 ## Building a parameter object for Telescope
 
-To use the Telescope method for TE expression quantification, the `TelescopeParam()` function is used to build a parameter object of the class `TelescopeParam`. As in the previous case, annotations of 3,220 HERVs are used. Here, default options are used for running Telescope. However, further [options](https://github.com/mlbendall/telescope) can be passed to the Telescope algorithm through the `opts` argument using a `list` object.
+To use the Telescope method for TE expression quantification, the `TelescopeParam()` function is used to build a parameter object of the class `TelescopeParam`. In this case, annotations developed by Telescope authors ( [Bendall et al, 2019](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006453) ) including 72,169 ranges, corresponding to 28,513 TEs (i.e. ranges with the same locus ID), are used. The `Telescope_ann()` function can be used to retrieve these annotations, and the arguments `type` and `version` can be used to set the type of TE and the human genome version of the annotations, respectively. 
+
+Here, default options are set for running Telescope. However, further [options](https://github.com/mlbendall/telescope) can be passed to the Telescope algorithm through the `opts` argument using a `list` object.
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-annot <- ERVmap_ann()
+annot <- Telescope_ann()
 tspar <- TelescopeParam(bamfiles, annot)
 tspar
 ```

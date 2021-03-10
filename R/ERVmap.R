@@ -38,10 +38,11 @@
 #'
 #' @param filterUniqReads (Default TRUE) Logical value indicating whether to apply
 #' the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
-#' which are always applied to multi-mapping reads, are optional for unique
-#' reads. If TRUE, the unique reads not passing one or more filters from the
-#' ERVmap pipeline, except for the "AS - XS >= 5" filter, will be discarded to
-#' compute TEs expression.
+#' which are always applied to multi-mapping reads, can be optional for unique
+#' reads, only if the NH tag is present in the BAM file. If 
+#' \code{filterUniqReads = TRUE} (equivalent to the original approach proposed
+#' by ERVmap authors), the unique reads not passing one or more filters 
+#' from the ERVmap pipeline will be discarded to compute TEs expression.
 #'
 #' @param fragments (Default TRUE) A logical; applied to paired-end data only.
 #' When \code{fragments=TRUE} (default), the read-counting method in the
@@ -190,7 +191,8 @@ setMethod("qtex", "ERVmapParam",
   yieldSize(bf) <- 100000
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isDuplicate = FALSE,
                          isNotPassingQualityControls = FALSE,
-                         isSupplementaryAlignment = FALSE)
+                         isSupplementaryAlignment = FALSE,
+                         isSecondaryAlignment = FALSE)
   if (!tags_df$NH) {
     if (!ervpar@filterUniqReads) {
       stop("Error in 'filterUniqReads = FALSE': the NH tag is not provided in the BAM files. Unique reads cannot be differentiated from multi-mapping reads, therefore unique reads must be also filtered.")
@@ -226,7 +228,8 @@ setMethod("qtex", "ERVmapParam",
     ## reads have already been filtered and counted in the previous step. 
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isSupplementaryAlignment = FALSE, isDuplicate = FALSE,
-                           isNotPassingQualityControls = FALSE)
+                           isNotPassingQualityControls = FALSE,
+                           isSecondaryAlignment = FALSE)
     param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
                           tagFilter = list(NH = 1)) #Read only unique reads
     open(bf)
@@ -256,7 +259,8 @@ setMethod("qtex", "ERVmapParam",
   asMates(bf) <- TRUE
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE, isProperPair = TRUE,
                          isDuplicate = FALSE, isSupplementaryAlignment = FALSE,
-                         isNotPassingQualityControls = FALSE)
+                         isNotPassingQualityControls = FALSE,
+                         isSecondaryAlignment = FALSE)
   
   if (!tags_df$NH) {
     if (!ervpar@filterUniqReads) {
@@ -306,7 +310,8 @@ setMethod("qtex", "ERVmapParam",
     sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
                            isSupplementaryAlignment = FALSE, 
                            isDuplicate = FALSE, isProperPair = TRUE, 
-                           isNotPassingQualityControls = FALSE)
+                           isNotPassingQualityControls = FALSE,
+                           isSecondaryAlignment = FALSE)
     param <- ScanBamParam(flag = sbflags, tag = c("nM","NM","AS","NH","XS"),
                           tagFilter = list(NH = 1)) #Read only unique reads
     open(bf)
