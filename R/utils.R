@@ -27,3 +27,17 @@
   } else
     asMates(bfl) <- TRUE
 }
+
+## borrowed from GenomicAlignments/R/summarizeOverlaps-methods.R
+.getReadFunction <- function(singleEnd, fragments) {
+  if (singleEnd) {
+    FUN <- readGAlignments
+  } else {
+    if (fragments)
+      FUN <- readGAlignmentsList
+    else
+      FUN <- readGAlignmentPairs
+  }
+  
+  FUN
+}
