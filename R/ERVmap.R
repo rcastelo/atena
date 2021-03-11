@@ -147,33 +147,21 @@ setMethod("show", "ERVmapParam",
           })
 
 #' @importFrom BiocParallel SerialParam bplapply
-#' @importFrom S4Vectors DataFrame
 #' @export
 #' @aliases qtex
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
           function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
-            if (!is.null(phenodata)) {
-              if (nrow(phenodata) != length(x@bfl))
-                stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
-              if (is.null(rownames(phenodata)))
-                stop("'phenodata' has no row names.")
-            }
+            .checkPhenodata(phenodata, length(x@bfl))
 
             if (x@singleEnd)
               cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, ervpar=x, BPPARAM=BPPARAM)
               
             else
               cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, ervpar=x, BPPARAM=BPPARAM)
-
-            cntmat <- do.call("cbind", cnt)
-            colnames(cntmat) <- gsub(".bam$", "", names(x@bfl))
-            colData <- DataFrame(row.names=colnames(cntmat))
-            if (!is.null(phenodata)) {
-              colData <- phenodata
-              colnames(cntmat) <- rownames(colData)
-            }
+            colData <- .createColumnData(cnt, phenodata)
+            colnames(cnt) <- rownames(colData)
 
             SummarizedExperiment(assays=list(counts=cntmat),
                                  rowRanges=x@annotations,
@@ -249,7 +237,7 @@ setMethod("qtex", "ERVmapParam",
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
 #' @importFrom GenomicAlignments readGAlignments summarizeOverlaps last first
-#' @importFrom SummarizedExperiment SummarizedExperiment
+#' @importFrom SummarizedExperiment SummarizedExperiment assay
 .qtex_ervmap_pairedend <- function(bf, ervpar) {
   tags_df <- .get_tags_in_BAM_pairedend(bf, ervpar)
   yieldSize(bf) <- 100000

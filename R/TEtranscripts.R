@@ -91,6 +91,8 @@ TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
   if (!is(bfl, "BamFileList"))
     bfl <- BamFileList(bfl, asMates=!singleEnd)
 
+  .checkBamFileListArgs(bfl, singleEnd, fragments)
+
   annotationsobjname <- deparse(substitute(annotations))
   env <- parent.frame()
   if (!exists(annotationsobjname))
@@ -149,7 +151,6 @@ setMethod("show", "TEtranscriptsParam",
           })
 
 #' @importFrom BiocParallel SerialParam bplapply
-#' @importFrom S4Vectors DataFrame
 #' @importFrom GenomicRanges GRangesList
 #' @export
 #' @aliases qtex
@@ -157,22 +158,12 @@ setMethod("show", "TEtranscriptsParam",
 #' @rdname qtex
 setMethod("qtex", "TEtranscriptsParam",
           function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
-            if (!is.null(phenodata)) {
-              if (nrow(phenodata) != length(x@bfl))
-                stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
-              if (is.null(rownames(phenodata)))
-                stop("'phenodata' has no row names.")
-            }
+            .checkPhenodata(phenodata, length(x@bfl))
 
             cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, BPPARAM=BPPARAM)
-
-            cntmat <- do.call("cbind", cnt)
-            colnames(cntmat) <- gsub(".bam$", "", names(x@bfl))
-            colData <- DataFrame(row.names=colnames(cntmat))
-            if (!is.null(phenodata)) {
-              colData <- phenodata
-              colnames(cntmat) <- rownames(colData)
-            }
+            cnt <- do.call("cbind", cnt)
+            colData <- .createColumnData(cnt, phenodata)
+            colnames(cnt) <- rownames(colData)
 
             annot <- x@annotations
             if (length(x@aggregateby) > 0) {
@@ -180,7 +171,7 @@ setMethod("qtex", "TEtranscriptsParam",
               annot <- GRangesList(split(annot, f))
             }
 
-            SummarizedExperiment(assays=list(counts=cntmat),
+            SummarizedExperiment(assays=list(counts=cnt),
                                  rowRanges=annot,
                                  colData=colData)
           })

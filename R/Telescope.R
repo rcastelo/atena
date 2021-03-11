@@ -155,12 +155,7 @@ setMethod("show", "TelescopeParam",
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
           function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
-            if (!is.null(phenodata)) {
-              if (nrow(phenodata) != length(x@bfl))
-                stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
-              if (is.null(rownames(phenodata)))
-                stop("'phenodata' has no row names.")
-            }
+            .checkPhenodata(phenodata, length(x@bfl))
 
             cnt <- bplapply(x@bfl,
                             function(bf) {
@@ -169,13 +164,8 @@ setMethod("qtex", "TelescopeParam",
                                                    tspar=x)
                             }, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
-
-            colnames(cnt) <- gsub(".bam$", "", colnames(cnt))
-            colData <- DataFrame(row.names=colnames(cnt))
-            if (!is.null(phenodata)) {
-              colData <- phenodata
-              colnames(cnt) <- rownames(colData)
-            }
+            colData <- .createColumnData(cnt, phenodata)
+            colnames(cnt) <- rownames(colData)
 
             SummarizedExperiment(assays=list(counts=cnt),
                                  rowRanges=x@annotations,
