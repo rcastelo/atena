@@ -11,7 +11,12 @@
 \usage{
 \S4method{qtex}{ERVmapParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
 
-\S4method{qtex}{TEtranscriptsParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
+\S4method{qtex}{TEtranscriptsParam}(
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  BPPARAM = SerialParam(progressbar = TRUE)
+)
 
 \S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
 }

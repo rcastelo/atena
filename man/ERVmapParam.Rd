@@ -47,10 +47,11 @@ class for further detail. If \code{singleEnd = TRUE}, then use either
 
 \item{filterUniqReads}{(Default TRUE) Logical value indicating whether to apply
 the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
-which are always applied to multi-mapping reads, are optional for unique
-reads. If TRUE, the unique reads not passing one or more filters from the
-ERVmap pipeline, except for the "AS - XS >= 5" filter, will be discarded to
-compute TEs expression.}
+which are always applied to multi-mapping reads, can be optional for unique
+reads, only if the NH tag is present in the BAM file. If 
+\code{filterUniqReads = TRUE} (equivalent to the original approach proposed
+by ERVmap authors), the unique reads not passing one or more filters 
+from the ERVmap pipeline will be discarded to compute TEs expression.}
 
 \item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
 When \code{fragments=TRUE} (default), the read-counting method in the

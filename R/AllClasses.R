@@ -140,16 +140,12 @@ setClass("TelescopeParam", contains="AtenaParam",
 #'   class for further detail. If \code{singleEnd = TRUE}, then use either
 #'   \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
 #'
-#' @slot ignoreStrand (Default TRUE) A logical which defines if the strand
+#' @param ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
-#' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
-#' consider those reads selected after filtering which overlap the TE or
-#' ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
-#' the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
-#' any alignment which overlaps with the element in the annotations regardless
-#' of the strand. For further details see
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
+#' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+#' will be considered to be overlapping an annotated feature as long as they
+#' have a non-empty intersecting genomic ranges on the same strand, while when
+#' \code{ignoreStrand = TRUE} the strand will not be considered.
 #'
 #' @slot fragments (Default TRUE) A logical; applied to paired-end data only.
 #' When \code{fragments=TRUE} (default), the read-counting method will also

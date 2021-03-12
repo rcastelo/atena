@@ -8,17 +8,16 @@ TEtranscriptsParam(
   bfl,
   annotations,
   aggregateby = character(0),
-  singleEnd = FALSE,
-  ignoreStrand = TRUE,
+  singleEnd = TRUE,
+  ignoreStrand = FALSE,
   strandMode = 1L,
-  fragments = TRUE,
+  fragments = FALSE,
   tolerance = 1e-04,
   maxIter = 100L
 )
 }
 \arguments{
-\item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
-string vector of BAM filenames.}
+\item{bfl}{a character string vector of BAM filenames.}
 
 \item{annotations}{A \code{GRanges} or \code{GRangesList} object with the
 annotations to be quantified. Elements in this object should have names,
@@ -32,19 +31,15 @@ which means that the names of the input \code{GRanges} or \code{GRangesList}
 object given in the \code{annotations} parameter will be used to aggregate
 quantifications.}
 
-\item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
+\item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
 
-\item{ignoreStrand}{(Default TRUE) A logical which defines if the strand
+\item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
 should be taken into consideration when computing the overlap between reads
-and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
-\code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
-consider those reads selected after filtering which overlap the TE or
-ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
-the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
-any alignment which overlaps with the element in the annotations regardless
-of the strand. For further details see
-\code{\link[GenomicAlignments]{summarizeOverlaps}}.}
+and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+will be considered to be overlapping an annotated feature as long as they
+have a non-empty intersecting genomic ranges on the same strand, while when
+\code{ignoreStrand = TRUE} the strand will not be considered.}
 
 \item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
 The strand mode is a per-object switch on
@@ -54,10 +49,10 @@ objects that controls the behavior of the strand getter. See
 class for further detail. If \code{singleEnd = TRUE}, then use either
 \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.}
 
-\item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
-When \code{fragments=TRUE} (default), the read-counting method will also
-count reads without mates, while when \code{fragments=FALSE} those reads
-will not be counted. For further details see
+\item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
+When \code{fragments=TRUE}, the read-counting method will also
+count reads without mates, while when \code{fragments=FALSE} (default), those
+reads will not be counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 }
 \value{

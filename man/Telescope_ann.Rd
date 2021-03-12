@@ -8,7 +8,7 @@
 \url{https://github.com/mlbendall/telescope_annotation_db/blob/master/builds}
 }
 \usage{
-Telescope_ann(type = c("all", "HERV", "L1"), version = c("hg38", "hg19"))
+Telescope_ann(type = c("all"), version = c("hg38"))
 }
 \arguments{
 \item{type}{(Default \code{all}). Character vector indicating the type of

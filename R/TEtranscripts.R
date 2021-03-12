@@ -2,8 +2,7 @@
 #'
 #' Build an object of the class \code{TEtranscriptsParam}
 #'
-#' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
-#' string vector of BAM filenames.
+#' @param bfl a character string vector of BAM filenames.
 #'
 #' @param annotations A \code{GRanges} or \code{GRangesList} object with the
 #' annotations to be quantified. Elements in this object should have names,
@@ -17,7 +16,7 @@
 #' object given in the \code{annotations} parameter will be used to aggregate
 #' quantifications.
 #'
-#' @param singleEnd (Default FALSE) Logical value indicating if reads are single
+#' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
 #' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
@@ -28,21 +27,17 @@
 #'   class for further detail. If \code{singleEnd = TRUE}, then use either
 #'   \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
 #'
-#' @param ignoreStrand (Default TRUE) A logical which defines if the strand
+#' @param ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
-#' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
-#' consider those reads selected after filtering which overlap the TE or
-#' ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
-#' the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
-#' any alignment which overlaps with the element in the annotations regardless
-#' of the strand. For further details see
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
+#' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+#' will be considered to be overlapping an annotated feature as long as they
+#' have a non-empty intersecting genomic ranges on the same strand, while when
+#' \code{ignoreStrand = TRUE} the strand will not be considered.
 #'
-#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
-#' When \code{fragments=TRUE} (default), the read-counting method will also
-#' count reads without mates, while when \code{fragments=FALSE} those reads
-#' will not be counted. For further details see
+#' @param fragments (Default FALSE) A logical; applied to paired-end data only.
+#' When \code{fragments=TRUE}, the read-counting method will also
+#' count reads without mates, while when \code{fragments=FALSE} (default), those
+#' reads will not be counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
 #' @details
@@ -73,10 +68,10 @@
 #' @importFrom Rsamtools BamFileList
 #' @export
 TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
-                               singleEnd=FALSE,
-                               ignoreStrand=TRUE,
+                               singleEnd=TRUE,
+                               ignoreStrand=FALSE,
                                strandMode=1L,
-                               fragments=TRUE,
+                               fragments=FALSE,
                                tolerance=0.0001,
                                maxIter=100L) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
@@ -88,6 +83,7 @@ TEtranscriptsParam <- function(bfl, annotations, aggregateby=character(0),
       stop(sprintf("The following input BAM files cannot be found:\n%s",
                    paste(paste("  ", bfl), collapse="\n")))
   }
+
   if (!is(bfl, "BamFileList"))
     bfl <- BamFileList(bfl, asMates=!singleEnd)
 
@@ -157,10 +153,11 @@ setMethod("show", "TEtranscriptsParam",
 #' @aliases qtex,TEtranscriptsParam-method
 #' @rdname qtex
 setMethod("qtex", "TEtranscriptsParam",
-          function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
+          function(x, phenodata=NULL, mode=ovUnion, BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
 
-            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, BPPARAM=BPPARAM)
+            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
+                            BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
@@ -187,7 +184,8 @@ f <- .factoraggregateby <- function(ann, aggby) {
 .correctForTxEffectiveLength <- function(x, elen) {
   x[elen > 0] <- x[elen > 0] / elen[elen > 0]
   ## x[elen <= 0] <- 0 ## (apparently this is done in the Python code
-  x <- x / sum(x)      ##  but we don't do it here to avoid numerical instability)
+  ## if (sum(x) > 0)
+    x <- x / sum(x)      ##  but we don't do it here to avoid numerical instability)
   x
 }
 
@@ -216,79 +214,87 @@ f <- .factoraggregateby <- function(ann, aggby) {
   sum(X * log(z), na.rm=TRUE)
 }
 
-#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom Rsamtools scanBamFlag ScanBamParam
 #' @importFrom GenomicRanges width
-#' @importFrom GenomicAlignments readGAlignments readGAlignmentsList qwidth
-#' @importFrom GenomicAlignments readGAlignmentPairs first last
+#' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
+#' @importFrom GenomicAlignments readGAlignmentPairs
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
-.qtex_tetranscripts <- function(bf, ttpar) {
+.qtex_tetranscripts <- function(bf, ttpar, mode) {
+
+  mode=match.fun(mode)
+
+  readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
+
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                          isDuplicate=FALSE,
-                         isNotPassingQualityControls=FALSE,
-                         isSecondary=TRUE)
-
+                         isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
 
+  ov <- Hits(nLnode=0, nRnode=length(ttpar@annotations), sort.by.query=TRUE)
+  alnreadids <- character(0)
+  avgreadlen <- 0
+
   open(bf)
-  ## use.names=TRUE is important to get the read names
-  multialignments <- NULL
-  if (ttpar@singleEnd)
-    multialignments <- readGAlignments(bf, use.names=TRUE, param=param)
-  else {
-    if (ttpar@fragments)
-      multialignments <- readGAlignmentsList(bf, use.names=TRUE, param=param)
-    else
-      multialignments <- readGAlignmentPairs(bf, use.names=TRUE, param=param)
+  while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
+    avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
+    alnreadids <- c(alnreadids, names(alnreads))
+    thisov <- mode(reads, features, ignoreStrand=ttpar@ignoreStrand)
+    ov <- .appendHits(ov, thisov)
   }
   close(bf)
 
-  teann <- ttpar@annotations
-
-  ## find overlaps between multimapping reads and annotations
-  ovmulti <- findOverlaps(multialignments, teann,
-                          ignore.strand=ttpar@ignoreStrand)
+  nmappedreads <- length(alnreadids)
+  avgreadlen <- avgreadlen / nmappedreads
 
   ## fetch all different read names from the overlapping alignments
-  read_names <- unique(names(multialignments)[queryHits(ovmulti)])
+  readids <- unique(alnreadids[queryHits(ov)])
 
   ## fetch all different transcripts from the overlapping alignments
-  tx_idx <- unique(subjectHits(ovmulti))
+  tx_idx <- sort(unique(subjectHits(ov)))
 
   ## build a matrix representation of the overlapping alignments
   ## with reads on the rows and transcripts on the columns and
   ## a cell (i, j) set to TRUE if read i aligns to transcript j
   ## when a read i aligns more than once to the same transcript j
   ## this is represented only once in the matrix
-  ovalnmat <- Matrix(FALSE, nrow=length(read_names), ncol=length(tx_idx),
-                                        dimnames=list(read_names, NULL))
-  mt1 <- match(names(multialignments)[queryHits(ovmulti)], read_names)
-  mt2 <- match(subjectHits(ovmulti), tx_idx)
+  ovalnmat <- Matrix(FALSE, nrow=length(readids), ncol=length(tx_idx),
+                     dimnames=list(readids, NULL))
+  mt1 <- match(alnreadids[queryHits(ov)], readids)
+  mt2 <- match(subjectHits(ov), tx_idx)
   ovalnmat[cbind(mt1, mt2)] <- TRUE
 
+  ## count uniquely aligned-reads
+  rsovalnmat <- rowSums(ovalnmat)
+  stopifnot(all(rsovalnmat > 0)) ## QC
+  maskuniqaln <- rsovalnmat == 1
+  rm(rsovalnmat)
+  uniqcnt <- rep(0L, length(ttpar@annotations))
+  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln, ])
+
+  ## TEtranscripts doesn't use uniquely-aligned reads to inform
+  ## the procedure of distributing multiple-mapping reads because,
+  ## as explained in Jin et al. (2015) pg. 3594, "The unique-reads
+  ## are not used as a prior for the initial abundance estimates in
+  ## the EM procedure to reduce potential bias to certain TEs."
+  ## for this reason, once counted, we discard unique alignments
+  ovalnmat <- ovalnmat[!maskuniqaln, ]
+  readids <- rownames(ovalnmat)
+  
   ## the Qmat matrix stores row-wise the probability that read i maps to
   ## a transcript j, assume uniform probabilities by now
-  Qmat <- Matrix(0, nrow=length(read_names), ncol=length(tx_idx),
-                 dimnames=list(read_names, NULL))
+  Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
+                 dimnames=list(readids, NULL))
   Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
   Qmat <- Qmat / rowSums(ovalnmat)
-
-  ## figure out average overlapping-read length
-  avgReadLength <- NA_integer_
-  if (length(read_names) <= 1000)
-    avgReadLength <- mean(width(ranges(multialignments[read_names])))
-  else {
-    sam <- sample(1:length(read_names), size=1000, replace=TRUE)
-    avgReadLength <- mean(width(ranges(multialignments[read_names[sam]])))
-  }
 
   ## Pi, corresponding to rho in Equations (1), (2) and (3) in
   ## Jin et al. (2015), stores probabilities of expression for each
   ## transcript, corrected for its effective length as defined
   ## in Eq. (1) of Jin et al. (2015)
   Pi <- colSums(Qmat)
-  elen <- width(teann[tx_idx]) - avgReadLength + 1
+  elen <- width(ttpar@annotations[tx_idx]) - avgreadlen + 1
   Pi <- .correctForTxEffectiveLength(Pi, elen)
 
   ## as specified in Jin et al. (2015), use the SQUAREM algorithm
@@ -304,49 +310,20 @@ f <- .factoraggregateby <- function(ann, aggby) {
   ## to finally distribute ambiguously mapping reads
   probmassbyread <- as.vector(ovalnmat %*% Pi)
   cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
-  cntvec <- rep(0, length(teann))
+  cntvec <- rep(0, length(ttpar@annotations))
   cntvec[tx_idx] <- cntvecovtx
 
-  ## add unique aligned reads discarding those overlapping more than
-  ## one feature
-
-  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                         isDuplicate=FALSE,
-                         isNotPassingQualityControls=FALSE,
-                         isSecondary=FALSE)
-
-  param <- ScanBamParam(flag=sbflags, tag="AS")
-
-  open(bf)
-  ## use.names=TRUE is important to get the read names
-  uniqalignments <- NULL
-  if (ttpar@singleEnd)
-    uniqalignments <- readGAlignments(bf, use.names=TRUE, param=param)
-  else {
-    if (ttpar@fragments)
-      uniqalignments <- readGAlignmentsList(bf, use.names=TRUE, param=param)
-    else
-      uniqalignments <- readGAlignmentPairs(bf, use.names=TRUE, param=param)
-  }
-  close(bf)
-
-  ## find overlaps of unique-mapping alignments with TE annotations
-  ovuniq <- findOverlaps(uniqalignments, teann, ignore.strand=TRUE)
-
-  ## discard unique-mapping alignments overlapping more than one TE
-  whuniqalnTEs <- which(countSubjectHits(ovuniq) == 1L)
-  ovuniq <- ovuniq[subjectHits(ovuniq) %in% whuniqalnTEs]
-  uniqcntvec <- countSubjectHits(ovuniq)
-
   ## add multi-mapping and unique-mapping counts
-  cntvec <- cntvec + uniqcntvec
+  cntvec <- cntvec + uniqcnt
 
   ## aggregate quantifications if necessary
   if (length(ttpar@aggregateby) > 0) {
-    f <- .factoraggregateby(teann, ttpar@aggregateby)
+    f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
     stopifnot(length(f) == length(cntvec)) ## QC
     cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
   }
 
+  ## TEtranscripts original implementation ultimately coerces fractional
+  ## counts to integer 
   as.integer(cntvec)
 }

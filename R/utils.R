@@ -41,3 +41,19 @@
   
   FUN
 }
+
+#' @importFrom S4Vectors nLnode nRnode isSorted from to Hits
+## appends the second Hits object to the end of the first one
+## assuming they have identical right nodes
+.appendHits <- function(hits1, hits2) {
+  stopifnot(nRnode(hits1) == nRnode(hits2))
+  stopifnot(isSorted(from(hits1)) == isSorted(from(hits2)))
+  hits <- c(Hits(from=from(hits1), to=to(hits1),
+                 nLnode=nLnode(hits1)+nLnode(hits2),
+                 nRnode=nRnode(hits1), sort.by.query=isSorted(from(hits1))),
+            Hits(from=from(hits2)+nLnode(hits1), to=to(hits2),
+                 nLnode=nLnode(hits1)+nLnode(hits2),
+                 nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
+  hits
+}
+
