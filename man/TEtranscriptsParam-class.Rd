@@ -10,13 +10,6 @@
 }
 \arguments{
 \item{object}{A \linkS4class{TEtranscriptsParam} object.}
-
-\item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
-should be taken into consideration when computing the overlap between reads
-and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
-will be considered to be overlapping an annotated feature as long as they
-have a non-empty intersecting genomic ranges on the same strand, while when
-\code{ignoreStrand = TRUE} the strand will not be considered.}
 }
 \description{
 This is a class for storing parameters provided to the TEtranscripts algorithm.
@@ -27,6 +20,13 @@ It is a subclass of the 'AtenaParam-class'.
 \describe{
 \item{\code{singleEnd}}{(Default FALSE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
+
+\item{\code{ignoreStrand}}{(Default FALSE) A logical which defines if the strand
+should be taken into consideration when computing the overlap between reads
+and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+will be considered to be overlapping an annotated feature as long as they
+have a non-empty intersecting genomic ranges on the same strand, while when
+\code{ignoreStrand = TRUE} the strand will not be considered.}
 
 \item{\code{strandMode}}{(Default 1) Numeric vector which can take values 0, 1 or 2.
 The strand mode is a per-object switch on

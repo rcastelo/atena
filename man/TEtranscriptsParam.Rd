@@ -54,6 +54,16 @@ When \code{fragments=TRUE}, the read-counting method will also
 count reads without mates, while when \code{fragments=FALSE} (default), those
 reads will not be counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
+
+\item{tolerance}{A positive numeric scalar storing the minimum tolerance
+above which the SQUAREM algorithm (Du and Varadhan, 2020) keeps iterating.
+Default is \code{1e-4} and this value is passed to the \code{tol} parameter
+of the \code{\link[SQUAREM]{squarem}()} function.}
+
+\item{maxIter}{A positive integer scalar storing the maximum number of
+iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
+is 100 and this value is passed to the \code{maxiter} parameter of the
+\code{\link[SQUAREM]{squarem}()} function.}
 }
 \value{
 A \linkS4class{TEtranscriptsParam} object.

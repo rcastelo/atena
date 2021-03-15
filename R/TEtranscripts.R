@@ -39,6 +39,16 @@
 #' count reads without mates, while when \code{fragments=FALSE} (default), those
 #' reads will not be counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @param tolerance A positive numeric scalar storing the minimum tolerance
+#' above which the SQUAREM algorithm (Du and Varadhan, 2020) keeps iterating.
+#' Default is \code{1e-4} and this value is passed to the \code{tol} parameter
+#' of the \code{\link[SQUAREM]{squarem}()} function.
+#'
+#' @param maxIter A positive integer scalar storing the maximum number of
+#' iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
+#' is 100 and this value is passed to the \code{maxiter} parameter of the
+#' \code{\link[SQUAREM]{squarem}()} function.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -240,7 +250,7 @@ f <- .factoraggregateby <- function(ann, aggby) {
   while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
     avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
-    thisov <- mode(reads, features, ignoreStrand=ttpar@ignoreStrand)
+    thisov <- mode(alnreads, ttpar@annotations, ignoreStrand=ttpar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
   }
   close(bf)
@@ -299,7 +309,7 @@ f <- .factoraggregateby <- function(ann, aggby) {
 
   ## as specified in Jin et al. (2015), use the SQUAREM algorithm
   ## to achieve faster EM convergence
-  emres <- squarem(p=Pi, Q=Qmat, elen=elen,
+  emres <- squarem(par=Pi, Q=Qmat, elen=elen,
                    fixptfn=.ttFixedPointFun,
                    control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
   Pi <- emres$par

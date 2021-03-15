@@ -3,14 +3,11 @@
 \name{ovUnion}
 \alias{ovUnion}
 \alias{ovIntersectionStrict}
-\alias{ovIntersectionNonEmpty}
 \title{Pre-defined overlapping mode functions}
 \usage{
 ovUnion(reads, features, ignoreStrand)
 
 ovIntersectionStrict(reads, features, ignoreStrand)
-
-ovIntersectionNonEmpty(reads, features, ignoreStrand)
 }
 \arguments{
 \item{reads}{A \code{GAlignments}, \code{GAlignmentList} or a
@@ -34,7 +31,6 @@ read overlaps more than one feature on the same locus:
 \itemize{
   \item \code{ovUnion()}: (default)
   \item \code{ovIntersectionStrict()}:
-  \item \code{ovIntersectionNotEmpty()}:
   \item User supplied: a function taking the same parameters as the
         previous three functions and returning a
         \code{\link[S4Vectors]{Hits}} object.
@@ -46,9 +42,8 @@ They take the following parameters:
 
 These functions are given to the \code{mode} parameter of the
 \code{\link{qtex}()} function and are similar to the functions
-\code{\link[GenomicAlignments]{Union}()},
-\code{\link[GenomicAlignments]{IntersectionStrict}()} and
-\code{\link[GenomicAlignments]{IntersectionNonEmpty}()} from the
+\code{\link[GenomicAlignments]{Union}()} and
+\code{\link[GenomicAlignments]{IntersectionStrict}()} from the
 \code{GenomicAlignments} package, with the difference that instead
 of returning counts of reads overlapping annotated features, they
 return the actual overlaps, because the counting is deferred to other

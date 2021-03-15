@@ -12,7 +12,7 @@
 .createColumnData <- function(m, pdata) {
   colData <- DataFrame(row.names=gsub(".bam$", "", colnames(m)))
   if (!is.null(pdata))
-    colData <- phenodata
+    colData <- pdata
 
   colData
 }

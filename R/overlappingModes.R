@@ -7,7 +7,6 @@
 #' \itemize{
 #'   \item \code{ovUnion()}: (default)
 #'   \item \code{ovIntersectionStrict()}:
-#'   \item \code{ovIntersectionNotEmpty()}:
 #'   \item User supplied: a function taking the same parameters as the
 #'         previous three functions and returning a
 #'         \code{\link[S4Vectors]{Hits}} object.
@@ -31,9 +30,8 @@
 #'
 #' These functions are given to the \code{mode} parameter of the
 #' \code{\link{qtex}()} function and are similar to the functions
-#' \code{\link[GenomicAlignments]{Union}()},
-#' \code{\link[GenomicAlignments]{IntersectionStrict}()} and
-#' \code{\link[GenomicAlignments]{IntersectionNonEmpty}()} from the
+#' \code{\link[GenomicAlignments]{Union}()} and
+#' \code{\link[GenomicAlignments]{IntersectionStrict}()} from the
 #' \code{GenomicAlignments} package, with the difference that instead
 #' of returning counts of reads overlapping annotated features, they
 #' return the actual overlaps, because the counting is deferred to other
@@ -61,8 +59,9 @@ ovIntersectionStrict <- function(reads, features, ignoreStrand) {
   ov
 }
 
+#' @importFrom methods as
 #' @importFrom GenomicAlignments findOverlaps
-#' @importFrom S4Vectors countQueryHits
+#' @importFrom S4Vectors countSubjectHits
 #' @importFrom GenomicRanges disjoin
 .removeSharedRegions <- function(features, ignore.strand=FALSE) {
     if (is(features, "GRanges")) {
@@ -81,11 +80,15 @@ ovIntersectionStrict <- function(reads, features, ignoreStrand) {
     relist(unlisted_ans, ans_partitioning)
 }
 
-#' @importFrom GenomicAlignments findOverlaps
-#' @importFrom S4Vectors countQueryHits
-#' @export
-#' @rdname ovFunctions
-ovIntersectionNonEmpty <- function(reads, features, ignoreStrand) {
-  features <- .removedSharedRegions(features, ignore.strand=ignoreStrand)
-  ovUnion(reads, features, ignoreStrand=ignoreStrand)
-}
+## this implementation of th IntersectionNotEmpty strategy returns a
+## Hits object with overlaps with respect to an altered feature set.
+## it needs to be modified to return overlaps with respect to the
+## original features set.
+## #' @importFrom GenomicAlignments findOverlaps
+## #' @importFrom S4Vectors countQueryHits
+## #' @export
+## #' @rdname ovFunctions
+## ovIntersectionNonEmpty <- function(reads, features, ignoreStrand) {
+##   features <- .removeSharedRegions(features, ignore.strand=ignoreStrand)
+##   ovUnion(reads, features, ignoreStrand=ignoreStrand)
+## }

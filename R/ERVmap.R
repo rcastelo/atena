@@ -161,11 +161,18 @@ setMethod("qtex", "ERVmapParam",
               
             else
               cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, ervpar=x, BPPARAM=BPPARAM)
+            cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
 
-            SummarizedExperiment(assays=list(counts=cntmat),
-                                 rowRanges=x@annotations,
+            annot <- x@annotations
+            if (length(x@aggregateby) > 0) {
+              f <- .factoraggregateby(x@annotations, x@aggregateby)
+              annot <- GRangesList(split(annot, f))
+            }
+
+            SummarizedExperiment(assays=list(counts=cnt),
+                                 rowRanges=annot,
                                  colData=colData)
           })
 

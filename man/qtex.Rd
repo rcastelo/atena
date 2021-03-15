@@ -45,6 +45,16 @@ to configure the parallel execution of the code. By default,
 a \linkS4class{SerialParam} object is used, which does not use
 any parallelization, with the flag \code{progress=TRUE} to show
 progress through the calculations.}
+
+\item{mode}{One of the pre-defined overlapping methods such as
+\code{ovUnion()}, \code{ovIntersectionStrict} or a user-supplied
+overlapping function. For a user-supplied overlapping function, the
+input parameters must match those of the pre-defined methods and
+the function must return a \code{\link[S4Vectors]{Hits}} object with
+subject hits matching the annotated features. This parameter is
+analogous to the \code{mode} parameter of the
+\code{\link[GenomicAlignments]{summarizeOverlaps}()} function from
+the \code{GenomicAlignments} package.}
 }
 \value{
 A \linkS4class{SummarizedExperiment} object.
