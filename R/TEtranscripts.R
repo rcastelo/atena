@@ -183,47 +183,6 @@ setMethod("qtex", "TEtranscriptsParam",
                                  colData=colData)
           })
 
-#' @importFrom GenomicRanges mcols
-f <- .factoraggregateby <- function(ann, aggby) {
-  stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
-  spfstr <- paste(rep("%s", length(aggby)), collapse=":")
-  f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
-  f
-}
-
-.correctForTxEffectiveLength <- function(x, elen) {
-  x[elen > 0] <- x[elen > 0] / elen[elen > 0]
-  ## x[elen <= 0] <- 0 ## (apparently this is done in the Python code
-  ## if (sum(x) > 0)
-    x <- x / sum(x)      ##  but we don't do it here to avoid numerical instability)
-  x
-}
-
-.ttEstep <- function(Q, Pi) {
-  X <- t(t(Q) * Pi)
-  X <- X / rowSums(X)
-  X
-}
-
-.ttMstep <- function(X) {
-  Pi <- colSums(X) / sum(X)
-  Pi
-}
-
-.ttFixedPointFun <- function(Pi, Q, elen) {
-  X <- .ttEstep(Q, Pi)
-  Pi2 <- .ttMstep(X)
-  Pi2 <- .correctForTxEffectiveLength(Pi2, elen)
-  Pi2
-}
-
-.llh <- function(X, Pi, Q) {
-  z <- t(t(Q) * Pi)
-  mask <- z == 0
-  z[mask] <- NA
-  sum(X * log(z), na.rm=TRUE)
-}
-
 #' @importFrom Rsamtools scanBamFlag ScanBamParam
 #' @importFrom GenomicRanges width
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
@@ -265,15 +224,7 @@ f <- .factoraggregateby <- function(ann, aggby) {
   tx_idx <- sort(unique(subjectHits(ov)))
 
   ## build a matrix representation of the overlapping alignments
-  ## with reads on the rows and transcripts on the columns and
-  ## a cell (i, j) set to TRUE if read i aligns to transcript j
-  ## when a read i aligns more than once to the same transcript j
-  ## this is represented only once in the matrix
-  ovalnmat <- Matrix(FALSE, nrow=length(readids), ncol=length(tx_idx),
-                     dimnames=list(readids, NULL))
-  mt1 <- match(alnreadids[queryHits(ov)], readids)
-  mt2 <- match(subjectHits(ov), tx_idx)
-  ovalnmat[cbind(mt1, mt2)] <- TRUE
+  ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
 
   ## count uniquely aligned-reads
   rsovalnmat <- rowSums(ovalnmat)
@@ -341,4 +292,120 @@ f <- .factoraggregateby <- function(ann, aggby) {
   ## TEtranscripts original implementation ultimately coerces fractional
   ## counts to integer 
   as.integer(cntvec)
+}
+
+## private function .buildOvAlignmentsMatrix()
+## builds a matrix representation of the overlapping alignments
+## with reads on the rows and transcripts on the columns and
+## a cell (i, j) set to TRUE if read i aligns to transcript j.
+## therefore, when a read i aligns more than once to the same
+## transcript j this is represented only once in the matrix
+## parameters: ov - Hits object with the overlaps between
+##                  alignments and features
+##             arids - alignment read identifiers
+##             rids - unique read identifiers
+##             fidx - features index
+
+#' @importFrom Matrix Matrix
+#' @importFrom S4Vectors queryHits subjectHits
+.buildOvAlignmentsMatrix <- function(ov, arids, rids, fidx) {
+  oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx),
+                  dimnames=list(rids, NULL))
+  mt1 <- match(arids[queryHits(ov)], rids)
+  mt2 <- match(subjectHits(ov), fidx)
+  oamat[cbind(mt1, mt2)] <- TRUE
+
+  oamat
+}
+
+## private function .consolidateFeatures()
+## builds a 'GRanges' or 'GRangesList' object
+## grouping TE features, if necessary, and
+## adding gene features, if available.
+
+#' @importFrom methods is
+#' @importFrom S4Vectors split
+#' @importFrom GenomicRanges GRangesList
+.consolidateFeatures <- function(x) {
+  teFeatures <- x@annotations
+  if (!is.null(x@annotations$isTE) && any(x@annotations$isTE)) {
+    teFeatures <- x@annotations[x@annotations$isTE]
+  }
+
+  if (length(x@aggregateby) > 0) {
+    f <- .factoraggregateby(teFeatures, x@aggregateby)
+    teFeatures <- GRangesList(split(teFeatures, f))
+  }
+
+  features <- teFeatures
+  if (!is.null(x@annotations$isTE) && any(!x@annotations$isTE)) {
+    geneFeatures <- x@annotations[!x@annotations$isTE]
+    if (is(features, "GRangesList")) ## otherwise is a GRanges object
+      geneFeatures <- GRangesList(split(geneFeatures, names(geneFeatures)))
+    features <- c(features, geneFeatures)
+  }
+
+  features
+}
+
+## private function .factoraggregateby()
+## builds a factor with as many values as the
+## length of the input annotations in 'ann', where
+## every value is made by pasting the columns in
+## 'aggby' separated by ':'.
+
+#' @importFrom GenomicRanges mcols
+f <- .factoraggregateby <- function(ann, aggby) {
+  stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
+  spfstr <- paste(rep("%s", length(aggby)), collapse=":")
+  f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
+  f
+}
+
+## private function .correctForTxEffectiveLength()
+## corrects input transcript expression probabilities by
+## the transcript effective length as defined in Eq. (1) of
+## Jin et al. (2015)
+## parameters: x - transcript expression probabilities
+##             elen - effective length of each transcript
+.correctForTxEffectiveLength <- function(x, elen) {
+  x[elen > 0] <- x[elen > 0] / elen[elen > 0]
+  ## x[elen <= 0] <- 0 ## (apparently this is done in the original Python code
+  ## if (sum(x) > 0)   ##  but we don't do it here to avoid numerical instability)
+    x <- x / sum(x)
+  x
+}
+
+## private function .ttEstep()
+## E-step of the EM algorithm of TEtranscripts
+.ttEstep <- function(Q, Pi) {
+  X <- t(t(Q) * Pi)
+  X <- X / rowSums(X)
+  X
+}
+
+## private function .ttEstep()
+## M-step of the EM algorithm of TEtranscripts
+.ttMstep <- function(X) {
+  Pi <- colSums(X) / sum(X)
+  Pi
+}
+
+## private function .ttFixedPointFun()
+## fixed point function of the EM algorithm of TEtranscripts
+.ttFixedPointFun <- function(Pi, Q, elen) {
+  X <- .ttEstep(Q, Pi)
+  Pi2 <- .ttMstep(X)
+  Pi2 <- .correctForTxEffectiveLength(Pi2, elen)
+  Pi2
+}
+
+## private function .ttLlh()
+## log-likelihood function of the TEtranscripts model
+## (currently not used)
+.ttLlh <- function(X, Pi, Q) {
+  z <- t(t(Q) * Pi)
+  mask <- z == 0
+  z[mask] <- NA
+  sum(X * log(z), na.rm=TRUE)
 }
