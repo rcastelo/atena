@@ -45,14 +45,14 @@ Available methods for quantifying TE expression can be classified into family-ba
 
 * Tools based on reassignment of ambiguously mapped reads, such as [Telescope](https://github.com/mlbendall/telescope) and [TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts). **Telescope** uses a Bayesian model with an expectation-maximization method to estimate the probability of read assignment and reassign multi-mapping reads to the most probable source transcript [@bendall2019telescope]. **TEtranscripts** also uses an expectation-maximization (EM) algorithm to determine the maximum-likelihood estimates of multi-reads assignments to TEs but, finally, addresses the sequence similarities between TEs from the same subfamily by combining TE expression at the subfamily level [@jin2015tetranscripts].
 
-Because these tools were only available outside R and Bioconductor, the `atena` package provides access to these two methods to facilitate the integration of TE expression quantification into Bioconductor workflows for the analysis of RNA-seq data.
+Because these tools were only available outside R and Bioconductor, the `atena` package provides access to these three methods to facilitate the integration of TE expression quantification into Bioconductor workflows for the analysis of RNA-seq data.
 
 
 # TEs annotations
 
 Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations in human are RepeatMasker annotations, available through the RepeatMasker tracks in genome browsers. Other repositories offer annotations for other species (see *Table 1* in [@goerner2018computational]).
 
-In this package, we include annotations for 3,220 human ERVs (HERVs) (a type of class I TEs) collected by ERVmap authors [@tokuyama2018ervmap], available [here](https://github.com/mtokuyama/ERVmap/blob/master/ERVmap.bed) (GRCh38/hg38 genome assembly). Moreover, this packaga also contains annotations of TEs (HERVs and L1 long interspersed nuclear element (LINE)) created by Telescope authors [@bendall2019telescope] for the GRCh38/hg38 human genome assembly (28,513 TEs) and for the GRCh37/hg19 assembly (28,314 TEs), available [here](https://github.com/mlbendall/telescope_annotation_db).
+In this package, we include annotations for 3,220 human ERVs (HERVs) (a type of class I TEs) collected by ERVmap authors [@tokuyama2018ervmap], available [here](https://github.com/mtokuyama/ERVmap/blob/master/ERVmap.bed) (GRCh38/hg38 genome assembly). Moreover, this package also contains annotations of TEs (HERVs and L1 long interspersed nuclear element (LINE)) created by Telescope authors [@bendall2019telescope] for the GRCh38/hg38 human genome assembly (28,513 TEs) and for the GRCh37/hg19 assembly (28,314 TEs), available [here](https://github.com/mlbendall/telescope_annotation_db).
 
 
 # Using atena to quantify TE expression
