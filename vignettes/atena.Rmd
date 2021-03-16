@@ -107,7 +107,7 @@ Finally, the third method available is TEtranscripts. First, the `TEtranscriptsP
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
-ttpar <- TEtranscriptsParam(bamfiles, annot, singleEnd = TRUE)
+ttpar <- TEtranscriptsParam(bamfiles, annot, singleEnd = TRUE, ignoreStrand=TRUE)
 
 ttpar
 ```

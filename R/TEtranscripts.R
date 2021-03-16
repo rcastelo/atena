@@ -283,45 +283,50 @@ f <- .factoraggregateby <- function(ann, aggby) {
   uniqcnt <- rep(0L, length(ttpar@annotations))
   uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln, ])
 
-  ## TEtranscripts doesn't use uniquely-aligned reads to inform
-  ## the procedure of distributing multiple-mapping reads because,
-  ## as explained in Jin et al. (2015) pg. 3594, "The unique-reads
-  ## are not used as a prior for the initial abundance estimates in
-  ## the EM procedure to reduce potential bias to certain TEs."
-  ## for this reason, once counted, we discard unique alignments
-  ovalnmat <- ovalnmat[!maskuniqaln, ]
-  readids <- rownames(ovalnmat)
-  
-  ## the Qmat matrix stores row-wise the probability that read i maps to
-  ## a transcript j, assume uniform probabilities by now
-  Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
-                 dimnames=list(readids, NULL))
-  Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
-  Qmat <- Qmat / rowSums(ovalnmat)
-
-  ## Pi, corresponding to rho in Equations (1), (2) and (3) in
-  ## Jin et al. (2015), stores probabilities of expression for each
-  ## transcript, corrected for its effective length as defined
-  ## in Eq. (1) of Jin et al. (2015)
-  Pi <- colSums(Qmat)
-  elen <- width(ttpar@annotations[tx_idx]) - avgreadlen + 1
-  Pi <- .correctForTxEffectiveLength(Pi, elen)
-
-  ## as specified in Jin et al. (2015), use the SQUAREM algorithm
-  ## to achieve faster EM convergence
-  emres <- squarem(par=Pi, Q=Qmat, elen=elen,
-                   fixptfn=.ttFixedPointFun,
-                   control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
-  Pi <- emres$par
-  Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
-  Pi <- Pi / sum(Pi)
-
-  ## use the estimated transcript expression probabilities
-  ## to finally distribute ambiguously mapping reads
-  probmassbyread <- as.vector(ovalnmat %*% Pi)
-  cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+  ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0, length(ttpar@annotations))
-  cntvec[tx_idx] <- cntvecovtx
+
+  if (sum(!maskuniqaln) > 0) { ## multi-mapping reads
+
+    ## TEtranscripts doesn't use uniquely-aligned reads to inform
+    ## the procedure of distributing multiple-mapping reads because,
+    ## as explained in Jin et al. (2015) pg. 3594, "The unique-reads
+    ## are not used as a prior for the initial abundance estimates in
+    ## the EM procedure to reduce potential bias to certain TEs."
+    ## for this reason, once counted, we discard unique alignments
+    ovalnmat <- ovalnmat[!maskuniqaln, ]
+    readids <- rownames(ovalnmat)
+  
+    ## the Qmat matrix stores row-wise the probability that read i maps to
+    ## a transcript j, assume uniform probabilities by now
+    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
+                   dimnames=list(readids, NULL))
+    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    Qmat <- Qmat / rowSums(ovalnmat)
+
+    ## Pi, corresponding to rho in Equations (1), (2) and (3) in
+    ## Jin et al. (2015), stores probabilities of expression for each
+    ## transcript, corrected for its effective length as defined
+    ## in Eq. (1) of Jin et al. (2015)
+    Pi <- colSums(Qmat)
+    elen <- width(ttpar@annotations[tx_idx]) - avgreadlen + 1
+    Pi <- .correctForTxEffectiveLength(Pi, elen)
+
+    ## as specified in Jin et al. (2015), use the SQUAREM algorithm
+    ## to achieve faster EM convergence
+    emres <- squarem(par=Pi, Q=Qmat, elen=elen,
+                     fixptfn=.ttFixedPointFun,
+                     control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
+    Pi <- emres$par
+    Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+    Pi <- Pi / sum(Pi)
+
+    ## use the estimated transcript expression probabilities
+    ## to finally distribute ambiguously mapping reads
+    probmassbyread <- as.vector(ovalnmat %*% Pi)
+    cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+    cntvec[tx_idx] <- cntvecovtx
+  }
 
   ## add multi-mapping and unique-mapping counts
   cntvec <- cntvec + uniqcnt
