@@ -6,8 +6,9 @@
 \usage{
 TEtranscriptsParam(
   bfl,
-  annotations,
+  teFeatures,
   aggregateby = character(0),
+  geneFeatures = NA,
   singleEnd = TRUE,
   ignoreStrand = FALSE,
   strandMode = 1L,
@@ -19,10 +20,10 @@ TEtranscriptsParam(
 \arguments{
 \item{bfl}{a character string vector of BAM filenames.}
 
-\item{annotations}{A \code{GRanges} or \code{GRangesList} object with the
-annotations to be quantified. Elements in this object should have names,
-which will be used as a grouping factor for genomic ranges forming a common
-locus, unless other metadata column names are specified in the
+\item{teFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+TE annotated features to be quantified. Elements in this object should have
+names, which will be used as a grouping factor for genomic ranges forming a
+common locus, unless other metadata column names are specified in the
 \code{aggregateby} parameter.}
 
 \item{aggregateby}{Character vector with column names in the annotation
@@ -30,6 +31,11 @@ to be used to aggregate quantifications. By default, this is an empty vector,
 which means that the names of the input \code{GRanges} or \code{GRangesList}
 object given in the \code{annotations} parameter will be used to aggregate
 quantifications.}
+
+\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+gene annotated features to be quantified. Following the TEtranscripts
+algorithm, overlaps with unique reads are first tallied with respect to these
+gene features.}
 
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
