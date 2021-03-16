@@ -37,21 +37,22 @@ TE expression has been observed in association with physiological processes in a
 
 # Current available methods for quantifying TE expression
 
-The study of TE expression faces one main challenge: given their repetitive nature, the majority of TE-derived reads map to multiple regions of the genome and these multi-mapping reads are consequently discarded in standard RNA-seq data processing pipelines. For this reason, specific software for the quantification of TE expression has been developed [@goerner2018computational].
+The study of TE expression faces one main challenge: given their repetitive nature, the majority of TE-derived reads map to multiple regions of the genome and these multi-mapping reads are consequently discarded in standard RNA-seq data processing pipelines. For this reason, specific software for the quantification of TE expression have been developed [@goerner2018computational].
 
-Available methods for quantifying TE expression can be classified into family-based or locus-based. The former addresses the challenge of multi-mapping reads (e.g. one read mapping to different TEs from the same subfamily) by combining expression at the subfamily level. Locus-based tools use different approaches to estimate TE expression at the locus level:
+Available methods for quantifying TE expression can be classified into family-based or locus-based. The former combines expression at the subfamily level (e.g. *TEtranscripts*), whereas the latter provides TE expression at the locus level (e.g. *ERVmap* and *Telescope*). In both cases, there are different approaches to estimate TE expression:
 
 * Tools based on selective filtering of multi-mapping reads, such as [ERVmap](https://github.com/mtokuyama/ERVmap). **ERVmap** applies multiple filtering criteria for RNA-sequencing reads. These filters consist in discarding reads when the ratio of sum of hard and soft clipping to the length of the read (base pair) is greater than or equal to 0.02, the ratio of the edit distance to the sequence read length (base pair) is greater or equal to 0.02 and/or the difference between the alignment score from BWA (field AS) and the suboptimal alignment score from BWA (field XS) is less than 5 [@tokuyama2018ervmap]. 
 
-* Tools based on reassignment of ambiguously mapped reads, such as [Telescope](https://github.com/mlbendall/telescope). **Telescope** uses a Bayesian model with an expectation-maximization method to estimate the probability of read assignment and reassign multi-mapping reads to the most probable source transcript [@bendall2019telescope].
+* Tools based on reassignment of ambiguously mapped reads, such as [Telescope](https://github.com/mlbendall/telescope) and [TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts). **Telescope** uses a Bayesian model with an expectation-maximization method to estimate the probability of read assignment and reassign multi-mapping reads to the most probable source transcript [@bendall2019telescope]. **TEtranscripts** also uses an expectation-maximization (EM) algorithm to determine the maximum-likelihood estimates of multi-reads assignments to TEs but, finally, addresses the sequence similarities between TEs from the same subfamily by combining TE expression at the subfamily level [@jin2015tetranscripts].
 
 Because these tools were only available outside R and Bioconductor, the `atena` package provides access to these two methods to facilitate the integration of TE expression quantification into Bioconductor workflows for the analysis of RNA-seq data.
 
+
 # TEs annotations
 
-Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotation in human are RepeatMasker annotations, available through the RepeatMasker tracks in genome browsers. Other repositories offer annotations for other species (see *Table 1* in [@goerner2018computational]).
+Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations in human are RepeatMasker annotations, available through the RepeatMasker tracks in genome browsers. Other repositories offer annotations for other species (see *Table 1* in [@goerner2018computational]).
 
-In this package, we include annotations for 3,220 human ERVs (HERVs) (a type of class I TEs) collected by ERVmap authors [@tokuyama2018ervmap], available [here](https://github.com/mtokuyama/ERVmap/blob/master/ERVmap.bed) (GRCh38/hg38 genome assembly).
+In this package, we include annotations for 3,220 human ERVs (HERVs) (a type of class I TEs) collected by ERVmap authors [@tokuyama2018ervmap], available [here](https://github.com/mtokuyama/ERVmap/blob/master/ERVmap.bed) (GRCh38/hg38 genome assembly). Moreover, this packaga also contains annotations of TEs (HERVs and L1 long interspersed nuclear element (LINE)) created by Telescope authors [@bendall2019telescope] for the GRCh38/hg38 human genome assembly (28,513 TEs) and for the GRCh37/hg19 assembly (28,314 TEs), available [here](https://github.com/mlbendall/telescope_annotation_db).
 
 
 # Using atena to quantify TE expression
@@ -65,7 +66,7 @@ Quantification of TE expression with `atena` consists in the following two steps
 
 ## Building a parameter object for ERVmap
 
-As mentioned, `atena` implements the ERVmap method for TE expression quantification. In order to use this approach, first, an object of the class `ERVmapParam` is build using the `ERVmapParam()` function. In this example, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` argument is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` argument is used to define if the read counting method (`summarizeOverlaps` from the [*GenomicAlignments*](https://bioconductor.org/packages/release/bioc/html/GenomicAlignments.html) package) takes the strand of reads and elements into account or not. Moreover, note that the `filterUniqReads` argument is set to `TRUE` in order to apply the filtering criteria to unique reads, apart from multi-mapping reads, as proposed by ERVmap authors [@tokuyama2018ervmap]. Conversely, when `filterUniqReads = FALSE`, all the unique reads are considered when computing TE expression without previously filtering them. However, in order for `atena` to be able to distinguish between unique and multi-mapping reads, when `filterUniqReads = FALSE`, the NH tag must be present in the BAM file.
+As mentioned, `atena` implements the ERVmap method for TE expression quantification. In order to use this approach, first, an object of the class `ERVmapParam` is build using the `ERVmapParam()` function. In this example, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` argument is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` argument is used to define if the read counting method (`summarizeOverlaps` from the [*GenomicAlignments*](https://bioconductor.org/packages/release/bioc/html/GenomicAlignments.html) package) takes the strand of reads and elements into account or not. Moreover, note that the `filterUniqReads` argument is set to `TRUE` in order to apply the filtering criteria to unique reads, apart from multi-mapping reads, as proposed by ERVmap authors [@tokuyama2018ervmap]. Conversely, when `filterUniqReads = FALSE`, all the unique reads are considered when computing TE expression without previously filtering them. However, in order for `atena` to be able to distinguish between unique and multi-mapping reads when `filterUniqReads = FALSE`, the NH tag must be present in the BAM file.
 
 
 ```{r, message=FALSE, warning=FALSE}
@@ -86,7 +87,7 @@ In the case of paired-end BAM files, two additional arguments can be specified. 
 
 ## Building a parameter object for Telescope
 
-To use the Telescope method for TE expression quantification, the `TelescopeParam()` function is used to build a parameter object of the class `TelescopeParam`. In this case, annotations developed by Telescope authors ( [Bendall et al, 2019](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1006453) ) including 72,169 ranges, corresponding to 28,513 TEs (i.e. ranges with the same locus ID), are used. The `Telescope_ann()` function can be used to retrieve these annotations, and the arguments `type` and `version` can be used to set the type of TE and the human genome version of the annotations, respectively. 
+To use the Telescope method for TE expression quantification, the `TelescopeParam()` function is used to build a parameter object of the class `TelescopeParam`. In this case, annotations developed by Telescope authors including 72,169 ranges, corresponding to 28,513 TEs (i.e. ranges with the same locus ID), are used. The `Telescope_ann()` function retrieves these annotations, and the arguments `type` and `version` can be used to set the type of TE and the human genome version of the annotations, respectively. 
 
 Here, default options are set for running Telescope. However, further [options](https://github.com/mlbendall/telescope) can be passed to the Telescope algorithm through the `opts` argument using a `list` object.
 
@@ -96,6 +97,19 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
 annot <- Telescope_ann()
 tspar <- TelescopeParam(bamfiles, annot)
 tspar
+```
+
+## Building a parameter object for TEtranscripts
+
+Finally, the third method available is TEtranscripts. First, the `TEtranscriptsParam()` function is called to build a parameter object of the class `TEtranscriptsParam`. The `aggregateby` argument, which should be a character vector of column names in the annotation, determines the columns to be used to perform the aggregation of TE expression quantification. In this case, the default option is used: the names of the `annot` object will be used to aggregate quantifications. For this example, the ERVmap annotations including 3,220 HERVs are used.
+
+```{r}
+bamfiles <- list.files(system.file("extdata", package="atena"),
+                       pattern="*.bam", full.names=TRUE)
+annot <- ERVmap_ann()
+ttpar <- TEtranscriptsParam(bamfiles, annot, singleEnd = TRUE)
+
+ttpar
 ```
 
 
@@ -122,6 +136,18 @@ tsq <- qtex(tspar)
 tsq
 colSums(assay(tsq))
 ```
+
+
+For the TEtranscripts method, TE expression is quantified by using the following call:
+
+```{r, results='hide'}
+ttq <- qtex(ttpar)
+```
+```{r}
+ttq
+colSums(assay(ttq))
+```
+
 
 # Session information
 
