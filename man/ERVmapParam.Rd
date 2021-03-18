@@ -6,12 +6,14 @@
 \usage{
 ERVmapParam(
   bfl,
-  annotations,
-  singleEnd = FALSE,
+  teFeatures,
+  aggregateby = character(0),
+  geneFeatures = NA,
+  singleEnd = TRUE,
   ignoreStrand = TRUE,
   strandMode = 1L,
-  filterUniqReads = FALSE,
-  fragments = TRUE
+  fragments = !singleEnd,
+  filterUniqReads = FALSE
 )
 }
 \arguments{
@@ -21,9 +23,23 @@ in the ERVmap algorithm, reads must be aligned using Burrows-Wheeler Aligner.
 If a different aligner was used, the 3rd filter (AS - XS >= 5) from the 
 ERVmap algorithm is not applied.}
 
-\item{annotations}{A 'GRanges' object.}
+\item{teFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+TE annotated features to be quantified. Elements in this object should have
+names, which will be used as a grouping factor for genomic ranges forming a
+common locus, unless other metadata column names are specified in the
+\code{aggregateby} parameter.}
 
-\item{singleEnd}{(Default FALSE) Logical value indicating if reads are single
+\item{aggregateby}{Character vector with column names in the annotation
+to be used to aggregate quantifications. By default, this is an empty vector,
+which means that the names of the input \code{GRanges} or \code{GRangesList}
+object given in the \code{annotations} parameter will be used to aggregate
+quantifications.}
+
+\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+gene annotated features to be quantified. Only unique counts are used for
+quantifying gene features given in this parameter.}
+
+\item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
 
 \item{ignoreStrand}{(Default TRUE) A logical which defines if the strand
@@ -45,6 +61,15 @@ objects that controls the behavior of the strand getter. See
 class for further detail. If \code{singleEnd = TRUE}, then use either
 \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.}
 
+\item{fragments}{(Default not \code{singleEnd}) A logical; applied to
+paired-end data only. When \code{fragments=TRUE} (default), the read-counting
+method in the original ERVmap algorithm will be applied, by which each mate
+of a paired-end read is counted once, and therefore two mates mapping to the
+same element result in adding up a count value of two. When
+\code{fragments=FALSE}, if the two mates of a paired-end read map to the same
+element, they are counted as a single hit and singletons, reads with unmapped
+pairs and other fragments are not counted.}
+
 \item{filterUniqReads}{(Default TRUE) Logical value indicating whether to apply
 the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
 which are always applied to multi-mapping reads, can be optional for unique
@@ -52,15 +77,6 @@ reads, only if the NH tag is present in the BAM file. If
 \code{filterUniqReads = TRUE} (equivalent to the original approach proposed
 by ERVmap authors), the unique reads not passing one or more filters 
 from the ERVmap pipeline will be discarded to compute TEs expression.}
-
-\item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
-When \code{fragments=TRUE} (default), the read-counting method in the
-original ERVmap algorithm will be applied, by which each mate of a paired-end
-read is counted once, and therefore two mates mapping to the same element
-result in adding up a count value of two. When \code{fragments=FALSE}, if the
-two mates of a paired-end read map to the same element, they are counted as
-a single hit and singletons, reads with unmapped pairs and other fragments
-are not counted.}
 }
 \value{
 A \linkS4class{ERVmapParam} object.

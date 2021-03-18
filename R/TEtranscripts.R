@@ -90,20 +90,8 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
                                fragments=FALSE,
                                tolerance=0.0001,
                                maxIter=100L) {
-  if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
-    stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
 
-  if (is.character(bfl)) {
-    mask <- sapply(bfl, file.exists)
-    if (any(!mask))
-      stop(sprintf("The following input BAM files cannot be found:\n%s",
-                   paste(paste("  ", bfl), collapse="\n")))
-  }
-
-  if (!is(bfl, "BamFileList"))
-    bfl <- BamFileList(bfl, asMates=!singleEnd)
-
-  .checkBamFileListArgs(bfl, singleEnd, fragments)
+  bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
 
   features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                geneFeatures, deparse(substitute(geneFeatures)),
@@ -280,119 +268,6 @@ setMethod("qtex", "TEtranscriptsParam",
   ## TEtranscripts original implementation ultimately coerces fractional
   ## counts to integer 
   setNames(as.integer(cntvec), names(cntvec))
-}
-
-## private function .processFeatures()
-## builds a single 'GRanges' object from input TE and gene features.
-## parameters: teFeatures - a 'GRanges' or 'GRangesList' object with
-##                          TE annotations
-##             teFeaturesobjname - the name of 'teFeatures'
-##             geneFeatures - a 'GRanges' or 'GRangesList' object with
-##                            gene annotations
-##             geneFeaturesobjname - the name of 'geneFeatures'
-##             aggregateby - names of metadata columns in 'teFeatures'
-##                           to be used later for aggregating estimated
-##                           counts.
-
-#' @importFrom S4Vectors mcols Rle
-.processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
-                             geneFeaturesobjname, aggregateby) {
-
-  if (!exists(teFeaturesobjname))
-    stop(sprintf("input TE features object '%s' is not defined.",
-                 teFeaturesobjname))
-
-  if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
-    stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                 teFeaturesobjname))
-
-  if (length(aggregateby) > 0)
-    if (any(!aggregateby %in% colnames(mcols(teFeatures))))
-        stop(sprintf("%s not in metadata columns of the TE features object.",
-             paste(aggregateby[!aggregateby %in% colnames(mcols(teFeatures))])))
-
-  if (is.null(names(teFeatures)) && length(aggregateby) == 0)
-    stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
-                 teFeaturesobjname))
-
-  features <- teFeatures
-  if (is(teFeatures, "GRangesList"))
-    features <- unlist(teFeatures)
-
-  if (!is.na(geneFeatures)) {
-    geneFeaturesobjname <- deparse(substitute(geneFeatures))
-    if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
-      stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                   geneFeaturesobjname))
-    if (any(names(geneFeatures) %in% names(teFeatures)))
-      stop("gene features have some common identifiers with the TE features.")
-
-    if (length(geneFeatures) == 0)
-      stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
-
-    if (is(geneFeatures, "GRangesList"))
-      geneFeatures <- unlist(geneFeatures)
-
-    features <- c(teFeatures, geneFeatures)
-    temask <- Rle(rep(FALSE, length(features) + length(geneFeatures)))
-    temask[1:length(features)] <- TRUE
-    features$isTE <- temask
-  }
-
-  features
-}
-
-## private function .consolidateFeatures()
-## builds a 'GRanges' or 'GRangesList' object
-## grouping TE features, if necessary, and
-## adding gene features, if available.
-## parameters: x - TEtranscriptsParam object
-##             fnames - feature names vector to which
-##                      consolidated features should match
-
-#' @importFrom methods is
-#' @importFrom S4Vectors split
-#' @importFrom GenomicRanges GRangesList
-.consolidateFeatures <- function(x, fnames) {
-  teFeatures <- x@annotations
-  if (!is.null(x@annotations$isTE) && any(x@annotations$isTE)) {
-    teFeatures <- x@annotations[x@annotations$isTE]
-  }
-
-  if (length(x@aggregateby) > 0) {
-    f <- .factoraggregateby(teFeatures, x@aggregateby)
-    teFeatures <- split(teFeatures, f)
-  }
-
-  features <- teFeatures
-  if (!is.null(x@annotations$isTE) && any(!x@annotations$isTE)) {
-    geneFeatures <- x@annotations[!x@annotations$isTE]
-    if (is(features, "GRangesList")) ## otherwise is a GRanges object
-      geneFeatures <- split(geneFeatures, names(geneFeatures))
-    features <- c(features, geneFeatures)
-  }
-
-  stopifnot(length(features) == length(fnames)) ## QC
-  features <- features[match(fnames, names(features))]
-
-  features
-}
-
-## private function .factoraggregateby()
-## builds a factor with as many values as the
-## length of the input annotations in 'ann', where
-## every value is made by pasting the columns in
-## 'aggby' separated by ':'.
-## parameters: ann - GRanges object with annotations
-##             aggby - names of metadata columns in 'ann'
-##                     to be pasted together
-
-#' @importFrom GenomicRanges mcols
-f <- .factoraggregateby <- function(ann, aggby) {
-  stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
-  spfstr <- paste(rep("%s", length(aggby)), collapse=":")
-  f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
-  f
 }
 
 ## private function .buildOvAlignmentsMatrix()

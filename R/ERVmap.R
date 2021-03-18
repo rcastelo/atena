@@ -8,13 +8,23 @@
 #' If a different aligner was used, the 3rd filter (AS - XS >= 5) from the 
 #' ERVmap algorithm is not applied.
 #'
-#' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
-#' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus.
+#' @param teFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' TE annotated features to be quantified. Elements in this object should have
+#' names, which will be used as a grouping factor for genomic ranges forming a
+#' common locus, unless other metadata column names are specified in the
+#' \code{aggregateby} parameter.
 #'
-#' @param annotations A 'GRanges' object.
+#' @param aggregateby Character vector with column names in the annotation
+#' to be used to aggregate quantifications. By default, this is an empty vector,
+#' which means that the names of the input \code{GRanges} or \code{GRangesList}
+#' object given in the \code{annotations} parameter will be used to aggregate
+#' quantifications.
 #'
-#' @param singleEnd (Default FALSE) Logical value indicating if reads are single
+#' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' gene annotated features to be quantified. Only unique counts are used for
+#' quantifying gene features given in this parameter.
+#'
+#' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
 #' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
@@ -36,6 +46,15 @@
 #' of the strand. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
 #'
+#' @param fragments (Default not \code{singleEnd}) A logical; applied to
+#' paired-end data only. When \code{fragments=TRUE} (default), the read-counting
+#' method in the original ERVmap algorithm will be applied, by which each mate
+#' of a paired-end read is counted once, and therefore two mates mapping to the
+#' same element result in adding up a count value of two. When
+#' \code{fragments=FALSE}, if the two mates of a paired-end read map to the same
+#' element, they are counted as a single hit and singletons, reads with unmapped
+#' pairs and other fragments are not counted.
+#'
 #' @param filterUniqReads (Default TRUE) Logical value indicating whether to apply
 #' the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
 #' which are always applied to multi-mapping reads, can be optional for unique
@@ -43,15 +62,6 @@
 #' \code{filterUniqReads = TRUE} (equivalent to the original approach proposed
 #' by ERVmap authors), the unique reads not passing one or more filters 
 #' from the ERVmap pipeline will be discarded to compute TEs expression.
-#'
-#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
-#' When \code{fragments=TRUE} (default), the read-counting method in the
-#' original ERVmap algorithm will be applied, by which each mate of a paired-end
-#' read is counted once, and therefore two mates mapping to the same element
-#' result in adding up a count value of two. When \code{fragments=FALSE}, if the
-#' two mates of a paired-end read map to the same element, they are counted as
-#' a single hit and singletons, reads with unmapped pairs and other fragments
-#' are not counted.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -77,44 +87,25 @@
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @importFrom methods is new
-#' @importFrom Rsamtools BamFileList
 #' @export
-ERVmapParam <- function(bfl, annotations,
-                        singleEnd=FALSE,
+ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
+                        geneFeatures=NA,
+                        singleEnd=TRUE,
                         ignoreStrand=TRUE,
                         strandMode=1L,
-                        filterUniqReads=FALSE,
-                        fragments=TRUE) {
-  if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
-    stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
+                        fragments=!singleEnd,
+                        filterUniqReads=FALSE) {
 
-  if (is.character(bfl)) {
-    mask <- sapply(bfl, file.exists)
-    if (any(!mask))
-      stop(sprintf("The following input BAM files cannot be found:\n%s",
-                   paste(paste("  ", bfl), collapse="\n")))
-  }
-  if (!is(bfl, "BamFileList"))
-    bfl <- BamFileList(bfl)
+  bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
 
-  annotationsobjname <- deparse(substitute(annotations))
-  env <- parent.frame()
-  if (!exists(annotationsobjname))
-    stop(sprintf("input annotation object '%s' is not defined.", annotationsobjname))
-
-  if (!is(annotations, "GRanges") && !is(annotations, "GRangesList"))
-    stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                 annotationsobjname))
-
-  if (is.null(names(annotations)))
-    stop(sprintf("the annotations object '%s' has no names.", annotationsobjname))
-
-  if (is(annotations, "GRangesList"))
-    annotations <- unlist(annotations)
-
-  new("ERVmapParam", bfl=bfl, annotations=annotations, singleEnd=singleEnd,
-      ignoreStrand=ignoreStrand, strandMode=as.integer(strandMode),
-      filterUniqReads=filterUniqReads, fragments=fragments)
+  features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
+                               geneFeatures, deparse(substitute(geneFeatures)),
+                               aggregateby)
+  
+  new("ERVmapParam", bfl=bfl, annotations=features, aggregateby=aggregateby,
+      singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+      strandMode=as.integer(strandMode), fragments=fragments,
+      filterUniqReads=filterUniqReads)
 }
 
 #' @param object A \linkS4class{ERVmapParam} object.
@@ -153,29 +144,28 @@ setMethod("show", "ERVmapParam",
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
-          function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
+          function(x, phenodata=NULL, mode=ovUnion, usematrix=FALSE,
+                   BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
 
-            if (x@singleEnd)
-              cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, ervpar=x, BPPARAM=BPPARAM)
-              
-            else
-              cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, ervpar=x, BPPARAM=BPPARAM)
+            if (usematrix)
+              cnt <- bplapply(x@bfl, .qtex_ervmap_matrix, empar=x, BPPARAM=BPPARAM)
+            else {
+              if (x@singleEnd)
+                cnt <- bplapply(x@bfl, .qtex_ervmap_singleend, ervpar=x, BPPARAM=BPPARAM)
+              else
+                cnt <- bplapply(x@bfl, .qtex_ervmap_pairedend, ervpar=x, BPPARAM=BPPARAM)
+            }
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
 
-            annot <- x@annotations
-            if (length(x@aggregateby) > 0) {
-              f <- .factoraggregateby(x@annotations, x@aggregateby)
-              annot <- GRangesList(split(annot, f))
-            }
+            features <- .consolidateFeatures(x, rownames(cnt))
 
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=annot,
+                                 rowRanges=features,
                                  colData=colData)
           })
-
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
 #' @importFrom GenomicAlignments readGAlignments
@@ -537,4 +527,94 @@ setMethod("qtex", "ERVmapParam",
   r_to_keep <- ((unlist(SH_clipping_first) / qwidth(first(r))) < 0.02 & 
                   (unlist(SH_clipping_last) / qwidth(last(r))) < 0.02 ) & NM_filter
   return(r[r_to_keep])
+}
+
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+.qtex_ervmap_matrix <- function(bf, empar, mode) {
+  
+  mode=match.fun(mode)
+
+  readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
+
+  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                         isDuplicate=FALSE,
+                         isNotPassingQualityControls=FALSE,
+                         isSupplementaryAlignment=FALSE)
+  param <- ScanBamParam(flag=sbflags, what="flag", tag=c("AS", "NM"))
+
+  ov <- Hits(nLnode=0, nRnode=length(empar@annotations), sort.by.query=TRUE)
+  alnreadids <- character(0)
+  salnmask <- logical(0)
+  alnAS <- alnNM <- integer(0)
+
+  yieldSize(bf) <- 100000
+  open(bf)
+  while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
+    alnreadids <- c(alnreadids, names(alnreads))
+    salnmask <- c(salnmask, .secondaryAlignmentMask(alnreads))
+    alnAS <- c(alnAS, .getAlignmentScore(alnreads))
+    alnNM <- c(alnNM, .getAlignmentMismatches(alnreads))
+    thisov <- mode(alnreads, empar@annotations, ignoreStrand=empar@ignoreStrand)
+    ov <- .appendHits(ov, thisov)
+  }
+  close(bf)
+
+}
+
+.secondaryAlignmentMask <- function(aln) {
+  mask <- NULL
+  if (is(aln, "GAlignments"))
+    mask <- bamFlagTest(mcols(aln)$flag, "isSecondaryAlignment")
+  else if (is(aln, "GAlignmentPairs")) {
+    mask <- bamFlagTest(mcols(first(aln))$flag, "isSecondaryAlignment") |
+            bamFlagTest(mcols(second(aln))$flag, "isSecondaryAlignment")
+  } else if (is(aln, "GAlignmentsList")) {
+    maskl <- relist(bamFlagTest(mcols(unlist(aln, use.names=FALSE))$flag,
+                                "isSecondaryAlignment"), aln)
+    names(maskl) <- NULL
+    ## any secondary alignment makes all the grouped alignments secondary
+    mask <- sum(maskl) > 0
+  } else
+    stop(sprintf(".secondaryAlignmentMask: wrong class %s\n", class(aln)))
+
+  mask
+}
+
+.getAlignmentScore <- function(aln) {
+  if (is(aln, "GAlignments"))
+    ascore <- as.integer(mcols(aln)$AS)
+  else if (is(aln, "GAlignmentPairs")) {
+    ## take the minimum score from both mates
+    ascore <- pmin.int(as.integer(mcols(first(aln))$AS), mcols(second(aln))$AS)
+  } else if (is(aln, "GAlignmentsList")) {
+    ascorel <- relist(as.integer(mcols(unlist(aln, use.names=FALSE))$AS), aln)
+    names(ascorel) <- NULL
+    ## any secondary alignment makes all the grouped alignments secondary
+    ascore <- min(ascorel)
+  } else
+    stop(sprintf(".getAlignmentScore: wrong class %s\n", class(aln)))
+
+  as.integer(ascore)
+}
+
+.getAlignmentMismatches <- function(aln) {
+  if (is(aln, "GAlignments"))
+    mm <- as.integer(mcols(aln)$NM)
+  else if (is(aln, "GAlignmentPairs")) {
+    ## take the celing of the mean of mismatches from both mates
+    mm1 <- as.integer(mcols(first(aln))$NM)
+    mm2 <- as.integer(mcols(second(aln))$NM)
+    mm1[is.na(mm1)] <- mm2[is.na(mm1)]
+    mm2[is.na(mm2)] <- mm1[is.na(mm2)]
+    mm <- ceiling((mm1 + mm2) / 2)
+  } else if (is(aln, "GAlignmentsList")) {
+    mml <- relist(as.integer(mcols(unlist(aln, use.names=FALSE))$NM), aln)
+    names(mml) <- NULL
+    len <- length(mml)
+    ## take the celing of the mean of mismatches from the alignment group
+    mm <- ceiling(sum(mml) / len)
+  } else
+    stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
+
+  as.integer(mm)
 }
