@@ -530,6 +530,7 @@ setMethod("qtex", "ERVmapParam",
 }
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+#' @importFrom Matrix rowSums
 .qtex_ervmap_matrix <- function(bf, empar, mode) {
   
   mode=match.fun(mode)
@@ -550,17 +551,81 @@ setMethod("qtex", "ERVmapParam",
   yieldSize(bf) <- 100000
   open(bf)
   while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
+    aqw <- .getAlignmentQueryWidth(alnreads)
+    anm <- .getAlignmentMismatches(alnreads)
+    asc <- .getAlignmentSumClipping(alnreads)
+    ## Tokuyama et al. (2018) pg. 12571. reads/fragments are kept
+    ## if: (1) the ratio of sum of hard and soft clipping to the
+    ## sequence read length is < 0.02; (2) the ratio of the edit
+    ## distance to the sequence read length is < 0.02
+    mask <- ((asc / aqw) < 0.02) & ((anm / aqw) < 0.02)
+    alnreads <- alnreads[mask, ]
+    anm <- anm[mask]
+
     alnreadids <- c(alnreadids, names(alnreads))
     salnmask <- c(salnmask, .secondaryAlignmentMask(alnreads))
     alnAS <- c(alnAS, .getAlignmentScore(alnreads))
     alnNM <- c(alnNM, .getAlignmentMismatches(alnreads))
+
     thisov <- mode(alnreads, empar@annotations, ignoreStrand=empar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
   }
   close(bf)
 
+  ## fetch all different read identifiers from the overlapping alignments
+  readids <- unique(alnreadids[queryHits(ov)])
+
+  ## fetch all different transcripts from the overlapping alignments
+  tx_idx <- sort(unique(subjectHits(ov)))
+
+  ## build a matrix representation of the overlapping alignments
+  ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
+
+  ## Tokuyama et al. (2018) pg. 12571. reads/fragments are kept
+  ## if the difference between the alignment score from BWA (AS)
+  ## and the suboptimal alignment score from BWA (field XS) >= 5,
+  ## equivalent to second best match has one or more mismatches
+  ## than the best match. here we pick the best suboptimal alignment
+  ## as the secondary alignment with highest AS and compare the
+  ## number of mismatches (NM) to the primary alignment for that read.
+  ## if NM-primary-alignment - NM-best-suboptimal-alignment >= 1,
+  ## then the read/fragment is kept.
+  if (any(salnmask)) {
+    salnmat <- .buildSecondaryAlignmentsMatrix(ov, alnreadids, salnmask, readids, tx_idx)
+    asmat <- .buildAlignmentScoresMatrix(ov, alnreadids, alnAS, readids, tx_idx)
+    nmmat <- .buildAlignmentScoresMatrix(ov, alnreadids, alnNM, readids, tx_idx)
+    ## remove matrices rownames to save memory? (they're 'readids')
+
+    nmprimaryaln <- rowMeans(nmmat * salnmat)
+    whsalnmaxas <- max.col(salnmat * asmat)
+    nmbestsecondaryaln <- nmmat[, whsalnmaxas]
+
+    mask <- nmprimaryaln - nmbestsecondaryaln >= 1
+    if (!any(mask))
+      stop("no read passes filters.")
+
+    ovalnmat <- ovalnmat[mask, ]
+  }
+
+  rm(alnreadids)
+  gc()
+
+  cntvec <- rep(0, length(empar@annotations))
+  cntvec[tx_idx] <- colSums(ovalnmat)
+  names(cntvec) <- names(empar@annotations)
+
+  ## aggregate quantifications if necessary
+  if (length(empar@aggregateby) > 0) {
+    f <- .factoraggregateby(empar@annotations, empar@aggregateby)
+    stopifnot(length(f) == length(cntvec)) ## QC
+    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+  }
+
+  cntvec
 }
 
+#' @importFrom S4Vectors mcols first second
+#' @importFrom Rsamtools bamFlagTest
 .secondaryAlignmentMask <- function(aln) {
   mask <- NULL
   if (is(aln, "GAlignments"))
@@ -580,6 +645,7 @@ setMethod("qtex", "ERVmapParam",
   mask
 }
 
+#' @importFrom S4Vectors mcols first second
 .getAlignmentScore <- function(aln) {
   if (is(aln, "GAlignments"))
     ascore <- as.integer(mcols(aln)$AS)
@@ -597,18 +663,48 @@ setMethod("qtex", "ERVmapParam",
   as.integer(ascore)
 }
 
+.fetchNMtag <- function(aln) {
+  nmtag <- "NM"
+  if (is(aln, "GAlignments")) {
+    if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]]))) {
+      nmtag <- "nM"
+      if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]])))
+        stop("no NM or nM tag in BAM file.")
+    }
+  } else if (is(aln, "GAlignmentPairs")) {
+    if (is.null(mcols(first(aln))[[nmtag]]) || all(is.na(mcols(first(aln))[[nmtag]]))) {
+      nmtag <- "nM"
+      if (is.null(mcols(first(aln))[[nmtag]]) || all(is.na(mcols(first(aln))[[nmtag]])))
+        stop("no NM or nM tag in BAM file.")
+    }
+  } else if (is(aln, "GAlignmentsList")) {
+    if (is.null(mcols(unlist(aln))[[nmtag]]) || all(is.na(mcols(unlist(aln))[[nmtag]]))) {
+      nmtag <- "nM"
+      if (is.null(mcols(unlist(aln))[[nmtag]]) || all(is.na(mcols(unlist(aln))[[nmtag]])))
+        stop("no NM or nM tag in BAM file.")
+    }
+  } else
+    stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
+
+  nmtag
+}
+
+#' @importFrom S4Vectors mcols first second
 .getAlignmentMismatches <- function(aln) {
+  mm <- NULL
+  nmtag <- .fetchNMtag(aln)
+
   if (is(aln, "GAlignments"))
-    mm <- as.integer(mcols(aln)$NM)
+    mm <- as.integer(mcols(aln)[[nmtag]])
   else if (is(aln, "GAlignmentPairs")) {
     ## take the celing of the mean of mismatches from both mates
-    mm1 <- as.integer(mcols(first(aln))$NM)
-    mm2 <- as.integer(mcols(second(aln))$NM)
+    mm1 <- as.integer(mcols(first(aln))[[nmtag]])
+    mm2 <- as.integer(mcols(second(aln))[[nmtag]])
     mm1[is.na(mm1)] <- mm2[is.na(mm1)]
     mm2[is.na(mm2)] <- mm1[is.na(mm2)]
     mm <- ceiling((mm1 + mm2) / 2)
   } else if (is(aln, "GAlignmentsList")) {
-    mml <- relist(as.integer(mcols(unlist(aln, use.names=FALSE))$NM), aln)
+    mml <- relist(as.integer(mcols(unlist(aln, use.names=FALSE))[[nmtag]]), aln)
     names(mml) <- NULL
     len <- length(mml)
     ## take the celing of the mean of mismatches from the alignment group
@@ -617,4 +713,97 @@ setMethod("qtex", "ERVmapParam",
     stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
 
   as.integer(mm)
+}
+
+#' @importFrom S4Vectors mcols first second
+#' @importFrom GenomicAlignments qwidth
+.getAlignmentQueryWidth <- function(aln) {
+  qw <- NULL
+  if (is(aln, "GAlignments"))
+    qw <- qwidth(aln)
+  else if (is(aln, "GAlignmentPairs")) {
+    ## take the ceiling of the mean of query widths from both mates
+    qw1 <- qwidth(first(aln))
+    qw2 <- qwidth(second(aln))
+    qw1[is.na(qw1)] <- qw2[is.na(qw1)]
+    qw2[is.na(qw2)] <- qw1[is.na(qw2)]
+    qw <- ceiling((qw1 + qw2) / 2)
+  } else if (is(aln, "GAlignmentsList")) {
+    qwl <- relist(qwidth(unlist(aln, use.names=FALSE)), aln)
+    names(qwl) <- NULL
+    len <- lengths(qwl)
+    ## take the ceiling of the mean of query widths from the alignment group
+    qw <- ceiling(sum(qwl) / len)
+  } else
+    stop(sprintf(".getAlignmentQueryWidth: wrong class %s\n", class(aln)))
+
+  as.integer(qw)
+}
+
+#' @importFrom S4Vectors mcols first second List sum
+#' @importFrom GenomicAlignments cigar explodeCigarOpLengths
+.getAlignmentSumClipping <- function(aln) {
+  sc <- NULL
+  if (is(aln, "GAlignments"))
+    sc <- unlist(sum(List(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")))),
+                 use.names=FALSE)
+  else if (is(aln, "GAlignmentPairs")) {
+    ## take the ceiling of the mean of query widths from both mates
+    sc1 <- unlist(sum(List(explodeCigarOpLengths(cigar(first(aln)),
+                                                 ops=c("H", "S")))),
+                  use.names=FALSE)
+    sc2 <- unlist(sum(List(explodeCigarOpLengths(cigar(second(aln)),
+                                                 ops=c("H", "S")))),
+                  use.names=FALSE)
+    sc1[is.na(qw1)] <- sc2[is.na(sc1)]
+    sc2[is.na(qw2)] <- sc1[is.na(sc2)]
+    sc <- ceiling((sc1 + sc2) / 2)
+  } else if (is(aln, "GAlignmentsList")) {
+    scl <- List(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
+                                      ops=c("H", "S")))
+    scl <- relist(sum(scl), aln)
+    names(scl) <- NULL
+    len <- lengths(scl)
+    ## take the ceiling of the mean of soft clippings from the alignment group
+    sc <- ceiling(sum(scl) / len)
+  } else
+    stop(sprintf(".getAlignmentSumClipping: wrong class %s\n", class(aln)))
+
+  as.integer(sc)
+}
+
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix
+.buildAlignmentMismatchesMatrix <- function(ov, arids, alnnm, rids, fidx) {
+  nmmat <- Matrix(0L, nrow=length(rids), ncol=length(fidx),
+                  dimnames=list(rids, NULL))
+  mt1 <- match(arids[queryHits(ov)], rids)
+  mt2 <- match(subjectHits(ov), fidx)
+  nmmat[cbind(mt1, mt2)] <- alnnm[queryHits(ov)]
+
+  nmmat
+}
+
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix
+.buildAlignmentScoresMatrix <- function(ov, arids, alnas, rids, fidx) {
+  asmat <- Matrix(0L, nrow=length(rids), ncol=length(fidx),
+                  dimnames=list(rids, NULL))
+  mt1 <- match(arids[queryHits(ov)], rids)
+  mt2 <- match(subjectHits(ov), fidx)
+  asmat[cbind(mt1, mt2)] <- alnas[queryHits(ov)]
+
+  asmat
+}
+
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix
+.buildSecondaryAlignmentsMatrix <- function(ov, arids, samask, rids, fidx) {
+  samat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx),
+                  dimnames=list(rids, NULL))
+  mt1 <- match(arids[queryHits(ov)], rids)
+  mt2 <- match(subjectHits(ov), fidx)
+  samat[cbind(mt1, mt2)] <- samask[queryHits(ov)]
+
+  samat
 }
