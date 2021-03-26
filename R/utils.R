@@ -33,7 +33,7 @@
     mask <- sapply(bfl, file.exists)
     if (any(!mask))
       stop(sprintf("The following input BAM files cannot be found:\n%s",
-                   paste(paste("  ", bfl), collapse="\n")))
+                   paste(paste("  ", bfl[!mask]), collapse="\n")))
   }
 
   if (!is(bfl, "BamFileList"))
@@ -48,6 +48,44 @@
     asMates(bfl) <- TRUE
 
   bfl
+}
+
+## private function .checkBamReadMapper()
+## extracts the name of the read mapper software from one or more BAM files
+## parameters: bamfiles - BAM file names
+
+#' @importFrom Rsamtools scanBamHeader
+.checkBamReadMapper <- function(bamfiles) {
+  if (missing(bamfiles) || !"character" %in% class(bamfiles))
+    stop("argument 'bamfiles' should be a string character vector of BAM file names")
+
+  mask <- sapply(bamfiles, file.exists)
+  if (any(!mask))
+    stop(sprintf("The following input BAM files cannot be found:\n%s",
+                 paste(paste("  ", bamfiles[!mask]), collapse="\n")))
+
+  hdr <- scanBamHeader(bamfiles)
+  readaligner <- sapply(hdr, function(x) {
+                          ra <- NA_character_
+                          if (!is.null(x$text[["@PG"]])) {
+                            pgstr <- x$text[["@PG"]]
+                            mt <- gregexpr("^PN:", pgstr)
+                            wh <- which(sapply(mt, function(x) x!=-1))
+                            ra <- substr(pgstr[[wh]],
+                                         attr(mt[[wh]], "match.length")+1,
+                                         100000L)
+                          }
+                          tolower(ra)
+                 })
+  readaligner <- readaligner[!duplicated(readaligner)]
+  readaligner <- as.vector(readaligner[!is.na(readaligner)])
+  if (length(readaligner) == 0)
+    warning("no read aligner software information in BAM files.")
+  if (any(readaligner[1] != readaligner))
+    warning(sprintf("different read aligner information in BAM files. Assuming %s",
+                    readaligner[1]))
+
+  readaligner[1]
 }
 
 ## private function .processFeatures()
@@ -65,6 +103,9 @@
 #' @importFrom S4Vectors mcols Rle
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
                              geneFeaturesobjname, aggregateby) {
+
+  if (missing(teFeatures))
+    stop("missing 'teFeatures' argument.")
 
   if (!exists(teFeaturesobjname))
     stop(sprintf("input TE features object '%s' is not defined.",

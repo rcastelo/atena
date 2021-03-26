@@ -9,7 +9,15 @@
 \alias{qtex,AtenaParam-method}
 \title{Quantify transposable element expression}
 \usage{
-\S4method{qtex}{ERVmapParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
+\S4method{qtex}{ERVmapParam}(
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  usematrix = FALSE,
+  yieldSize = 1000000L,
+  verbose = 1,
+  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
+)
 
 \S4method{qtex}{TEtranscriptsParam}(
   x,
@@ -40,12 +48,6 @@ phenotypic data to include in the resulting
 its row names will become the column names of the resulting
 \linkS4class{SummarizedExperiment} object.}
 
-\item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
-to configure the parallel execution of the code. By default,
-a \linkS4class{SerialParam} object is used, which does not use
-any parallelization, with the flag \code{progress=TRUE} to show
-progress through the calculations.}
-
 \item{mode}{One of the pre-defined overlapping methods such as
 \code{ovUnion()}, \code{ovIntersectionStrict} or a user-supplied
 overlapping function. For a user-supplied overlapping function, the
@@ -55,6 +57,12 @@ subject hits matching the annotated features. This parameter is
 analogous to the \code{mode} parameter of the
 \code{\link[GenomicAlignments]{summarizeOverlaps}()} function from
 the \code{GenomicAlignments} package.}
+
+\item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
+to configure the parallel execution of the code. By default,
+a \linkS4class{SerialParam} object is used, which does not use
+any parallelization, with the flag \code{progress=TRUE} to show
+progress through the calculations.}
 }
 \value{
 A \linkS4class{SummarizedExperiment} object.

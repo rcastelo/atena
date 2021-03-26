@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 0.99.13
+Version: 0.99.14
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
@@ -20,11 +20,12 @@ Imports:
     Matrix,
     BiocGenerics,
     BiocParallel,
+    S4Vectors,
+    IRanges,
+    GenomicRanges,
     GenomicAlignments,
     Rsamtools,
-    S4Vectors,
     GenomeInfoDb,
-    GenomicRanges,
     reticulate,
     basilisk,
     basilisk.utils,

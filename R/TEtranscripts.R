@@ -285,8 +285,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom Matrix Matrix
 #' @importFrom S4Vectors queryHits subjectHits
 .buildOvAlignmentsMatrix <- function(ov, arids, rids, fidx) {
-  oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx),
-                  dimnames=list(rids, NULL))
+  oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx))
   mt1 <- match(arids[queryHits(ov)], rids)
   mt2 <- match(subjectHits(ov), fidx)
   oamat[cbind(mt1, mt2)] <- TRUE

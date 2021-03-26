@@ -232,7 +232,7 @@ setMethod("qtex", "TelescopeParam",
 ## src : value on the GTF source column
 
 #' @importFrom methods is
-#' @importFrom utils relist write.table
+#' @importFrom utils write.table
 #' @importFrom S4Vectors mcols mcols<-
 .exportTelescopeGTF <- function(gr, fname, src="Telescope") {
 
