@@ -83,7 +83,9 @@
 #'
 #' @param suboptimalAlignmentCutoff (Default 5) Numeric value storing the cutoff
 #' above which the difference between the alignment score and the suboptimal
-#' alignment score is considered sufficiently large to retain the alignment.
+#' alignment score is considered sufficiently large to retain the alignment. When
+#' this value is set to \code{NA}, then the filtering step based on suboptimal
+#' alignment scores is skipped.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -134,7 +136,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
       strandMode=as.integer(strandMode), fragments=fragments,
       filterUniqReads=filterUniqReads, maxMismatchRate=maxMismatchRate,
       readMapper=readmapper, suboptimalAlignmentTag=suboptimalAlignmentTag,
-      suboptimalAlignmentCutoff=suboptimalAlignmentCutoff)
+      suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff))
 }
 
 #' @param object A \linkS4class{ERVmapParam} object.
@@ -649,7 +651,8 @@ setMethod("qtex", "ERVmapParam",
 
   yieldSize(bf) <- yieldSize
   open(bf)
-  while (length(alnreads <- readfun(bf, param=param, use.names=!avsoas))) {
+  while (length(alnreads <- readfun(bf, param=param, strandMode=empar@strandMode,
+                                    use.names=!avsoas))) {
     n <- n + length(alnreads)
     aqw <- .getAlignmentQueryWidth(alnreads)  ## get alignment query width
     anm <- .getAlignmentMismatches(alnreads)  ## get alignment mismatches
@@ -660,7 +663,7 @@ setMethod("qtex", "ERVmapParam",
     ## distance to the sequence read length is < 0.02
     mask <- ((asc / aqw) < empar@maxMismatchRate) & ((anm / aqw) < empar@maxMismatchRate)
 
-    thissalnmask <- rep(TRUE, length(mask))
+    thissalnmask <- rep(FALSE, length(mask))
     thisalnAS <- integer(0)
     alnreadids <- character(0)
     if (!is.na(empar@suboptimalAlignmentCutoff)) {
@@ -818,54 +821,6 @@ setMethod("qtex", "ERVmapParam",
   cntvec[tx_idx] <- colSums(ovalnmat)
 
   cntvec
-}
-
-## implemenation of 'max.col()' using a sparse logical matrix
-## it uses one order of magnitude more memory than the implementation
-## below by Constantin Ahlmann-Eltze, but it is one order of
-## magnitude faster
-
-#' @importFrom sparseMatrixStats rowMaxs
-#' @importFrom Matrix which
-sparseMaxCol <- function(m) {
-  mask <- (m / sparseMatrixStats::rowMaxs(m)) == 1
-  wh <- Matrix::which(mask, arr.ind=TRUE, useNames=FALSE)
-  wh <- wh[!duplicated(wh[, 1]), ]
-  wh <- wh[order(wh[, 1]), ]
-  wh[, 2]
-}
-
-## implementation of 'max.col()' for sparse matrices
-## by Constantin Ahlmann-Eltze, who also suggested to
-## translated it to C++ to speed it up, by following
-## the example from sparseMatrixStats::colMaxs() at
-## https://github.com/const-ae/sparseMatrixStats/blob/master/src/methods.cpp#L354
-.sparse_max_col <- function(x) {
-  sparseMatrixStats:::reduce_sparse_matrix_to_num(t(x),
-                              function(values, row_indices, number_of_zeros) {
-                                m_idx <- which.max(values)
-                                if (values[m_idx] < 0) {
-                                  if (length(values) == ncol(x)) {
-                                    row_indices[m_idx] + 1
-                                  } else {
-                                    setdiff(seq_len(ncol(x)), row_indices + 1)[1]
-                                  }
-                                } else {
-                                  row_indices[m_idx] + 1
-                                }
-                              })
-}
-
-#' @importFrom Matrix Matrix
-#' @importFrom S4Vectors queryHits subjectHits
-.buildOvAlignmentsMatrix2 <- function(ov, ridx, fidx) {
-  oamat <- Matrix(FALSE, nrow=length(ridx), ncol=length(fidx),
-                  dimnames=list(NULL, NULL))
-  mt1 <- match(queryHits(ov), ridx)
-  mt2 <- match(subjectHits(ov), fidx)
-  oamat[cbind(mt1, mt2)] <- TRUE
-
-  oamat
 }
 
 #' @importFrom S4Vectors mcols first second

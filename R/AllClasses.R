@@ -99,7 +99,9 @@ setMethod("path", "AtenaParam",
 #'
 #' @slot suboptimalAlignmentCutoff (Default 5) Numeric value storing the cutoff
 #' above which the difference between the alignment score and the suboptimal
-#' alignment score is considered sufficiently large to retain the alignment.
+#' alignment score is considered sufficiently large to retain the alignment. When
+#' this value is set to \code{NA}, then the filtering step based on suboptimal
+#' alignment scores is skipped.
 #'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
