@@ -417,7 +417,7 @@ setMethod("qtex", "ERVmapParam",
 
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
 #' @importFrom S4Vectors mcols
-.get_tags_in_BAM_pairedend <- function(bf, ervpar, soatag="XS") {
+.get_tags_in_BAM_pairedend <- function(bf, empar, soatag="XS") {
   yieldSize(bf) <- 1000
   asMates(bf) <- TRUE
   sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
@@ -436,7 +436,7 @@ setMethod("qtex", "ERVmapParam",
   colnames(tags_df) <- tags
   
   open(bf)
-  r_test <- readGAlignmentPairs(bf, param = param, strandMode = ervpar@strandMode)
+  r_test <- readGAlignmentPairs(bf, param = param, strandMode = empar@strandMode)
   close(bf)
   
   # Testing, for each sample, if the files contain the different tags
@@ -609,7 +609,7 @@ setMethod("qtex", "ERVmapParam",
   if (empar@singleEnd)
     avtags <- .get_tags_in_BAM_singleend(bf, soatag=soatag)
   else
-    avtags <- .get_tags_in_BAM_pairedend(bf, soatag=soatag)
+    avtags <- .get_tags_in_BAM_pairedend(bf, empar=empar, soatag=soatag)
   ## avtags <- colnames(avtags)[unlist(avtags)]
   avtags <- colnames(avtags)[unlist(avtags)]
 
@@ -648,11 +648,15 @@ setMethod("qtex", "ERVmapParam",
   readids <- character(0)
   alnreadidx <- integer(0)
   n <- nprimary <- nfiltered <- 0
+  
+  strand_arg <- "strandMode" %in% formalArgs(readfun)
 
   yieldSize(bf) <- yieldSize
   open(bf)
-  while (length(alnreads <- readfun(bf, param=param, strandMode=empar@strandMode,
-                                    use.names=!avsoas))) {
+  while (length(alnreads <- do.call(readfun, c(list(file = bf), 
+                                               list(param=param), 
+                                               list(strandMode=empar@strandMode)[strand_arg], 
+                                               list(use.names=!avsoas))))) {
     n <- n + length(alnreads)
     aqw <- .getAlignmentQueryWidth(alnreads)  ## get alignment query width
     anm <- .getAlignmentMismatches(alnreads)  ## get alignment mismatches
@@ -819,7 +823,7 @@ setMethod("qtex", "ERVmapParam",
   ovalnmat <- ovalnmat[mask, ]
   cntvec <- rep(0, length(empar@annotations))
   cntvec[tx_idx] <- colSums(ovalnmat)
-
+  
   cntvec
 }
 
