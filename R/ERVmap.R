@@ -811,7 +811,7 @@ setMethod("qtex", "ERVmapParam",
   salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx, rd_idx, tx_idx)
 
   ## AS from primary alignments
-  asprimaryaln <- rowMaxs(ovalnmat * asmat)
+  asprimaryaln <- rowMaxs(palnmat * asmat)
   ## which reads have secondary alignments
   whsalnmat <- which(rowSums(salnmat) > 0)
   ## fetch maximum AS from secondary alignments
