@@ -812,14 +812,11 @@ setMethod("qtex", "ERVmapParam",
 
   ## AS from primary alignments
   asprimaryaln <- rowMaxs(palnmat * asmat)
-  ## which reads have secondary alignments
-  whsalnmat <- which(rowSums(salnmat) > 0)
   ## fetch maximum AS from secondary alignments
-  salnmaxas <- rowMaxs(salnmat[whsalnmat, ] * salnbestasmat[whsalnmat, ])
-  bestassecondaryaln <- rep(-99L, nrow(ovalnmat))
-  bestassecondaryaln[whsalnmat] <- salnmaxas
+  salnmaxas <- rowMaxs(salnbestasmat)
+  salnmaxas[salnmaxas == 0] <- -99
+  mask <- ((asprimaryaln - salnmaxas) >= empar@suboptimalAlignmentCutoff)
   
-  mask <- ((asprimaryaln - bestassecondaryaln) >= empar@suboptimalAlignmentCutoff)
   palnmat <- palnmat[mask, ]
   cntvec <- rep(0, length(empar@annotations))
   cntvec[tx_idx] <- colSums(palnmat)
