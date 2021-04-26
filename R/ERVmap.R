@@ -816,13 +816,11 @@ setMethod("qtex", "ERVmapParam",
   salnmaxas <- rowMaxs(salnmat[whsalnmat, ] * salnbestasmat[whsalnmat, ])
   bestassecondaryaln <- rep(-99L, nrow(ovalnmat))
   bestassecondaryaln[whsalnmat] <- salnmaxas
-
-  mask <- (rowSums(palnmat) > 0) &
-          ((asprimaryaln - bestassecondaryaln) >= empar@suboptimalAlignmentCutoff)
-
-  ovalnmat <- ovalnmat[mask, ]
+  
+  mask <- ((asprimaryaln - bestassecondaryaln) >= empar@suboptimalAlignmentCutoff)
+  palnmat <- palnmat[mask, ]
   cntvec <- rep(0, length(empar@annotations))
-  cntvec[tx_idx] <- colSums(ovalnmat)
+  cntvec[tx_idx] <- colSums(palnmat)
   
   cntvec
 }
