@@ -690,6 +690,8 @@ setMethod("qtex", "ERVmapParam",
                               sequence(lengths(alnreads)), sep=".")
       }
     }
+    
+    mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
 
     ## filter out alignments not passing the previous filter
     if (empar@fragments)
