@@ -13,7 +13,6 @@
   x,
   phenodata = NULL,
   mode = ovUnion,
-  usematrix = FALSE,
   yieldSize = 1000000L,
   verbose = 1,
   BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
@@ -57,6 +56,15 @@ subject hits matching the annotated features. This parameter is
 analogous to the \code{mode} parameter of the
 \code{\link[GenomicAlignments]{summarizeOverlaps}()} function from
 the \code{GenomicAlignments} package.}
+
+\item{yieldSize}{Field inherited from \code{\link[Rsamtools]{BamFile}}.
+The method for signature \code{\link{ERVmapParam}()} reads the BAM
+file by chunks. \code{yieldSize} represents the number of records 
+(chunk size) to yield each time the file is read.}
+
+\item{verbose}{(Default 1). When \code{verbose} > 1, detailed information on 
+the quantification steps is provided. Warnings are always present  
+regardless of the value of \code{verbose}.}
 
 \item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
 to configure the parallel execution of the code. By default,

@@ -6,7 +6,7 @@
 #'
 #' @slot bfl A \linkS4class{BamFileList} object.
 #'
-#' @slot annotations A \linkS4class{GRanges} object.
+#' @slot teFeatures A \linkS4class{GRanges} object.
 #'
 #' @slot aggregateby Character vector with column names in the annotation
 #'       to be used to aggregate quantifications.
@@ -24,7 +24,7 @@
 #' @exportClass AtenaParam
 setClass("AtenaParam",
          representation(bfl="BamFileList",
-                        annotations="GenomicRanges_OR_GenomicRangesList",
+                        teFeatures="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character"))
 
 #' @param object A \linkS4class{AtenaParam} object.
@@ -43,6 +43,10 @@ setMethod("path", "AtenaParam",
 #' This is a class for storing parameters provided to the ERVmap algorithm.
 #' It is a subclass of the 'AtenaParam-class'.
 #'
+#' @slot geneFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' gene annotated features to be quantified. Only unique counts are used for
+#' quantifying gene features given in this parameter.
+#' 
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
@@ -51,35 +55,34 @@ setMethod("path", "AtenaParam",
 #'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #'   objects that controls the behavior of the strand getter. See
 #'   \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
-#'   class for further detail. If \code{singleEnd = TRUE}, then use either
-#'   \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
+#'   class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+#'   is ignored.
 #'
 #' @slot ignoreStrand (Default TRUE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
-#' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
-#' consider those reads selected after filtering which overlap the TE or
-#' ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
-#' the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
-#' any alignment which overlaps with the element in the annotations regardless
-#' of the strand. For further details see
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
+#' and TEs in the annotations. When \code{ignore_strand = FALSE}, only those
+#' reads which overlap the TE and are on the same strand are counted. On the 
+#' contrary, when \code{ignore_strand = TRUE}, any read overlapping an element 
+#' in \code{teFeatures} is counted regardless of the strand.
 #'
 #' @slot filterUniqReads (Default TRUE) Logical value indicating whether to apply
-#' the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
-#' which are always applied to multi-mapping reads, are optional for unique
-#' reads. If TRUE, the unique reads not passing one or more filters from the
-#' ERVmap pipeline, except for the "AS - XS >= 5" filter, will be discarded to
-#' compute TEs expression.
+#' the filters of the ERVmap algorithm to unique reads (TRUE) or not (FALSE). 
+#' These filters, which are always applied to multi-mapping reads, can be 
+#' optional for unique reads. If \code{filterUniqReads = TRUE} (equivalent to 
+#' the original approach proposed by ERVmap authors), the unique reads not 
+#' passing one or more filters from the ERVmap algorithm are discarded to 
+#' compute TE expression. When \code{filterUniqReads = FALSE} secondary 
+#' alignments need to the present in the input BAM file in order to
+#' differentiate unique from multi-mapping reads.
 #'
-#' @slot fragments (Default TRUE) A logical; applied to paired-end data only.
-#' When \code{fragments=TRUE} (default), the read-counting method in the
-#' original ERVmap algorithm will be applied, by which each mate of a paired-end
-#' read is counted once, and therefore two mates mapping to the same element
-#' result in adding up a count value of two. When \code{fragments=FALSE}, if the
-#' two mates of a paired-end read map to the same element, they are counted as
-#' a single hit and singletons, reads with unmapped pairs and other fragments
-#' are not counted.
+#' @slot fragments (Default not \code{singleEnd}) A logical; applied to
+#' paired-end data only. When \code{fragments=TRUE} (default), the read-counting
+#' method in the original ERVmap algorithm will be applied: each mate of a
+#' paired-end read is counted once and, therefore, two mates mapping to the
+#' same element result in adding up a count value of two. When
+#' \code{fragments=FALSE}, if the two mates of a paired-end read map to the same
+#' element, they are counted as a single hit and singletons, reads with unmapped
+#' pairs and other fragments, are not counted.
 #' 
 #' @slot maxMismatchRate (Default 0.02) Numeric value storing the maximum mismatch
 #' rate employed by the ERVmap algorithm to discard aligned reads whose rate of
@@ -89,13 +92,15 @@ setMethod("path", "AtenaParam",
 #' @slot suboptimalAlignmentTag (Default "auto") Character string storing the
 #' tag name in the BAM files that stores the suboptimal alignment score used in
 #' the third filter of ERVmap; see Tokuyama et al. (2018). The default,
-#' \code{"auto"}, assumes that either the BAM files were generated by BWA and
-#' include a tag called \code{XS} that stores the suboptimal alignment score,
-#' or if the \code{XS} tag is not available, then it will use the available
-#' secondary alignments to implement an analogous approach to that third ERVmap
-#' filter. When \code{suboptimalAlignmentTag} is set to a character string
-#' different from \code{"auto"}, a tag with that name will be used to extract
-#' the suboptimal alignment score. The absence of that tag will prompt an error.
+#' \code{suboptimalAlignmentTag="auto"}, assumes that either the BAM files were
+#' generated by BWA and include a tag called \code{XS} that stores the suboptimal
+#' alignment score or, if the \code{XS} tag is not available, then it uses
+#' the available secondary alignments to implement an analogous approach to that
+#' of the third ERVmap filter. When \code{suboptimalAlignmentTag="none"}, it also 
+#' performs the latter approach even when the tag \code{XS} is available. When
+#' this parameter is different from \code{"auto"} and \code{"none"}, a tag
+#' with the given name is used to extract the suboptimal alignment score.
+#' The absence of that tag will prompt an error.
 #'
 #' @slot suboptimalAlignmentCutoff (Default 5) Numeric value storing the cutoff
 #' above which the difference between the alignment score and the suboptimal

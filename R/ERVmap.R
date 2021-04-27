@@ -3,21 +3,18 @@
 #' Build an object of the class \code{ERVmapParam}
 #'
 #' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
-#' string vector of BAM filenames. In order to apply all three filters present
-#' in the ERVmap algorithm, reads must be aligned using Burrows-Wheeler Aligner.
-#' If a different aligner was used, the 3rd filter (AS - XS >= 5) from the 
-#' ERVmap algorithm is not applied.
+#' string vector of BAM filenames.
 #'
 #' @param teFeatures A \code{GRanges} or \code{GRangesList} object with the
-#' TE annotated features to be quantified. Elements in this object should have
-#' names, which will be used as a grouping factor for genomic ranges forming a
-#' common locus, unless other metadata column names are specified in the
-#' \code{aggregateby} parameter.
+#' transposable element (TE) annotated features to be quantified. Elements in 
+#' this object should have names, which will be used as a grouping factor for 
+#' genomic ranges forming a common locus, unless other metadata column names are 
+#' specified in the \code{aggregateby} parameter.
 #'
 #' @param aggregateby Character vector with column names in the annotation
 #' to be used to aggregate quantifications. By default, this is an empty vector,
 #' which means that the names of the input \code{GRanges} or \code{GRangesList}
-#' object given in the \code{annotations} parameter will be used to aggregate
+#' object given in the \code{teFeatures} parameter will be used to aggregate
 #' quantifications.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
@@ -37,23 +34,19 @@
 #'
 #' @param ignoreStrand (Default TRUE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
-#' and TEs/ERVs in the annotations. When \code{ignore_strand = FALSE}, the
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}} function will only
-#' consider those reads selected after filtering which overlap the TE or
-#' ERV on the same strand. On the contrary, when \code{ignore_strand = TRUE},
-#' the \code{\link[GenomicAlignments]{summarizeOverlaps}} function will count
-#' any alignment which overlaps with the element in the annotations regardless
-#' of the strand. For further details see
-#' \code{\link[GenomicAlignments]{summarizeOverlaps}}.
+#' and TEs in the annotations. When \code{ignore_strand = FALSE}, only those
+#' reads which overlap the TE and are on the same strand are counted. On the 
+#' contrary, when \code{ignore_strand = TRUE}, any read overlapping an element 
+#' in \code{teFeatures} is counted regardless of the strand.
 #'
 #' @param fragments (Default not \code{singleEnd}) A logical; applied to
 #' paired-end data only. When \code{fragments=TRUE} (default), the read-counting
-#' method in the original ERVmap algorithm will be applied, by which each mate
-#' of a paired-end read is counted once, and therefore two mates mapping to the
+#' method in the original ERVmap algorithm will be applied: each mate of a
+#' paired-end read is counted once and, therefore, two mates mapping to the
 #' same element result in adding up a count value of two. When
 #' \code{fragments=FALSE}, if the two mates of a paired-end read map to the same
 #' element, they are counted as a single hit and singletons, reads with unmapped
-#' pairs and other fragments are not counted.
+#' pairs and other fragments, are not counted.
 #'
 #' @param maxMismatchRate (Default 0.02) Numeric value storing the maximum mismatch
 #' rate employed by the ERVmap algorithm to discard aligned reads whose rate of
@@ -61,24 +54,26 @@
 #' reference, to the length of the read is above this threshold.
 #'
 #' @param filterUniqReads (Default TRUE) Logical value indicating whether to apply
-#' the alignment filters to unique reads (TRUE) or not (FALSE). These filters,
-#' which are always applied to multi-mapping reads, can be optional for unique
-#' reads, only if the NH tag is present in the BAM file. If 
-#' \code{filterUniqReads = TRUE} (equivalent to the original approach proposed
-#' by ERVmap authors), the unique reads not passing one or more filters 
-#' from the ERVmap pipeline will be discarded to compute TEs expression.
+#' the filters of the ERVmap algorithm to unique reads (TRUE) or not (FALSE). 
+#' These filters, which are always applied to multi-mapping reads, can be 
+#' optional for unique reads. If \code{filterUniqReads = TRUE} (equivalent to 
+#' the original approach proposed by ERVmap authors), the unique reads not 
+#' passing one or more filters from the ERVmap algorithm are discarded to 
+#' compute TE expression. When \code{filterUniqReads = FALSE} secondary 
+#' alignments need to the present in the input BAM file in order to
+#' differentiate unique from multi-mapping reads.
 #'
 #' @param suboptimalAlignmentTag (Default "auto") Character string storing the
 #' tag name in the BAM files that stores the suboptimal alignment score used in
 #' the third filter of ERVmap; see Tokuyama et al. (2018). The default,
 #' \code{suboptimalAlignmentTag="auto"}, assumes that either the BAM files were
 #' generated by BWA and include a tag called \code{XS} that stores the suboptimal
-#' alignment score, or if the \code{XS} tag is not available, then it will use
+#' alignment score or, if the \code{XS} tag is not available, then it uses
 #' the available secondary alignments to implement an analogous approach to that
-#' third ERVmap filter. When \code{suboptimalAlignmentTag="none"}, then it will
-#' perform the latter approach also when the tag \code{XS} is avalable. When
-#' this parameter is different from \code{"auto"} and \code{"none"}, then a tag
-#' with the given name will be used to extract the suboptimal alignment score.
+#' of the third ERVmap filter. When \code{suboptimalAlignmentTag="none"}, it also 
+#' performs the latter approach even when the tag \code{XS} is available. When
+#' this parameter is different from \code{"auto"} and \code{"none"}, a tag
+#' with the given name is used to extract the suboptimal alignment score.
 #' The absence of that tag will prompt an error.
 #'
 #' @param suboptimalAlignmentCutoff (Default 5) Numeric value storing the cutoff
@@ -131,7 +126,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                                geneFeatures, deparse(substitute(geneFeatures)),
                                aggregateby)
   
-  new("ERVmapParam", bfl=bfl, annotations=features, aggregateby=aggregateby,
+  new("ERVmapParam", bfl=bfl, teFeatures=features, aggregateby=aggregateby,
       singleEnd=singleEnd, ignoreStrand=ignoreStrand,
       strandMode=as.integer(strandMode), fragments=fragments,
       filterUniqReads=filterUniqReads, maxMismatchRate=maxMismatchRate,
@@ -150,10 +145,10 @@ setMethod("show", "ERVmapParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# annotations (%d): %s\n", length(object@annotations),
-                        ifelse(is.null(names(object@annotations)),
-                               paste("on", .pprintnames(seqlevels(object@annotations))),
-                               .pprintnames(names(object@annotations)))))
+            cat(sprintf("# annotations (%d): %s\n", length(object@teFeatures),
+                        ifelse(is.null(names(object@teFeatures)),
+                               paste("on", .pprintnames(seqlevels(object@teFeatures))),
+                               .pprintnames(names(object@teFeatures)))))
             cat(sprintf("# %s, %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -170,12 +165,13 @@ setMethod("show", "ERVmapParam",
           })
 
 #' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom SummarizedExperiment SummarizedExperiment
 #' @export
 #' @aliases qtex
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
-          function(x, phenodata=NULL, mode=ovUnion, usematrix=FALSE, yieldSize=1e6L, verbose=1,
+          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L, verbose=1,
                    BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE))) {
             .checkPhenodata(phenodata, length(x@bfl))
 
@@ -195,8 +191,8 @@ setMethod("qtex", "ERVmapParam",
 
 
 #' @importFrom BiocGenerics basename path
-#' @importFrom Rsamtools ScanBamParam yieldSize
-#' @importFrom methods methodUtilities
+#' @importFrom Rsamtools ScanBamParam yieldSize yieldSize<-
+#' @importFrom methods formalArgs
 .qtex_ervmap_matrix <- function(bf, empar, mode, yieldSize=1000000, verbose) {
   
   mode=match.fun(mode)
@@ -219,7 +215,7 @@ setMethod("qtex", "ERVmapParam",
   param <- ScanBamParam(flag=sbflags, what="flag", tag=avtags)
 
   ## 'ov' is a 'Hits' object with the overlaps between aligned reads and features
-  ov <- Hits(nLnode=0, nRnode=length(empar@annotations), sort.by.query=TRUE)
+  ov <- Hits(nLnode=0, nRnode=length(empar@teFeatures), sort.by.query=TRUE)
   ## 'salnmask' is logical mask flagging whether an alignment is secondary
   salnmask <- logical(0)
   salnbestAS <- integer(0)
@@ -277,7 +273,7 @@ setMethod("qtex", "ERVmapParam",
       alnreads <- alnreads[mask]
 
     ## calculate and store overlaps between the filtered reads and features
-    thisov <- mode(alnreads, empar@annotations, ignoreStrand=empar@ignoreStrand)
+    thisov <- mode(alnreads, empar@teFeatures, ignoreStrand=empar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
 
     ## if suboptimal alignment scores are not available and the
@@ -333,11 +329,11 @@ setMethod("qtex", "ERVmapParam",
                   basename(path(bf)), n, sum(cntvec)))
   }
 
-  names(cntvec) <- names(empar@annotations)
+  names(cntvec) <- names(empar@teFeatures)
 
   ## aggregate quantifications if necessary
   if (length(empar@aggregateby) > 0) {
-    f <- .factoraggregateby(empar@annotations, empar@aggregateby)
+    f <- .factoraggregateby(empar@teFeatures, empar@aggregateby)
     stopifnot(length(f) == length(cntvec)) ## QC
     cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
   }
@@ -353,7 +349,7 @@ setMethod("qtex", "ERVmapParam",
 ## BAM file as row, indicating if each tag is present in the BAM file (TRUE) or 
 ## not (FALSE).
 
-#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom S4Vectors mcols
 .get_tags_in_BAM_singleend <- function(bf, soatag="XS") {
   
@@ -394,7 +390,7 @@ setMethod("qtex", "ERVmapParam",
 ## BAM file as row, indicating if each tag is present in the BAM file (TRUE) or 
 ## not (FALSE).
 
-#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize asMates
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<- asMates asMates<-
 #' @importFrom S4Vectors mcols
 .get_tags_in_BAM_pairedend <- function(bf, empar, soatag="XS") {
   yieldSize(bf) <- 1000
@@ -467,7 +463,7 @@ setMethod("qtex", "ERVmapParam",
   ## (field XS) >= 5. here we calculate the suboptimal alignment score
   ## by searching for the secondary alignment with the highest score.
 
-  ovsannot <- names(empar@annotations)[subjectHits(ov)]
+  ovsannot <- names(empar@teFeatures)[subjectHits(ov)]
   ovsbyq <- split(ovsannot, queryHits(ov))
   ovsbyq <- sapply(ovsbyq, function(x) paste(unique(x), collapse=","))
   ovs <- character(length(alnreadidx))
@@ -497,7 +493,7 @@ setMethod("qtex", "ERVmapParam",
   mask <- ((asprimaryaln - salnmaxas) >= empar@suboptimalAlignmentCutoff)
   
   palnmat <- palnmat[mask, ]
-  cntvec <- rep(0, length(empar@annotations))
+  cntvec <- rep(0, length(empar@teFeatures))
   cntvec[tx_idx] <- colSums(palnmat)
   
   cntvec
@@ -645,8 +641,8 @@ setMethod("qtex", "ERVmapParam",
   ovmat
 }
 
-#' Obtains the name of the tag containing the suboptimal alignment score, if
-#' present
+## Obtains the name of the tag containing the suboptimal alignment score, if
+## present
 .getsoatag <- function(suboptimalAlignmentTag, readMapper) {
   soatag <- NULL
   if (suboptimalAlignmentTag == "auto" && readMapper == "bwa") {
@@ -657,8 +653,8 @@ setMethod("qtex", "ERVmapParam",
   soatag
 }
 
-#' Calls internal functions to obtain the name of the available tags depending
-#' on whether the data is single- or paired-end
+## Calls internal functions to obtain the name of the available tags depending
+## on whether the data is single- or paired-end
 #' @importFrom BiocGenerics basename path
 .getavtags <- function(empar, bf, soatag) {
   avtags <- character(0)
@@ -675,8 +671,8 @@ setMethod("qtex", "ERVmapParam",
 }
 
 
-#' Looks if the suboptimal alignment score tag reported by the user is present
-#' in the BAM file.
+## Looks if the suboptimal alignment score tag reported by the user is present
+## in the BAM file.
 #' @importFrom BiocGenerics basename path
 .soasAvail <- function(suboptimalAlignmentCutoff, soatag, avtags, bf, verbose) {
   avsoas <- FALSE 
@@ -696,8 +692,8 @@ setMethod("qtex", "ERVmapParam",
 }
 
 
-#' Obtains the read identifier of the alignment and, when fragments = TRUE, sets
-#' a different name to each mate.
+## Obtains the read identifier of the alignment and, when fragments = TRUE, sets
+## a different name to each mate.
 .getAlnreadids <- function(alnreads, fragments) {
   alnreadids <- character(0)
   alnreadids <- names(alnreads)
@@ -708,7 +704,7 @@ setMethod("qtex", "ERVmapParam",
 }
 
 
-#' Find the suboptimal alignment score from the AS of the secondary alignments.
+## Find the suboptimal alignment score from the AS of the secondary alignments.
 .findSuboptAlignScore <- function(thisalnAS, thissalnmask, alnreadids, salnbestAS) {
   maxsaasbyreadid <- split(thisalnAS[thissalnmask], alnreadids[thissalnmask])
   maxsaasbyreadid <- sapply(maxsaasbyreadid, max)

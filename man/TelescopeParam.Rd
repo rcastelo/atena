@@ -4,13 +4,13 @@
 \alias{TelescopeParam}
 \title{Build a Telescope parameter object}
 \usage{
-TelescopeParam(bfl, annotations, opts = list(quiet = TRUE))
+TelescopeParam(bfl, teFeatures, opts = list(quiet = TRUE))
 }
 \arguments{
 \item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
 string vector of BAM filenames.}
 
-\item{annotations}{A \code{GRanges} or \code{GRangesList} object. Elements
+\item{teFeatures}{A \code{GRanges} or \code{GRangesList} object. Elements
 in this object should have names, which will be used as a grouping factor
 for ranges forming a common locus.}
 

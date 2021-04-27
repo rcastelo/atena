@@ -24,7 +24,7 @@
 ## private function .checkBamFileListArgs()
 ## adapted from GenomicAlignments/R/summarizeOverlaps-methods.R
 
-#' @importFrom Rsamtools BamFileList asMates
+#' @importFrom Rsamtools BamFileList asMates asMates<-
 .checkBamFileListArgs <- function(bfl, singleEnd, fragments) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
     stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")

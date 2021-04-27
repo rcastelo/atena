@@ -135,6 +135,7 @@ setMethod("show", "TEtranscriptsParam",
           })
 
 #' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom SummarizedExperiment SummarizedExperiment
 #' @export
 #' @aliases qtex
 #' @aliases qtex,TEtranscriptsParam-method
@@ -165,6 +166,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
+#' @importFrom IRanges ranges
 .qtex_tetranscripts <- function(bf, ttpar, mode) {
 
   mode=match.fun(mode)

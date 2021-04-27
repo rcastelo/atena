@@ -5,7 +5,7 @@
 #' @param bfl A \code{BamFile} or \code{BamFileList} object, or a character
 #' string vector of BAM filenames.
 #'
-#' @param annotations A \code{GRanges} or \code{GRangesList} object. Elements
+#' @param teFeatures A \code{GRanges} or \code{GRangesList} object. Elements
 #' in this object should have names, which will be used as a grouping factor
 #' for ranges forming a common locus.
 #'
@@ -48,7 +48,7 @@
 #' @importFrom basilisk BasiliskEnvironment basiliskStart basiliskStop
 #' @importFrom basilisk.utils installConda
 #' @export
-TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
+TelescopeParam <- function(bfl, teFeatures, opts=list(quiet=TRUE)) {
   if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
     stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object.")
 
@@ -61,32 +61,32 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
   if (!is(bfl, "BamFileList"))
     bfl <- BamFileList(bfl)
 
-  annotationsobjname <- deparse(substitute(annotations))
+  annotationsobjname <- deparse(substitute(teFeatures))
   env <- parent.frame()
   if (!exists(annotationsobjname))
     stop(sprintf("input annotation object '%s' is not defined.", annotationsobjname))
 
-  if (!is(annotations, "GRanges") && !is(annotations, "GRangesList"))
-    stop(sprintf("annotations object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+  if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
+    stop(sprintf("teFeatures object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
                  annotationsobjname))
 
-  if (is.null(names(annotations)))
-    stop(sprintf("the annotations object '%s' has no names.", annotationsobjname))
+  if (is.null(names(teFeatures)))
+    stop(sprintf("the teFeatures object '%s' has no names.", annotationsobjname))
 
-  gr <- annotations
-  if (is(annotations, "GRangesList"))
-    gr <- unlist(annotations)
+  gr <- teFeatures
+  if (is(teFeatures, "GRangesList"))
+    gr <- unlist(teFeatures)
 
   if ("locus" %in% colnames(mcols(gr)))
-    warning(sprintf("the metadata column 'locus' in the annotations will be overwritten with the '%s' names.",
-                    class(annotations)))
+    warning(sprintf("the metadata column 'locus' in the teFeatures will be overwritten with the '%s' names.",
+                    class(teFeatures)))
 
   gr$locus <- names(gr)
 
-  if (is(annotations, "GRangesList")) ## was a GRangesList, convert it into that
-    annotations <- split(gr, names(gr))
+  if (is(teFeatures, "GRangesList")) ## was a GRangesList, convert it into that
+    teFeatures <- split(gr, names(gr))
   else ## was a GRanges object, leave it as such
-    annotations <- gr
+    teFeatures <- gr
 
   if (!is.list(opts))
     stop("argument 'opts' should be a 'list' object.")
@@ -119,7 +119,7 @@ TelescopeParam <- function(bfl, annotations, opts=list(quiet=TRUE)) {
                            })
   basiliskStop(cl)
 
-  new("TelescopeParam", bfl=bfl, annotations=annotations,
+  new("TelescopeParam", bfl=bfl, teFeatures=teFeatures,
       basiliskEnv=pyenv, telescopeVersion=tsversion, telescopeOptions=opts)
 }
 
@@ -134,10 +134,10 @@ setMethod("show", "TelescopeParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# annotations (%d): %s\n", length(object@annotations),
-                        ifelse(is.null(names(object@annotations)),
-                               paste("on", .pprintnames(seqlevels(object@annotations))),
-                               .pprintnames(names(object@annotations)))))
+            cat(sprintf("# teFeatures (%d): %s\n", length(object@teFeatures),
+                        ifelse(is.null(names(object@teFeatures)),
+                               paste("on", .pprintnames(seqlevels(object@teFeatures))),
+                               .pprintnames(names(object@teFeatures)))))
             cat(sprintf("# Telescope version: %s\n", object@telescopeVersion))
             opts <- object@telescopeOptions
             opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))
@@ -149,6 +149,7 @@ setMethod("show", "TelescopeParam",
 #' @importFrom basilisk basiliskStart basiliskRun basiliskStop
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom S4Vectors DataFrame
+#' @importFrom SummarizedExperiment SummarizedExperiment
 #' @export
 #' @aliases qtex
 #' @aliases qtex,TelescopeParam-method
@@ -168,7 +169,7 @@ setMethod("qtex", "TelescopeParam",
             colnames(cnt) <- rownames(colData)
 
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=x@annotations,
+                                 rowRanges=x@teFeatures,
                                  colData=colData)
           })
 
@@ -183,7 +184,7 @@ setMethod("qtex", "TelescopeParam",
   opts_str_vec <- strsplit(opts_str, " ")[[1]]
 
   annfile <- file.path(tspar@telescopeOptions$outdir, "annotations.gtf")
-  .exportTelescopeGTF(tspar@annotations, annfile)
+  .exportTelescopeGTF(tspar@teFeatures, annfile)
   apmod <- reticulate::import("argparse")
   tsmod <- reticulate::import("telescope")
   pymain <- reticulate::import_main()
@@ -205,14 +206,14 @@ setMethod("qtex", "TelescopeParam",
                               sprintf("%s-telescope_report.tsv", opts$exp_tag)),
                     header=TRUE)
 
-  ## place quantifications in a vector matching the order of the annotations
+  ## place quantifications in a vector matching the order of the teFeatures
   ## this also implies discarding the '__no_feature' quantification given by
   ## Telescope. note also that, with the exception of the '__no_feature',
   ## Telescope only outputs features that have a positive quantification.
-  mt <- match(names(tspar@annotations), dtf$transcript)
-  cntvec <- rep(0L, length=length(tspar@annotations))
+  mt <- match(names(tspar@teFeatures), dtf$transcript)
+  cntvec <- rep(0L, length=length(tspar@teFeatures))
   cntvec[!is.na(mt)] <- dtf$final_count[mt[!is.na(mt)]]
-  names(cntvec) <- names(tspar@annotations)
+  names(cntvec) <- names(tspar@teFeatures)
   
   cntvec
 }
@@ -233,6 +234,8 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom methods is
 #' @importFrom utils write.table
+#' @importFrom GenomeInfoDb seqnames
+#' @importFrom BiocGenerics start end
 #' @importFrom S4Vectors mcols mcols<-
 .exportTelescopeGTF <- function(gr, fname, src="Telescope") {
 
