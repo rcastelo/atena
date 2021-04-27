@@ -259,6 +259,9 @@ setMethod("qtex", "ERVmapParam",
       } else {
         ## fetch secondary alignment mask, scores and read identifiers before filtering
         thissalnmask <- .secondaryAlignmentMask(alnreads)
+        if (!any(thissalnmask)) {
+          stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff = NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
+        }
         thisalnAS <- .getAlignmentTagScore(alnreads, "AS")
         alnreadids <- .getAlnreadids(alnreads, empar@fragments)
       }
@@ -284,7 +287,7 @@ setMethod("qtex", "ERVmapParam",
       salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, alnreadids, 
                                           salnbestAS)
 
-      ## filter now secondary alignment scores and read identifiers
+      ## filter now alignment scores and read identifiers
       thisalnAS <- thisalnAS[mask]
       alnreadids <- alnreadids[mask]
 
