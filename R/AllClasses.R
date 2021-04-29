@@ -6,7 +6,7 @@
 #'
 #' @slot bfl A \linkS4class{BamFileList} object.
 #'
-#' @slot teFeatures A \linkS4class{GRanges} object.
+#' @slot features A \linkS4class{GRanges} object.
 #'
 #' @slot aggregateby Character vector with column names in the annotation
 #'       to be used to aggregate quantifications.
@@ -24,7 +24,7 @@
 #' @exportClass AtenaParam
 setClass("AtenaParam",
          representation(bfl="BamFileList",
-                        teFeatures="GenomicRanges_OR_GenomicRangesList",
+                        features="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character"))
 
 #' @param object A \linkS4class{AtenaParam} object.

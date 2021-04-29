@@ -126,7 +126,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                                geneFeatures, deparse(substitute(geneFeatures)),
                                aggregateby)
   
-  new("ERVmapParam", bfl=bfl, teFeatures=features, aggregateby=aggregateby,
+  new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
       singleEnd=singleEnd, ignoreStrand=ignoreStrand,
       strandMode=as.integer(strandMode), fragments=fragments,
       filterUniqReads=filterUniqReads, maxMismatchRate=maxMismatchRate,
@@ -145,10 +145,10 @@ setMethod("show", "ERVmapParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# annotations (%d): %s\n", length(object@teFeatures),
-                        ifelse(is.null(names(object@teFeatures)),
-                               paste("on", .pprintnames(seqlevels(object@teFeatures))),
-                               .pprintnames(names(object@teFeatures)))))
+            cat(sprintf("# features (%d): %s\n", length(object@features),
+                        ifelse(is.null(names(object@features)),
+                               paste("on", .pprintnames(seqlevels(object@features))),
+                               .pprintnames(names(object@features)))))
             cat(sprintf("# %s, %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -175,7 +175,7 @@ setMethod("qtex", "ERVmapParam",
                    BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE))) {
             .checkPhenodata(phenodata, length(x@bfl))
 
-            cnt <- bplapply(x@bfl, .qtex_ervmap_matrix, empar=x, mode=mode,
+            cnt <- bplapply(x@bfl, .qtex_ervmap, empar=x, mode=mode,
                             yieldSize=yieldSize, verbose=verbose, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
@@ -193,7 +193,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom BiocGenerics basename path
 #' @importFrom Rsamtools ScanBamParam yieldSize yieldSize<-
 #' @importFrom methods formalArgs
-.qtex_ervmap_matrix <- function(bf, empar, mode, yieldSize=1000000, verbose) {
+.qtex_ervmap <- function(bf, empar, mode, yieldSize=1000000, verbose) {
   
   mode=match.fun(mode)
   readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
@@ -215,7 +215,7 @@ setMethod("qtex", "ERVmapParam",
   param <- ScanBamParam(flag=sbflags, what="flag", tag=avtags)
 
   ## 'ov' is a 'Hits' object with the overlaps between aligned reads and features
-  ov <- Hits(nLnode=0, nRnode=length(empar@teFeatures), sort.by.query=TRUE)
+  ov <- Hits(nLnode=0, nRnode=length(empar@features), sort.by.query=TRUE)
   ## 'salnmask' is logical mask flagging whether an alignment is secondary
   salnmask <- logical(0)
   salnbestAS <- integer(0)
@@ -276,7 +276,7 @@ setMethod("qtex", "ERVmapParam",
       alnreads <- alnreads[mask]
 
     ## calculate and store overlaps between the filtered reads and features
-    thisov <- mode(alnreads, empar@teFeatures, ignoreStrand=empar@ignoreStrand)
+    thisov <- mode(alnreads, empar@features, ignoreStrand=empar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
 
     ## if suboptimal alignment scores are not available and the
@@ -332,11 +332,11 @@ setMethod("qtex", "ERVmapParam",
                   basename(path(bf)), n, sum(cntvec)))
   }
 
-  names(cntvec) <- names(empar@teFeatures)
+  names(cntvec) <- names(empar@features)
 
   ## aggregate quantifications if necessary
   if (length(empar@aggregateby) > 0) {
-    f <- .factoraggregateby(empar@teFeatures, empar@aggregateby)
+    f <- .factoraggregateby(empar@features, empar@aggregateby)
     stopifnot(length(f) == length(cntvec)) ## QC
     cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
   }
@@ -466,7 +466,7 @@ setMethod("qtex", "ERVmapParam",
   ## (field XS) >= 5. here we calculate the suboptimal alignment score
   ## by searching for the secondary alignment with the highest score.
 
-  ovsannot <- names(empar@teFeatures)[subjectHits(ov)]
+  ovsannot <- names(empar@features)[subjectHits(ov)]
   ovsbyq <- split(ovsannot, queryHits(ov))
   ovsbyq <- sapply(ovsbyq, function(x) paste(unique(x), collapse=","))
   ovs <- character(length(alnreadidx))
@@ -496,7 +496,7 @@ setMethod("qtex", "ERVmapParam",
   mask <- ((asprimaryaln - salnmaxas) >= empar@suboptimalAlignmentCutoff)
   
   palnmat <- palnmat[mask, ]
-  cntvec <- rep(0, length(empar@teFeatures))
+  cntvec <- rep(0, length(empar@features))
   cntvec[tx_idx] <- colSums(palnmat)
   
   cntvec

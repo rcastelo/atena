@@ -13,7 +13,7 @@
 #' @param aggregateby Character vector with column names in the annotation
 #' to be used to aggregate quantifications. By default, this is an empty vector,
 #' which means that the names of the input \code{GRanges} or \code{GRangesList}
-#' object given in the \code{annotations} parameter will be used to aggregate
+#' object given in the \code{teFeatures} parameter will be used to aggregate
 #' quantifications.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
@@ -97,7 +97,7 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
                                geneFeatures, deparse(substitute(geneFeatures)),
                                aggregateby)
 
-  new("TEtranscriptsParam", bfl=bfl, annotations=features,
+  new("TEtranscriptsParam", bfl=bfl, features=features,
       aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
       strandMode=as.integer(strandMode), fragments=fragments,
       tolerance=tolerance, maxIter=as.integer(maxIter))
@@ -114,14 +114,14 @@ setMethod("show", "TEtranscriptsParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# annotations (%s length %d): %s\n", class(object@annotations),
-                        length(object@annotations),
-                        ifelse(is.null(names(object@annotations)),
-                               paste("on", .pprintnames(seqlevels(object@annotations))),
-                               .pprintnames(names(object@annotations)))))
+            cat(sprintf("# features (%s length %d): %s\n", class(object@features),
+                        length(object@features),
+                        ifelse(is.null(names(object@features)),
+                               paste("on", .pprintnames(seqlevels(object@features))),
+                               .pprintnames(names(object@features)))))
             cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
                                                         paste(object@aggregateby, collapse=", "),
-                                                        paste(class(object@annotations), "names"))))
+                                                        paste(class(object@features), "names"))))
             cat(sprintf("# %s, %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -178,7 +178,7 @@ setMethod("qtex", "TEtranscriptsParam",
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
 
-  ov <- Hits(nLnode=0, nRnode=length(ttpar@annotations), sort.by.query=TRUE)
+  ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
   avgreadlen <- 0
 
@@ -186,7 +186,7 @@ setMethod("qtex", "TEtranscriptsParam",
   while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
     avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
-    thisov <- mode(alnreads, ttpar@annotations, ignoreStrand=ttpar@ignoreStrand)
+    thisov <- mode(alnreads, ttpar@features, ignoreStrand=ttpar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
   }
   close(bf)
@@ -208,11 +208,11 @@ setMethod("qtex", "TEtranscriptsParam",
   stopifnot(all(rsovalnmat > 0)) ## QC
   maskuniqaln <- rsovalnmat == 1
   rm(rsovalnmat)
-  uniqcnt <- rep(0L, length(ttpar@annotations))
+  uniqcnt <- rep(0L, length(ttpar@features))
   uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln, ])
 
   ## initialize vector of counts derived from multi-mapping reads
-  cntvec <- rep(0, length(ttpar@annotations))
+  cntvec <- rep(0, length(ttpar@features))
 
   if (sum(!maskuniqaln) > 0) { ## multi-mapping reads
 
@@ -237,7 +237,7 @@ setMethod("qtex", "TEtranscriptsParam",
     ## transcript, corrected for its effective length as defined
     ## in Eq. (1) of Jin et al. (2015)
     Pi <- colSums(Qmat)
-    elen <- width(ttpar@annotations[tx_idx]) - avgreadlen + 1
+    elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1
     Pi <- .correctForTxEffectiveLength(Pi, elen)
 
     ## as specified in Jin et al. (2015), use the SQUAREM algorithm
@@ -258,11 +258,11 @@ setMethod("qtex", "TEtranscriptsParam",
 
   ## add multi-mapping and unique-mapping counts
   cntvec <- cntvec + uniqcnt
-  names(cntvec) <- names(ttpar@annotations)
+  names(cntvec) <- names(ttpar@features)
 
   ## aggregate quantifications if necessary
   if (length(ttpar@aggregateby) > 0) {
-    f <- .factoraggregateby(ttpar@annotations, ttpar@aggregateby)
+    f <- .factoraggregateby(ttpar@features, ttpar@aggregateby)
     stopifnot(length(f) == length(cntvec)) ## QC
     cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
   }

@@ -163,9 +163,9 @@
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList
 .consolidateFeatures <- function(x, fnames) {
-  teFeatures <- x@annotations
-  if (!is.null(x@annotations$isTE) && any(x@annotations$isTE)) {
-    teFeatures <- x@annotations[x@annotations$isTE]
+  teFeatures <- x@features
+  if (!is.null(x@features$isTE) && any(x@features$isTE)) {
+    teFeatures <- x@features[x@features$isTE]
   }
 
   if (length(x@aggregateby) > 0) {
@@ -174,8 +174,8 @@
   }
 
   features <- teFeatures
-  if (!is.null(x@annotations$isTE) && any(!x@annotations$isTE)) {
-    geneFeatures <- x@annotations[!x@annotations$isTE]
+  if (!is.null(x@features$isTE) && any(!x@features$isTE)) {
+    geneFeatures <- x@features[!x@features$isTE]
     if (is(features, "GRangesList")) ## otherwise is a GRanges object
       geneFeatures <- split(geneFeatures, names(geneFeatures))
     features <- c(features, geneFeatures)

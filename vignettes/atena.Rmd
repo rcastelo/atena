@@ -78,8 +78,8 @@ library(atena)
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
-empar <- ERVmapParam(bamfiles, annot, singleEnd = TRUE, ignoreStrand = TRUE,
-                     filterUniqReads = TRUE)
+empar <- ERVmapParam(bamfiles, teFeatures = annot, singleEnd = TRUE, 
+                     ignoreStrand = TRUE, filterUniqReads = TRUE)
 empar
 ```
 
@@ -107,7 +107,8 @@ Finally, the third method available is TEtranscripts. First, the `TEtranscriptsP
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
-ttpar <- TEtranscriptsParam(bamfiles, annot, singleEnd = TRUE, ignoreStrand=TRUE)
+ttpar <- TEtranscriptsParam(bamfiles, teFeatures = annot, singleEnd = TRUE, 
+                            ignoreStrand=TRUE)
 
 ttpar
 ```

@@ -119,7 +119,7 @@ TelescopeParam <- function(bfl, teFeatures, opts=list(quiet=TRUE)) {
                            })
   basiliskStop(cl)
 
-  new("TelescopeParam", bfl=bfl, teFeatures=teFeatures,
+  new("TelescopeParam", bfl=bfl, features=teFeatures,
       basiliskEnv=pyenv, telescopeVersion=tsversion, telescopeOptions=opts)
 }
 
@@ -134,10 +134,10 @@ setMethod("show", "TelescopeParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# teFeatures (%d): %s\n", length(object@teFeatures),
-                        ifelse(is.null(names(object@teFeatures)),
-                               paste("on", .pprintnames(seqlevels(object@teFeatures))),
-                               .pprintnames(names(object@teFeatures)))))
+            cat(sprintf("# features (%d): %s\n", length(object@features),
+                        ifelse(is.null(names(object@features)),
+                               paste("on", .pprintnames(seqlevels(object@features))),
+                               .pprintnames(names(object@features)))))
             cat(sprintf("# Telescope version: %s\n", object@telescopeVersion))
             opts <- object@telescopeOptions
             opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))
@@ -169,7 +169,7 @@ setMethod("qtex", "TelescopeParam",
             colnames(cnt) <- rownames(colData)
 
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=x@teFeatures,
+                                 rowRanges=x@features,
                                  colData=colData)
           })
 
@@ -184,7 +184,7 @@ setMethod("qtex", "TelescopeParam",
   opts_str_vec <- strsplit(opts_str, " ")[[1]]
 
   annfile <- file.path(tspar@telescopeOptions$outdir, "annotations.gtf")
-  .exportTelescopeGTF(tspar@teFeatures, annfile)
+  .exportTelescopeGTF(tspar@features, annfile)
   apmod <- reticulate::import("argparse")
   tsmod <- reticulate::import("telescope")
   pymain <- reticulate::import_main()
@@ -206,14 +206,14 @@ setMethod("qtex", "TelescopeParam",
                               sprintf("%s-telescope_report.tsv", opts$exp_tag)),
                     header=TRUE)
 
-  ## place quantifications in a vector matching the order of the teFeatures
+  ## place quantifications in a vector matching the order of the annotations
   ## this also implies discarding the '__no_feature' quantification given by
   ## Telescope. note also that, with the exception of the '__no_feature',
   ## Telescope only outputs features that have a positive quantification.
-  mt <- match(names(tspar@teFeatures), dtf$transcript)
-  cntvec <- rep(0L, length=length(tspar@teFeatures))
+  mt <- match(names(tspar@features), dtf$transcript)
+  cntvec <- rep(0L, length=length(tspar@features))
   cntvec[!is.na(mt)] <- dtf$final_count[mt[!is.na(mt)]]
-  names(cntvec) <- names(tspar@teFeatures)
+  names(cntvec) <- names(tspar@features)
   
   cntvec
 }
