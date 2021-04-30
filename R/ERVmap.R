@@ -203,7 +203,8 @@ setMethod("qtex", "ERVmapParam",
   ## the tag 'XS' stores the suboptimal alignment score.
   soatag <- .getsoatag(empar@suboptimalAlignmentTag, empar@readMapper)
   avtags <- .getavtags(empar, bf, soatag)
-  sbflags <- .setBamFlags(bf, empar, avtags, avgene = !is.null(features$isTE))
+  avgene <- !is.null(features$isTE)
+  sbflags <- .setBamFlags(bf, empar, avtags, avgene)
   
   ## are suboptimal alignment scores available?
   avsoas <- .soasAvail(empar@suboptimalAlignmentCutoff, soatag, avtags, 
@@ -216,11 +217,16 @@ setMethod("qtex", "ERVmapParam",
 
   ## 'ov' is a 'Hits' object with the overlaps between aligned reads and features
   ov <- Hits(nLnode=0, nRnode=length(empar@features), sort.by.query=TRUE)
+  ## 'ov' is a 'Hits' object with the overlaps between aligned unfiltered reads and features
+  ovunfilt <- Hits(nLnode=0, nRnode=length(empar@features), sort.by.query=TRUE)
+  
   ## 'salnmask' is logical mask flagging whether an alignment is secondary
   salnmask <- logical(0)
   salnbestAS <- integer(0)
   ## 'alnAS' stores the alignment score
   alnAS <- integer(0)
+  ## 'alnNH' stores the NH tag
+  alnNH <- integer(0)
   ## 'readids' stores the unique read identifiers, while 'alnreadidx' stores for each
   ## aligned read the index of the corresponding unique read identifier
   readids <- character(0)
@@ -233,7 +239,7 @@ setMethod("qtex", "ERVmapParam",
   while (length(alnreads <- do.call(readfun, c(list(file = bf), 
                                                list(param=param), 
                                                list(strandMode=empar@strandMode)[strand_arg], 
-                                               list(use.names=!avsoas))))) {
+                                               list(use.names=(!avsoas || avgene)))))) {
     n <- n + length(alnreads)
     aqw <- .getAlignmentQueryWidth(alnreads)  ## get alignment query width
     anm <- .getAlignmentMismatches(alnreads)  ## get alignment mismatches
@@ -243,8 +249,11 @@ setMethod("qtex", "ERVmapParam",
     ## sequence read length is < 0.02; (2) the ratio of the edit
     ## distance to the sequence read length is < 0.02
     mask <- ((asc / aqw) < empar@maxMismatchRate) & ((anm / aqw) < empar@maxMismatchRate)
-
+    
+    ## fetch secondary alignment mask
     thissalnmask <- rep(FALSE, length(mask))
+    thissalnmask <- .secondaryAlignmentMask(alnreads)
+    
     thisalnAS <- integer(0)
     alnreadids <- character(0)
     if (!is.na(empar@suboptimalAlignmentCutoff)) {
@@ -254,8 +263,6 @@ setMethod("qtex", "ERVmapParam",
         ## (3) the difference between the alignment score from BWA (AS)
         ## and the suboptimal alignment score from BWA (field XS) >= 5,
         mask <- mask & (als - sas >= empar@suboptimalAlignmentCutoff)
-        if (verbose > 1)
-          thissalnmask <- .secondaryAlignmentMask(alnreads)
       } else {
         ## fetch secondary alignment mask, scores and read identifiers before filtering
         thissalnmask <- .secondaryAlignmentMask(alnreads)
@@ -263,21 +270,43 @@ setMethod("qtex", "ERVmapParam",
           stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff = NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
         }
         thisalnAS <- .getAlignmentTagScore(alnreads, "AS")
-        alnreadids <- .getAlnreadids(alnreads, empar@fragments)
       }
+    }
+    
+    if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
+      alnreadids <- .getAlnreadids(alnreads, empar@fragments)
     }
     
     mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
 
     ## filter out alignments not passing the previous filter
-    if (empar@fragments)
+    if (empar@fragments) {
+      alnreadsunfilt <- unlist(alnreads)[!mask] 
       alnreads <- unlist(alnreads)[mask]
-    else
+    } else {
+      alnreadsunfilt <- alnreads[!mask] 
       alnreads <- alnreads[mask]
+    }
+    
+    ## Reading NH tag if secondary alignments are not available and genes are 
+    ## present in 'features'
+    if (!any(thissalnmask) & avgene) {
+      if (isTRUE("NH" %in% avtags)) {
+        thisNH <- .getAlignmentTagScore(alnreads, tag="NH")
+        alnNH <- c(alnNH,thisNH)
+      } else {
+        warning("secondary alignments and NH tag not available in BAM file. Unique reads cannot be differentiated from multi-mapping reads. All reads aligned to overlapping regions between genes and TEs will be considered as gene counts.")
+      }
+    }
 
     ## calculate and store overlaps between the filtered reads and features
     thisov <- mode(alnreads, empar@features, ignoreStrand=empar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
+    
+    ## calculate and store overlaps between the unfiltered reads and features
+    thisovunfilt <- mode(alnreadsunfilt, empar@features, 
+                         ignoreStrand=empar@ignoreStrand)
+    ovunfilt <- .appendHits(ovunfilt, thisovunfilt)
 
     ## if suboptimal alignment scores are not available and the
     ## corresponding cutoff value is not NA
@@ -291,18 +320,22 @@ setMethod("qtex", "ERVmapParam",
       thisalnAS <- thisalnAS[mask]
       alnreadids <- alnreadids[mask]
 
-      ## store unique read identifiers and what alignment comes from what read
-      mt <- match(alnreadids, readids)
-      l <- length(readids)
-      readids <- c(readids, alnreadids[is.na(mt)])
-      mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))
-      alnreadidx <- c(alnreadidx, mt)
-
       ## store secondary alignment mask, number of mismatches and alignment score
       salnmask <- c(salnmask, thissalnmask[mask])
       alnAS <- c(alnAS, thisalnAS)
     }
-
+    
+    ## filter now read identifiers
+    if (!is.null(features$isTE) || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
+      alnreadids <- alnreadids[mask]  ######### !!! ########## treure-la de dins del if anterior
+      ## store unique read identifiers and what alignment comes from what read
+      mt <- match(alnreadids, readids)  ######### !!! ########## treure-la de dins del if
+      l <- length(readids)  ######### !!! ##########
+      readids <- c(readids, alnreadids[is.na(mt)])  ######### !!! ##########
+      mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))  ######### !!! ##########
+      alnreadidx <- c(alnreadidx, mt)  ######### !!! ##########
+    }
+    
     if (verbose > 1) {
       nfiltered <- nfiltered + sum(mask & !thissalnmask)
       cat(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
