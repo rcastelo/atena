@@ -128,7 +128,7 @@
   if (is(teFeatures, "GRangesList"))
     features <- unlist(teFeatures)
 
-  if (!is.na(geneFeatures)) {
+  if (!all(is.na(geneFeatures))) {
     geneFeaturesobjname <- deparse(substitute(geneFeatures))
     if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
       stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",

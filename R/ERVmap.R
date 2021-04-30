@@ -203,7 +203,7 @@ setMethod("qtex", "ERVmapParam",
   ## the tag 'XS' stores the suboptimal alignment score.
   soatag <- .getsoatag(empar@suboptimalAlignmentTag, empar@readMapper)
   avtags <- .getavtags(empar, bf, soatag)
-  sbflags <- .setBamFlags(bf, empar, avtags)
+  sbflags <- .setBamFlags(bf, empar, avtags, avgene = !is.null(features$isTE))
   
   ## are suboptimal alignment scores available?
   avsoas <- .soasAvail(empar@suboptimalAlignmentCutoff, soatag, avtags, 
@@ -432,12 +432,12 @@ setMethod("qtex", "ERVmapParam",
 
 
 #' @importFrom Rsamtools scanBamFlag
-.setBamFlags <- function(bf, empar, avtags) {
+.setBamFlags <- function(bf, empar, avtags, avgene) {
   sbflags <- scanBamFlag()
   
   ## if we use the 'XS' tag then do not read secondary alignments
   if ("XS" %in% avtags && empar@readMapper == "bwa" &&
-      empar@suboptimalAlignmentTag %in% c("auto", "XS"))
+      empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                            isDuplicate=FALSE,
                            isNotPassingQualityControls=FALSE,
