@@ -43,9 +43,8 @@ setMethod("path", "AtenaParam",
 #' This is a class for storing parameters provided to the ERVmap algorithm.
 #' It is a subclass of the 'AtenaParam-class'.
 #'
-#' @slot geneFeatures A \code{GRanges} or \code{GRangesList} object with the
-#' gene annotated features to be quantified. Only unique counts are used for
-#' quantifying gene features given in this parameter.
+#' @slot readMapper The name of the software used to align reads, obtained from 
+#' the BAM file header.
 #' 
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -107,6 +106,11 @@ setMethod("path", "AtenaParam",
 #' alignment score is considered sufficiently large to retain the alignment. When
 #' this value is set to \code{NA}, then the filtering step based on suboptimal
 #' alignment scores is skipped.
+#' 
+#' @slot geneCountMode (Default "all") Character string indicating if the ERVmap
+#' read filters applied to quantify TEs expression should also be applied when
+#' quantifying gene expression ("ervmap") or not ("all"), in which case all 
+#' primary alignments mapping to genes are counted.
 #'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
@@ -125,7 +129,8 @@ setClass("ERVmapParam", contains="AtenaParam",
                         maxMismatchRate="numeric",
                         readMapper="character",
                         suboptimalAlignmentTag="character",
-                        suboptimalAlignmentCutoff="numeric"))
+                        suboptimalAlignmentCutoff="numeric",
+                        geneCountMode="character"))
 
 #' Telescope parameter class
 #'

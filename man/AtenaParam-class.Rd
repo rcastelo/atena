@@ -21,7 +21,7 @@ transposable elements from RNA-seq data.
 \describe{
 \item{\code{bfl}}{A \linkS4class{BamFileList} object.}
 
-\item{\code{teFeatures}}{A \linkS4class{GRanges} object.}
+\item{\code{features}}{A \linkS4class{GRanges} object.}
 
 \item{\code{aggregateby}}{Character vector with column names in the annotation
 to be used to aggregate quantifications.}

@@ -198,8 +198,13 @@
 #' @importFrom GenomicRanges mcols
 f <- .factoraggregateby <- function(ann, aggby) {
   stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
-  spfstr <- paste(rep("%s", length(aggby)), collapse=":")
-  f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
+  if (length(aggby) == 1) {
+    f <- mcols(ann)[, aggby]
+  } else {
+    spfstr <- paste(rep("%s", length(aggby)), collapse=":")
+    f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
+  }
+
   f
 }
 
