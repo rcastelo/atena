@@ -224,7 +224,7 @@ setMethod("qtex", "TEtranscriptsParam",
     ## for this reason, once counted, we discard unique alignments
     ovalnmat <- ovalnmat[!maskuniqaln, ]
     readids <- rownames(ovalnmat)
-  
+    readids <- readids[!maskuniqaln]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
     Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
