@@ -141,12 +141,12 @@ setMethod("show", "TEtranscriptsParam",
 #' @aliases qtex,TEtranscriptsParam-method
 #' @rdname qtex
 setMethod("qtex", "TEtranscriptsParam",
-          function(x, phenodata=NULL, mode=ovUnion,
+          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
                    BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
 
             cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
-                            BPPARAM=BPPARAM)
+                            yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
@@ -181,9 +181,14 @@ setMethod("qtex", "TEtranscriptsParam",
   ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
   avgreadlen <- 0
-
+  
+  strand_arg <- "strandMode" %in% formalArgs(readfun)
+  yieldSize(bf) <- yieldSize
   open(bf)
-  while (length(alnreads <- readfun(bf, param=param, use.names=TRUE))) {
+  while (length(alnreads <- do.call(readfun, c(list(file = bf), 
+                                               list(param=param), 
+                                               list(strandMode=ttpar@strandMode)[strand_arg], 
+                                               list(use.names=TRUE)) {
     avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
     thisov <- mode(alnreads, ttpar@features, ignoreStrand=ttpar@ignoreStrand)
@@ -192,7 +197,7 @@ setMethod("qtex", "TEtranscriptsParam",
   close(bf)
 
   nmappedreads <- length(alnreadids)
-  avgreadlen <- avgreadlen / nmappedreads
+  avgreadlen <- avgreadlen / nmappedreads ## getting the average fragment length
 
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
@@ -223,13 +228,12 @@ setMethod("qtex", "TEtranscriptsParam",
     ## the EM procedure to reduce potential bias to certain TEs."
     ## for this reason, once counted, we discard unique alignments
     ovalnmat <- ovalnmat[!maskuniqaln, ]
-    readids <- rownames(ovalnmat)
     readids <- readids[!maskuniqaln]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
     Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
                    dimnames=list(readids, NULL))
-    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1 ## Qmat is identical to ovalnmant except for rownames
     Qmat <- Qmat / rowSums(ovalnmat)
 
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in
@@ -251,7 +255,7 @@ setMethod("qtex", "TEtranscriptsParam",
 
     ## use the estimated transcript expression probabilities
     ## to finally distribute ambiguously mapping reads
-    probmassbyread <- as.vector(ovalnmat %*% Pi)
+    probmassbyread <- as.vector(ovalnmat %*% Pi) 
     cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     cntvec[tx_idx] <- cntvecovtx
   }
