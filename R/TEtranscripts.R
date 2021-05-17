@@ -29,8 +29,8 @@
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #' objects that controls the behavior of the strand getter. See
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
-#' class for further detail. If \code{singleEnd = TRUE}, then use either
-#' \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
+#' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+#' is ignored.
 #'
 #' @param ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
@@ -159,7 +159,7 @@ setMethod("qtex", "TEtranscriptsParam",
           })
 
 #' @importFrom stats setNames
-#' @importFrom Rsamtools scanBamFlag ScanBamParam
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom GenomicRanges width
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
 #' @importFrom GenomicAlignments readGAlignmentPairs
@@ -167,10 +167,9 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
-.qtex_tetranscripts <- function(bf, ttpar, mode) {
+.qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
 
   mode=match.fun(mode)
-
   readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
 
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
@@ -182,13 +181,19 @@ setMethod("qtex", "TEtranscriptsParam",
   alnreadids <- character(0)
   avgreadlen <- 0
   
+  if (is.null(ttpar@features$isTE)) {
+    iste <- rep(TRUE, length(ttpar@features))
+  } else {
+    iste <- as.vector(ttpar@features$isTE)
+  }
+  
   strand_arg <- "strandMode" %in% formalArgs(readfun)
   yieldSize(bf) <- yieldSize
   open(bf)
   while (length(alnreads <- do.call(readfun, c(list(file = bf), 
                                                list(param=param), 
                                                list(strandMode=ttpar@strandMode)[strand_arg], 
-                                               list(use.names=TRUE)) {
+                                               list(use.names=TRUE))))) {
     avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
     thisov <- mode(alnreads, ttpar@features, ignoreStrand=ttpar@ignoreStrand)
@@ -209,17 +214,32 @@ setMethod("qtex", "TEtranscriptsParam",
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
 
   ## count uniquely aligned-reads
-  rsovalnmat <- rowSums(ovalnmat)
-  stopifnot(all(rsovalnmat > 0)) ## QC
-  maskuniqaln <- rsovalnmat == 1
-  rm(rsovalnmat)
+  maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
+
+  # rsovalnmat <- rowSums(ovalnmat)
+  # stopifnot(all(rsovalnmat > 0)) ## QC
+  # maskuniqaln <- rsovalnmat == 1
+  # rm(rsovalnmat)
+  
+  mt <- match(readids, alnreadids)
+  
+  if (!is.null(iste)) {
+    ## Assigning unique reads mapping to an overlapping region between a TE and a 
+    ## gene as gene counts
+    ## which unique reads overlap both genes and TEs?
+    istex <- as.vector(iste[tx_idx])
+    idx <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
+    ## Removing overlaps of unique reads with TEs if they als overlap a gene
+    ovalnmat[maskuniqaln[mt],][idx,istex] <- FALSE
+  }
+  
   uniqcnt <- rep(0L, length(ttpar@features))
-  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln, ])
+  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln[mt], ])
 
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0, length(ttpar@features))
 
-  if (sum(!maskuniqaln) > 0) { ## multi-mapping reads
+  if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
 
     ## TEtranscripts doesn't use uniquely-aligned reads to inform
     ## the procedure of distributing multiple-mapping reads because,
@@ -227,8 +247,8 @@ setMethod("qtex", "TEtranscriptsParam",
     ## are not used as a prior for the initial abundance estimates in
     ## the EM procedure to reduce potential bias to certain TEs."
     ## for this reason, once counted, we discard unique alignments
-    ovalnmat <- ovalnmat[!maskuniqaln, ]
-    readids <- readids[!maskuniqaln]
+    ovalnmat <- ovalnmat[!maskuniqaln[mt], ]
+    readids <- readids[!maskuniqaln[mt]]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
     Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
@@ -264,11 +284,20 @@ setMethod("qtex", "TEtranscriptsParam",
   cntvec <- cntvec + uniqcnt
   names(cntvec) <- names(ttpar@features)
 
-  ## aggregate quantifications if necessary
+  ## aggregate TE quantifications if necessary
   if (length(ttpar@aggregateby) > 0) {
-    f <- .factoraggregateby(ttpar@features, ttpar@aggregateby)
-    stopifnot(length(f) == length(cntvec)) ## QC
-    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+    f <- .factoraggregateby(ttpar@features[iste], ttpar@aggregateby)
+    stopifnot(length(f) == length(cntvec[which(iste)])) ## QC
+    cntvec_t <- tapply(cntvec[which(iste)], f, sum, na.rm=TRUE)
+  }
+  
+  ## aggregating exon counts to genes
+  if (!is.null(iste)) {
+    fgene <- mcols(ttpar@features[!iste])[, "gene_id"]
+    cntvec_g <- tapply(cntvec[which(!iste)], fgene, sum, na.rm=TRUE)
+    cntvec <- c(cntvec_t, cntvec_g)
+  } else {
+    cntvec <- cntvec_t
   }
 
   ## TEtranscripts original implementation ultimately coerces fractional
