@@ -177,15 +177,18 @@ setMethod("qtex", "TEtranscriptsParam",
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
 
-  ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
-  alnreadids <- character(0)
-  avgreadlen <- 0
-  
   if (is.null(ttpar@features$isTE)) {
     iste <- rep(TRUE, length(ttpar@features))
   } else {
+    # gene <- ttpar@features[!ttpar@features$isTE & ttpar@features$type == "exon"]
+    # names(gene) <- gene$gene_id
+    # ttpar@features <- c(ttpar@features[ttpar@features$isTE], gene)
     iste <- as.vector(ttpar@features$isTE)
   }
+  
+  ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
+  alnreadids <- character(0)
+  avgreadlen <- 0
   
   strand_arg <- "strandMode" %in% formalArgs(readfun)
   yieldSize(bf) <- yieldSize
@@ -201,9 +204,26 @@ setMethod("qtex", "TEtranscriptsParam",
   }
   close(bf)
 
+  ## getting the average fragment length
   nmappedreads <- length(alnreadids)
-  avgreadlen <- avgreadlen / nmappedreads ## getting the average fragment length
+  avgreadlen <- avgreadlen / nmappedreads 
 
+  ## count uniquely aligned-reads
+  maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
+  
+  ## Adjusting quantification of multi-mapping reads overlapping common regions
+  ## between genes and TEs: overlaps of multi-mapping reads mapping to genes 
+  ## are removed
+  if (!is.null(iste)) {
+    ismulti <- !maskuniqaln[queryHits(ov)]
+    iste_m <- iste[subjectHits(ov[ismulti])]
+    iste_m <- split(x=iste_m, queryHits(ov[ismulti]))
+    ovgenete <- unlist(lapply(iste_m, function(x) {length(unique(x)) != 1}))
+    l <- unlist(lapply(iste_m, length))
+    ovgenete <- rep(ovgenete, l)
+    ov <- ov[-which(ismulti)[ovgenete & !unlist(iste_m)]]
+  }
+  
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
 
@@ -213,8 +233,6 @@ setMethod("qtex", "TEtranscriptsParam",
   ## build a matrix representation of the overlapping alignments
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
 
-  ## count uniquely aligned-reads
-  maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
 
   # rsovalnmat <- rowSums(ovalnmat)
   # stopifnot(all(rsovalnmat > 0)) ## QC
@@ -229,7 +247,7 @@ setMethod("qtex", "TEtranscriptsParam",
     ## which unique reads overlap both genes and TEs?
     istex <- as.vector(iste[tx_idx])
     idx <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
-    ## Removing overlaps of unique reads with TEs if they als overlap a gene
+    ## Removing overlaps of unique reads with TEs if they also overlap a gene
     ovalnmat[maskuniqaln[mt],][idx,istex] <- FALSE
   }
   
