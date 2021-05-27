@@ -248,7 +248,9 @@ setMethod("qtex", "TEtranscriptsParam",
     istex <- as.vector(iste[tx_idx])
     idx <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
     ## Removing overlaps of unique reads with TEs if they also overlap a gene
-    ovalnmat[maskuniqaln[mt],][idx,istex] <- FALSE
+    if (length(idx)>0) {
+      ovalnmat[maskuniqaln[mt],][idx,istex] <- FALSE
+    }
   }
   
   uniqcnt <- rep(0L, length(ttpar@features))
