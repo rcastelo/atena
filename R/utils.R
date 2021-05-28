@@ -146,7 +146,9 @@
     temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
     temask[1:length(teFeatures)] <- TRUE
     features$isTE <- temask
-  } 
+  } else {
+    features$isTE <- rep(TRUE, length(features))
+  }
   features
 }
 

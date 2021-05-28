@@ -214,7 +214,7 @@ setMethod("qtex", "ERVmapParam",
   ## the tag 'XS' stores the suboptimal alignment score.
   soatag <- .getsoatag(empar@suboptimalAlignmentTag, empar@readMapper)
   avtags <- .getavtags(empar, bf, soatag)
-  avgene <- !is.null(iste)
+  avgene <- !all(iste)
   sbflags <- .setBamFlags(bf, empar, avtags, avgene)
   
   ## are suboptimal alignment scores available?

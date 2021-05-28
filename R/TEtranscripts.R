@@ -176,15 +176,8 @@ setMethod("qtex", "TEtranscriptsParam",
                          isDuplicate=FALSE,
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
-
-  if (is.null(ttpar@features$isTE)) {
-    iste <- rep(TRUE, length(ttpar@features))
-  } else {
-    # gene <- ttpar@features[!ttpar@features$isTE & ttpar@features$type == "exon"]
-    # names(gene) <- gene$gene_id
-    # ttpar@features <- c(ttpar@features[ttpar@features$isTE], gene)
-    iste <- as.vector(ttpar@features$isTE)
-  }
+  
+  iste <- as.vector(ttpar@features$isTE)
   
   ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
@@ -214,7 +207,7 @@ setMethod("qtex", "TEtranscriptsParam",
   ## Adjusting quantification of multi-mapping reads overlapping common regions
   ## between genes and TEs: overlaps of multi-mapping reads mapping to genes 
   ## are removed
-  if (!is.null(iste)) {
+  if (!all(iste)) {
     ismulti <- !maskuniqaln[queryHits(ov)]
     iste_m <- iste[subjectHits(ov[ismulti])]
     iste_m <- split(x=iste_m, queryHits(ov[ismulti]))
@@ -241,7 +234,7 @@ setMethod("qtex", "TEtranscriptsParam",
   
   mt <- match(readids, alnreadids)
   
-  if (!is.null(iste)) {
+  if (!all(iste)) {
     ## Assigning unique reads mapping to an overlapping region between a TE and a 
     ## gene as gene counts
     ## which unique reads overlap both genes and TEs?
@@ -303,16 +296,17 @@ setMethod("qtex", "TEtranscriptsParam",
   ## add multi-mapping and unique-mapping counts
   cntvec <- cntvec + uniqcnt
   names(cntvec) <- names(ttpar@features)
-
+  
+  cntvec_t <- cntvec[iste]
   ## aggregate TE quantifications if necessary
   if (length(ttpar@aggregateby) > 0) {
     f <- .factoraggregateby(ttpar@features[iste], ttpar@aggregateby)
-    stopifnot(length(f) == length(cntvec[which(iste)])) ## QC
-    cntvec_t <- tapply(cntvec[which(iste)], f, sum, na.rm=TRUE)
+    stopifnot(length(f) == length(cntvec_t)) ## QC
+    cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
   }
   
   ## aggregating exon counts to genes
-  if (!is.null(iste)) {
+  if (!all(iste)) {
     fgene <- mcols(ttpar@features[!iste])[, "gene_id"]
     cntvec_g <- tapply(cntvec[which(!iste)], fgene, sum, na.rm=TRUE)
     cntvec <- c(cntvec_t, cntvec_g)
