@@ -1,5 +1,7 @@
 # atena: analysis of transposable elements in R and Bioconductor
 
+[![R-CMD-check-bioc](https://github.com/functionalgenomics/atena/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/functionalgenomics/atena/actions?query=workflow%3AR-CMD-check-bioc)
+
 This is the GitHub repository of the R package atena, currently under
 continuous development and not yet ready to be deployed in analysis
 pipelines. The atena package provides access from R to the following
