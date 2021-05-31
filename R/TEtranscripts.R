@@ -220,16 +220,16 @@ setMethod("qtex", "TEtranscriptsParam",
   
   ## Adjusting quantification of multi-mapping reads overlapping common regions
   ## between genes and TEs: overlaps of multi-mapping reads mapping to genes 
-  ## are removed
-  if (!all(iste)) {
-    ismulti <- !maskuniqaln[queryHits(ov)]
-    iste_m <- iste[subjectHits(ov[ismulti])]
-    iste_m <- split(x=iste_m, queryHits(ov[ismulti]))
-    ovgenete <- unlist(lapply(iste_m, function(x) {length(unique(x)) != 1}))
-    l <- unlist(lapply(iste_m, length))
-    ovgenete <- rep(ovgenete, l)
-    ov <- ov[-which(ismulti)[ovgenete & !unlist(iste_m)]]
-  }
+  ## are removed         --> DELETE
+  # if (!all(iste)) {
+  #   ismulti <- !maskuniqaln[queryHits(ov)]
+  #   iste_m <- iste[subjectHits(ov[ismulti])]
+  #   iste_m <- split(x=iste_m, queryHits(ov[ismulti]))
+  #   ovgenete <- unlist(lapply(iste_m, function(x) {length(unique(x)) != 1}))
+  #   l <- unlist(lapply(iste_m, length))
+  #   ovgenete <- rep(ovgenete, l)
+  #   ov <- ov[-which(ismulti)[ovgenete & !unlist(iste_m)]]
+  # }
   
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
@@ -240,7 +240,7 @@ setMethod("qtex", "TEtranscriptsParam",
   ## build a matrix representation of the overlapping alignments
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
 
-
+  ## Getting unique reads based on overlaps    --> DELETE
   # rsovalnmat <- rowSums(ovalnmat)
   # stopifnot(all(rsovalnmat > 0)) ## QC
   # maskuniqaln <- rsovalnmat == 1
@@ -251,13 +251,18 @@ setMethod("qtex", "TEtranscriptsParam",
   if (!all(iste)) {
     ## Assigning unique reads mapping to an overlapping region between a TE and a 
     ## gene as gene counts
-    ## which unique reads overlap both genes and TEs?
+    # which unique reads overlap both genes and TEs?
     istex <- as.vector(iste[tx_idx])
-    idx <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
-    ## Removing overlaps of unique reads with TEs if they also overlap a gene
-    if (length(idx)>0) {
-      ovalnmat[maskuniqaln[mt],][idx,istex] <- FALSE
+    idxu <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
+    # Removing overlaps of unique reads with TEs if they also overlap a gene
+    if (length(idxu)>0) {
+      ovalnmat[maskuniqaln[mt],][idxu,istex] <- FALSE
     }
+    
+    ## Removing overlaps of multi-mapping reads to genes if at least one 
+    ## alignment of the read overlaps a TE
+    idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0
+    ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
   }
   
   uniqcnt <- rep(0L, length(ttpar@features))
@@ -288,11 +293,17 @@ setMethod("qtex", "TEtranscriptsParam",
     ## transcript, corrected for its effective length as defined
     ## in Eq. (1) of Jin et al. (2015)
     Pi <- colSums(Qmat)
-    #elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1 ## original code
-    elen <- numeric()
-    elen[iste[tx_idx]] <- as.numeric(width(ttpar@features[tx_idx][iste[tx_idx]]))
-    elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
-                                         function(x) max(end(x)) - min(start(x))))
+    
+    if (is(ttpar@features,"GRangesList")) {
+      elen <- numeric()
+      elen[iste[tx_idx]] <- as.numeric(width(ttpar@features[tx_idx][iste[tx_idx]]))
+      elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
+                                           function(x) max(end(x)) - min(start(x))))
+      elen <- elen - avgreadlen + 1
+    } else {
+      elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1
+    }
+
     Pi <- .correctForTxEffectiveLength(Pi, elen)
 
     ## as specified in Jin et al. (2015), use the SQUAREM algorithm
