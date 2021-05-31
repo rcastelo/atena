@@ -19,7 +19,10 @@
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. Following the TEtranscripts
 #' algorithm, overlaps with unique reads are first tallied with respect to these
-#' gene features.
+#' gene features. Elements should have names indicating the gene name/id. In 
+#' case that \code{geneFeatures} contains a metadata column named \code{type},
+#' only the elements with \code{type} column = \code{exon} will be considered
+#' for the analysis.
 #'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -179,6 +182,17 @@ setMethod("qtex", "TEtranscriptsParam",
   
   iste <- as.vector(ttpar@features$isTE)
   
+  if (any(duplicated(names(ttpar@features[iste])))) {
+    stop(".qtex_tetranscripts: transposable element annotations do not contain unique names for each element")
+  }
+  
+  if (!all(iste) & !is.null(mcols(ttpar@features)$type)) {
+    iste <- aggregate(iste,by = list(names(ttpar@features)), unique)
+    ttpar@features <- .groupGeneExons(ttpar@features)
+    mtname <- match(names(ttpar@features), iste$Group.1)
+    iste <- iste[mtname,"x"]
+  }
+  
   ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
   avgreadlen <- 0
@@ -201,7 +215,7 @@ setMethod("qtex", "TEtranscriptsParam",
   nmappedreads <- length(alnreadids)
   avgreadlen <- avgreadlen / nmappedreads 
 
-  ## count uniquely aligned-reads
+  ## get uniquely aligned-reads
   maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
   
   ## Adjusting quantification of multi-mapping reads overlapping common regions
@@ -274,7 +288,11 @@ setMethod("qtex", "TEtranscriptsParam",
     ## transcript, corrected for its effective length as defined
     ## in Eq. (1) of Jin et al. (2015)
     Pi <- colSums(Qmat)
-    elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1
+    #elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1 ## original code
+    elen <- numeric()
+    elen[iste[tx_idx]] <- as.numeric(width(ttpar@features[tx_idx][iste[tx_idx]]))
+    elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
+                                         function(x) max(end(x)) - min(start(x))))
     Pi <- .correctForTxEffectiveLength(Pi, elen)
 
     ## as specified in Jin et al. (2015), use the SQUAREM algorithm
@@ -307,9 +325,7 @@ setMethod("qtex", "TEtranscriptsParam",
   
   ## aggregating exon counts to genes
   if (!all(iste)) {
-    fgene <- mcols(ttpar@features[!iste])[, "gene_id"]
-    cntvec_g <- tapply(cntvec[which(!iste)], fgene, sum, na.rm=TRUE)
-    cntvec <- c(cntvec_t, cntvec_g)
+    cntvec <- c(cntvec_t, cntvec[!iste])
   } else {
     cntvec <- cntvec_t
   }
@@ -318,6 +334,7 @@ setMethod("qtex", "TEtranscriptsParam",
   ## counts to integer 
   setNames(as.integer(cntvec), names(cntvec))
 }
+
 
 ## private function .buildOvAlignmentsMatrix()
 ## builds a matrix representation of the overlapping alignments
@@ -389,3 +406,22 @@ setMethod("qtex", "TEtranscriptsParam",
   z[mask] <- NA
   sum(X * log(z), na.rm=TRUE)
 }
+
+
+## private function .groupGeneExons()
+## groups exons from the same gene creating a 'GRangesList' object
+.groupGeneExons <- function(features) {
+  if (!any(mcols(features)$type == "exon")) {
+    stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+  }
+  featuressplit <- split(x = features, f = names(features))
+  featuressplit
+}
+
+
+
+
+
+
+
+

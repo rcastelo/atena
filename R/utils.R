@@ -199,6 +199,9 @@
 
 #' @importFrom GenomicRanges mcols
 f <- .factoraggregateby <- function(ann, aggby) {
+  if (is(ann,"GRangesList")) {
+    ann <- unlist(ann)
+  }
   stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
   if (length(aggby) == 1) {
     f <- mcols(ann)[, aggby]
@@ -206,7 +209,6 @@ f <- .factoraggregateby <- function(ann, aggby) {
     spfstr <- paste(rep("%s", length(aggby)), collapse=":")
     f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
   }
-
   f
 }
 
