@@ -218,19 +218,6 @@ setMethod("qtex", "TEtranscriptsParam",
   ## get uniquely aligned-reads
   maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
   
-  ## Adjusting quantification of multi-mapping reads overlapping common regions
-  ## between genes and TEs: overlaps of multi-mapping reads mapping to genes 
-  ## are removed         --> DELETE
-  # if (!all(iste)) {
-  #   ismulti <- !maskuniqaln[queryHits(ov)]
-  #   iste_m <- iste[subjectHits(ov[ismulti])]
-  #   iste_m <- split(x=iste_m, queryHits(ov[ismulti]))
-  #   ovgenete <- unlist(lapply(iste_m, function(x) {length(unique(x)) != 1}))
-  #   l <- unlist(lapply(iste_m, length))
-  #   ovgenete <- rep(ovgenete, l)
-  #   ov <- ov[-which(ismulti)[ovgenete & !unlist(iste_m)]]
-  # }
-  
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
 
@@ -239,12 +226,6 @@ setMethod("qtex", "TEtranscriptsParam",
 
   ## build a matrix representation of the overlapping alignments
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
-
-  ## Getting unique reads based on overlaps    --> DELETE
-  # rsovalnmat <- rowSums(ovalnmat)
-  # stopifnot(all(rsovalnmat > 0)) ## QC
-  # maskuniqaln <- rsovalnmat == 1
-  # rm(rsovalnmat)
   
   mt <- match(readids, alnreadids)
   
@@ -262,7 +243,19 @@ setMethod("qtex", "TEtranscriptsParam",
     ## Removing overlaps of multi-mapping reads to genes if at least one 
     ## alignment of the read overlaps a TE
     idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0
-    ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
+    if (length(idxm)>0) {
+      ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
+    }
+    
+    ## Adjusting gene counts where a multi-mapping reads maps to more than one gene
+    ovalnmat_multigene <- ovalnmat[!maskuniqaln[mt], !istex]
+    # ovalnmat_multigene <- ovalnmat_multigene/rowSums(ovalnmat_multigene)
+    nalign <- 1/rowSums(ovalnmat_multigene)
+    nalign[!is.finite(nalign)] <- 0
+    ovalnmat_multigene <- ovalnmat_multigene*nalign # table(rowSums(ovalnmat_multigene*nalign))  # 0: 31  1:681 --> it works because the sum of the rows gives always 1, except for when there are no overlaps
+    multigcnt <- rep(0L, length(ttpar@features))
+    multigcnt[tx_idx][!istex] <- colSums(ovalnmat_multigene)
+    
   }
   
   uniqcnt <- rep(0L, length(ttpar@features))
@@ -279,11 +272,13 @@ setMethod("qtex", "TEtranscriptsParam",
     ## are not used as a prior for the initial abundance estimates in
     ## the EM procedure to reduce potential bias to certain TEs."
     ## for this reason, once counted, we discard unique alignments
-    ovalnmat <- ovalnmat[!maskuniqaln[mt], ]
-    readids <- readids[!maskuniqaln[mt]]
+    ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
+    yesov <- rowSums(ovalnmat)>0
+    ovalnmat <- ovalnmat[yesov,]
+    readids <- readids[!maskuniqaln[mt]][yesov]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
-    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx),
+    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]), # ncol=length(tx_idx[istex])
                    dimnames=list(readids, NULL))
     Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1 ## Qmat is identical to ovalnmant except for rownames
     Qmat <- Qmat / rowSums(ovalnmat)
@@ -295,13 +290,14 @@ setMethod("qtex", "TEtranscriptsParam",
     Pi <- colSums(Qmat)
     
     if (is(ttpar@features,"GRangesList")) {
-      elen <- numeric()
-      elen[iste[tx_idx]] <- as.numeric(width(ttpar@features[tx_idx][iste[tx_idx]]))
-      elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
-                                           function(x) max(end(x)) - min(start(x))))
+      elen <- as.numeric(width(ttpar@features[tx_idx][istex]))
+      # elen <- numeric()
+      # elen[istex] <- as.numeric(width(ttpar@features[tx_idx][istex]))
+      # elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
+      #                                      function(x) max(end(x)) - min(start(x))))
       elen <- elen - avgreadlen + 1
     } else {
-      elen <- width(ttpar@features[tx_idx]) - avgreadlen + 1
+      elen <- width(ttpar@features[tx_idx][istex]) - avgreadlen + 1
     }
 
     Pi <- .correctForTxEffectiveLength(Pi, elen)
@@ -319,11 +315,15 @@ setMethod("qtex", "TEtranscriptsParam",
     ## to finally distribute ambiguously mapping reads
     probmassbyread <- as.vector(ovalnmat %*% Pi) 
     cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
-    cntvec[tx_idx] <- cntvecovtx
+    cntvec[tx_idx][istex] <- cntvecovtx
   }
 
   ## add multi-mapping and unique-mapping counts
-  cntvec <- cntvec + uniqcnt
+  if (!all(iste)) {
+    cntvec <- cntvec + uniqcnt + multigcnt
+  } else {
+    cntvec <- cntvec + uniqcnt
+  }
   names(cntvec) <- names(ttpar@features)
   
   cntvec_t <- cntvec[iste]
