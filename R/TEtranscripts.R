@@ -173,10 +173,9 @@ setMethod("qtex", "TEtranscriptsParam",
 .qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
 
   mode=match.fun(mode)
+  
   readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
-
-  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                         isDuplicate=FALSE,
+  sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
   
@@ -229,40 +228,22 @@ setMethod("qtex", "TEtranscriptsParam",
   
   mt <- match(readids, alnreadids)
   
+  multigcnt <- rep(0L, length(ttpar@features))
+  istex <- as.vector(iste[tx_idx])
+  
   if (!all(iste)) {
-    ## Assigning unique reads mapping to an overlapping region between a TE and a 
-    ## gene as gene counts
-    # which unique reads overlap both genes and TEs?
-    istex <- as.vector(iste[tx_idx])
-    idxu <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
-    # Removing overlaps of unique reads with TEs if they also overlap a gene
-    if (length(idxu)>0) {
-      ovalnmat[maskuniqaln[mt],][idxu,istex] <- FALSE
-    }
+    ## Correcting for preference of unique/multi-mapping reads to genes or TEs, respectively
+    ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
     
-    ## Removing overlaps of multi-mapping reads to genes if at least one 
-    ## alignment of the read overlaps a TE
-    idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0
-    if (length(idxm)>0) {
-      ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
-    }
-    
-    ## Adjusting gene counts where a multi-mapping reads maps to more than one gene
-    ovalnmat_multigene <- ovalnmat[!maskuniqaln[mt], !istex]
-    # ovalnmat_multigene <- ovalnmat_multigene/rowSums(ovalnmat_multigene)
-    nalign <- 1/rowSums(ovalnmat_multigene)
-    nalign[!is.finite(nalign)] <- 0
-    ovalnmat_multigene <- ovalnmat_multigene*nalign # table(rowSums(ovalnmat_multigene*nalign))  # 0: 31  1:681 --> it works because the sum of the rows gives always 1, except for when there are no overlaps
-    multigcnt <- rep(0L, length(ttpar@features))
-    multigcnt[tx_idx][!istex] <- colSums(ovalnmat_multigene)
-    
+    ## Getting gene counts where a multi-mapping reads maps to more than one gene
+    multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt, istex, tx_idx)
   }
   
-  uniqcnt <- rep(0L, length(ttpar@features))
-  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln[mt], ])
+  # Getting counts from unique reads
+  uniqcnt <- .countUniqueRead(ttpar, ovalnmat, maskuniqaln, mt, tx_idx)
 
   ## initialize vector of counts derived from multi-mapping reads
-  cntvec <- rep(0, length(ttpar@features))
+  cntvec <- rep(0L, length(ttpar@features))
 
   if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
 
@@ -290,12 +271,7 @@ setMethod("qtex", "TEtranscriptsParam",
     Pi <- colSums(Qmat)
     
     if (is(ttpar@features,"GRangesList")) {
-      elen <- as.numeric(width(ttpar@features[tx_idx][istex]))
-      # elen <- numeric()
-      # elen[istex] <- as.numeric(width(ttpar@features[tx_idx][istex]))
-      # elen[!iste[tx_idx]] <- unlist(lapply(ttpar@features[tx_idx][!iste[tx_idx]], 
-      #                                      function(x) max(end(x)) - min(start(x))))
-      elen <- elen - avgreadlen + 1
+      elen <- as.numeric(width(ttpar@features[tx_idx][istex])) - avgreadlen + 1
     } else {
       elen <- width(ttpar@features[tx_idx][istex]) - avgreadlen + 1
     }
@@ -317,29 +293,10 @@ setMethod("qtex", "TEtranscriptsParam",
     cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     cntvec[tx_idx][istex] <- cntvecovtx
   }
-
-  ## add multi-mapping and unique-mapping counts
-  if (!all(iste)) {
-    cntvec <- cntvec + uniqcnt + multigcnt
-  } else {
-    cntvec <- cntvec + uniqcnt
-  }
-  names(cntvec) <- names(ttpar@features)
   
-  cntvec_t <- cntvec[iste]
-  ## aggregate TE quantifications if necessary
-  if (length(ttpar@aggregateby) > 0) {
-    f <- .factoraggregateby(ttpar@features[iste], ttpar@aggregateby)
-    stopifnot(length(f) == length(cntvec_t)) ## QC
-    cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
-  }
-  
-  ## aggregating exon counts to genes
-  if (!all(iste)) {
-    cntvec <- c(cntvec_t, cntvec[!iste])
-  } else {
-    cntvec <- cntvec_t
-  }
+  ## Summarize counts of unique and multi-mapping reads, plus aggregate 
+  ## quantifications if necessary
+  cntvec <- .summarizeCounts(iste, cntvec, uniqcnt, multigcnt, ttpar)
 
   ## TEtranscripts original implementation ultimately coerces fractional
   ## counts to integer 
@@ -430,9 +387,74 @@ setMethod("qtex", "TEtranscriptsParam",
 }
 
 
+## private function .correctPreference()
+## Corrects ovalnmat for preference of unique/multi-mapping reads to genes/TEs, respectively
+.correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
+  ## Assigning unique reads mapping to both a TE and a gene as gene counts
+  # which unique reads overlap to both genes and TEs?
+  idxu <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
+  # Removing overlaps of unique reads to TEs if they also overlap a gene
+  if (length(idxu)>0) {
+    ovalnmat[maskuniqaln[mt],][idxu,istex] <- FALSE
+  }
+  
+  ## Removing overlaps of multi-mapping reads to genes if at least one 
+  ## alignment of the read overlaps a TE
+  idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0
+  if (length(idxm)>0) {
+    ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
+  }
+  ovalnmat
+}
 
 
+## private function .countMultiReadsGenes()
+## Counts multi-mapping reads mapping to multiple genes by counting fraction counts
+.countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, istex, tx_idx) {
+  ovalnmat_multigene <- ovalnmat[!maskuniqaln[mt], !istex]
+  nalign <- 1/rowSums(ovalnmat_multigene)
+  nalign[!is.finite(nalign)] <- 0
+  ovalnmat_multigene <- ovalnmat_multigene*nalign
+  multigcnt <- rep(0L, length(ttpar@features))
+  multigcnt[tx_idx][!istex] <- colSums(ovalnmat_multigene)
+  multigcnt
+}
+
+## private function .countUniqueRead()
+## Counts unique reads mapping to TEs and genes (if present)
+.countUniqueRead <- function(ttpar, ovalnmat, maskuniqaln, mt, tx_idx) {
+  uniqcnt <- rep(0L, length(ttpar@features))
+  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln[mt], ])
+  uniqcnt
+}
 
 
-
+## private function .summarizeCounts()
+## Counts unique reads mapping to TEs and genes (if present)
+.summarizeCounts <- function(iste, cntvec, uniqcnt, multigcnt, ttpar) {
+  ## add multi-mapping and unique-mapping counts
+  if (!all(iste)) {
+    cntvec <- cntvec + uniqcnt + multigcnt
+  } else {
+    cntvec <- cntvec + uniqcnt
+  }
+  names(cntvec) <- names(ttpar@features)
+  
+  cntvec_t <- cntvec[iste]
+  ## aggregate TE quantifications if necessary
+  if (length(ttpar@aggregateby) > 0) {
+    f <- .factoraggregateby(ttpar@features[iste], ttpar@aggregateby)
+    stopifnot(length(f) == length(cntvec_t)) ## QC
+    cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
+  }
+  
+  ## aggregating exon counts to genes
+  if (!all(iste)) {
+    cntvec <- c(cntvec_t, cntvec[!iste])
+  } else {
+    cntvec <- cntvec_t
+  }
+  
+  cntvec
+}
 
