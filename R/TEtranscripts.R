@@ -424,7 +424,21 @@ setMethod("qtex", "TEtranscriptsParam",
 ## Counts unique reads mapping to TEs and genes (if present)
 .countUniqueRead <- function(ttpar, ovalnmat, maskuniqaln, mt, tx_idx) {
   uniqcnt <- rep(0L, length(ttpar@features))
-  uniqcnt[tx_idx] <- colSums(ovalnmat[maskuniqaln[mt], ])
+  ovalnmatuniq <- ovalnmat[maskuniqaln[mt], ]
+  ovmulti <- rowSums(ovalnmatuniq) > 1
+  
+  if (any(ovmulti)) {
+    uniqcnt[tx_idx] <- colSums(ovalnmatuniq[!ovmulti,])
+    ovmatuniq_multi <- ovalnmatuniq[ovmulti,]
+    nalign <- 1/rowSums(ovmatuniq_multi)
+    nalign[!is.finite(nalign)] <- 0
+    ovmatuniq_multi <- ovmatuniq_multi*nalign
+    uniqcnt[tx_idx] <- uniqcnt[tx_idx] + colSums(ovmatuniq_multi)
+    
+  } else {
+    uniqcnt[tx_idx] <- colSums(ovalnmatuniq)
+  }
+  
   uniqcnt
 }
 
