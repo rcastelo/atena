@@ -235,12 +235,12 @@ setMethod("qtex", "TEtranscriptsParam",
     ## Correcting for preference of unique/multi-mapping reads to genes or TEs, respectively
     ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
     
-    ## Getting gene counts where a multi-mapping reads maps to more than one gene
+    ## Getting gene counts where a multi-mapping reads maps to more than one gene. --> AQUESTA FUNCIÓ S'HAURIA DE CANVIAR PERQUÈ FES EL QUE FA resolve_annotation_ambiguity()
     multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt, istex, tx_idx)
   }
   
   # Getting counts from unique reads
-  uniqcnt <- .countUniqueRead(ttpar, ovalnmat, maskuniqaln, mt, tx_idx)
+  uniqcnt <- .countUniqueRead(ttpar, ovalnmat, maskuniqaln, mt, tx_idx, istex)
 
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(ttpar@features))
@@ -422,21 +422,39 @@ setMethod("qtex", "TEtranscriptsParam",
 
 ## private function .countUniqueRead()
 ## Counts unique reads mapping to TEs and genes (if present)
-.countUniqueRead <- function(ttpar, ovalnmat, maskuniqaln, mt, tx_idx) {
+.countUniqueRead <- function(ttpar, ovalnmat, maskuniqaln, mt, tx_idx, istex) {
   uniqcnt <- rep(0L, length(ttpar@features))
-  ovalnmatuniq <- ovalnmat[maskuniqaln[mt], ]
-  ovmulti <- rowSums(ovalnmatuniq) > 1
+  ovalnmatuniq_g <- ovalnmat[maskuniqaln[mt], !istex]
+  ovalnmatuniq_te <- ovalnmat[maskuniqaln[mt], istex]
+  ovmultig <- rowSums(ovalnmatuniq_g) > 1
+  ovmultite <- rowSums(ovalnmatuniq_te) > 1
   
-  if (any(ovmulti)) {
-    uniqcnt[tx_idx] <- colSums(ovalnmatuniq[!ovmulti,])
-    ovmatuniq_multi <- ovalnmatuniq[ovmulti,]
-    nalign <- 1/rowSums(ovmatuniq_multi)
-    nalign[!is.finite(nalign)] <- 0
-    ovmatuniq_multi <- ovmatuniq_multi*nalign
-    uniqcnt[tx_idx] <- uniqcnt[tx_idx] + colSums(ovmatuniq_multi)
-    
+  # Addressing gene counts: count divided by the number of different genes
+  if (any(ovmultig)) {
+    # Counting reads overlapping only 1 element
+    uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g[!ovmultig,])
+    # Counting reads overlapping more than 1 element
+    mg <- ovalnmatuniq_g[ovmultig,]/rowSums(ovalnmatuniq_g[ovmultig,])
+    uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums(mg)
+  
   } else {
-    uniqcnt[tx_idx] <- colSums(ovalnmatuniq)
+    uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g)
+  }
+  
+  # Addressing TE counts: count divided by the number of different TEs 
+  # proportionally to the expression level of each TE provided by unique counts
+  if (any(ovmultite)) {
+    # Counting reads overlapping only 1 element
+    uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te[!ovmultite,])
+    # Counting reads overlapping more than 1 element
+    mte <- t(t(ovalnmatuniq_te[ovmultite,,drop=FALSE])*uniqcnt[tx_idx][istex])
+    nocounts <- rowSums(mte) == 0
+    mte[nocounts,,drop=FALSE] <- ovalnmatuniq_te[ovmultite,,drop=FALSE][nocounts,]
+    mte <- mte/rowSums(mte)
+    uniqcnt[tx_idx][istex] <- uniqcnt[tx_idx][istex] + colSums(mte)
+  
+  } else {
+    uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te)
   }
   
   uniqcnt
