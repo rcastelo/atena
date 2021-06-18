@@ -234,13 +234,17 @@ setMethod("qtex", "TEtranscriptsParam",
   if (!all(iste)) {
     ## Correcting for preference of unique/multi-mapping reads to genes or TEs, respectively
     ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
-    
-    ## Getting gene counts where a multi-mapping reads maps to more than one gene. --> AQUESTA FUNCIÓ S'HAURIA DE CANVIAR PERQUÈ FES EL QUE FA resolve_annotation_ambiguity()
-    multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt, istex, tx_idx)
   }
   
   # Getting counts from unique reads
   uniqcnt <- .countUniqueRead(ttpar, ovalnmat, maskuniqaln, mt, tx_idx, istex)
+  
+  if (!all(iste) & any(!maskuniqaln)) {
+    ## Getting gene counts where a multi-mapping reads maps to more than one gene.
+    multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt, iste,
+                                       istex, tx_idx, readids, alnreadids, ov, 
+                                       uniqcnt)
+  }
 
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(ttpar@features))
@@ -410,13 +414,37 @@ setMethod("qtex", "TEtranscriptsParam",
 
 ## private function .countMultiReadsGenes()
 ## Counts multi-mapping reads mapping to multiple genes by counting fraction counts
-.countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, istex, tx_idx) {
-  ovalnmat_multigene <- ovalnmat[!maskuniqaln[mt], !istex]
-  nalign <- 1/rowSums(ovalnmat_multigene)
-  nalign[!is.finite(nalign)] <- 0
-  ovalnmat_multigene <- ovalnmat_multigene*nalign
+.countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste, istex, tx_idx, readids, alnreadids, ov, uniqcnt) {
+  ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
+  yesg <- rowSums(ovalnmat_multig)>0
+  ovalnmat_multig <- ovalnmat_multig[yesg,,drop=FALSE]
+  
+  # Getting the number of different alignments mapping to a gene for each read
+  alnreadids_multig <- alnreadids[unique(queryHits(ov[!iste[subjectHits(ov)]]))]
+  nalnperread <- table(alnreadids_multig) # getting only overlaps from TEs
+  readids_multig <- readids[!maskuniqaln[mt]][yesg]
+  mt_multig <- match(readids_multig, names(nalnperread))
+  
+  # Counts provided by unique reads for genes to which multi-mapping reads map to
+  matmultiguniqc <- t(t(ovalnmat_multig)*uniqcnt[tx_idx][!istex])
+  rsum <- rowSums(matmultiguniqc)
+  rsum0 <- rsum == 0
+  
+  # Reads for which the genes to which the read aligns have more than counts
+  matmultiguniqc[!rsum0,] <- matmultiguniqc[!rsum0,]/rsum[!rsum0]
+  
+  # Reads for which the genes to which the read aligns have 0 counts
+  matmultiguniqc[rsum0,] <- ovalnmat_multig[rsum0,]/rowSums(ovalnmat_multig[rsum0,])
+  
+  # Adjusting for number of alignments
+  matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
+
   multigcnt <- rep(0L, length(ttpar@features))
-  multigcnt[tx_idx][!istex] <- colSums(ovalnmat_multigene)
+  multigcnt[tx_idx][!istex] <- colSums(matmultiguniqc)
+  
+  # nalign <- 1/rowSums(ovalnmat_multigene)
+  # nalign[!is.finite(nalign)] <- 0
+  # ovalnmat_multigene <- ovalnmat_multigene*nalign
   multigcnt
 }
 
