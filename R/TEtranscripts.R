@@ -171,7 +171,6 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
 .qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
-
   mode=match.fun(mode)
   
   readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
@@ -245,7 +244,6 @@ setMethod("qtex", "TEtranscriptsParam",
                                        istex, tx_idx, readids, alnreadids, ov, 
                                        uniqcnt)
   }
-
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(ttpar@features))
 
@@ -441,10 +439,6 @@ setMethod("qtex", "TEtranscriptsParam",
 
   multigcnt <- rep(0L, length(ttpar@features))
   multigcnt[tx_idx][!istex] <- colSums(matmultiguniqc)
-  
-  # nalign <- 1/rowSums(ovalnmat_multigene)
-  # nalign[!is.finite(nalign)] <- 0
-  # ovalnmat_multigene <- ovalnmat_multigene*nalign
   multigcnt
 }
 
@@ -452,8 +446,8 @@ setMethod("qtex", "TEtranscriptsParam",
 ## Counts unique reads mapping to TEs and genes (if present)
 .countUniqueRead <- function(ttpar, ovalnmat, maskuniqaln, mt, tx_idx, istex) {
   uniqcnt <- rep(0L, length(ttpar@features))
-  ovalnmatuniq_g <- ovalnmat[maskuniqaln[mt], !istex]
-  ovalnmatuniq_te <- ovalnmat[maskuniqaln[mt], istex]
+  ovalnmatuniq_g <- ovalnmat[maskuniqaln[mt], !istex, drop=FALSE]
+  ovalnmatuniq_te <- ovalnmat[maskuniqaln[mt], istex, drop=FALSE]
   ovmultig <- rowSums(ovalnmatuniq_g) > 1
   ovmultite <- rowSums(ovalnmatuniq_te) > 1
   
