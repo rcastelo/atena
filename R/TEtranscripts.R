@@ -161,7 +161,7 @@ setMethod("qtex", "TEtranscriptsParam",
                                  colData=colData)
           })
 
-#' @importFrom stats setNames
+#' @importFrom stats setNames aggregate
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom GenomicRanges width
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
