@@ -337,9 +337,10 @@ setMethod("qtex", "TEtranscriptsParam",
 ##             elen - effective length of each transcript
 .correctForTxEffectiveLength <- function(x, elen) {
   x[elen > 0] <- x[elen > 0] / elen[elen > 0]
-  ## x[elen <= 0] <- 0 ## (apparently this is done in the original Python code
-  ## if (sum(x) > 0)   ##  but we don't do it here to avoid numerical instability)
-    x <- x / sum(x)
+  x[elen <= 0] <- 0 ## (this is done in the original Python code but we don't do it
+  if (sum(x) > 0) {  ## here to avoid numerical instability) --> it is now 
+    x <- x / sum(x) ## implemented since now it does not create an error
+  }
   x
 }
 
