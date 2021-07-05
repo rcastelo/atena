@@ -161,7 +161,7 @@ setMethod("qtex", "TEtranscriptsParam",
                                  colData=colData)
           })
 
-#' @importFrom stats setNames aggregate
+#' @importFrom stats setNames aggregate median
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom GenomicRanges width
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
@@ -193,7 +193,7 @@ setMethod("qtex", "TEtranscriptsParam",
   
   ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
-  avgreadlen <- 0
+  avgreadlen <- integer()
   
   strand_arg <- "strandMode" %in% formalArgs(readfun)
   yieldSize(bf) <- yieldSize
@@ -202,19 +202,22 @@ setMethod("qtex", "TEtranscriptsParam",
                                                list(param=param), 
                                                list(strandMode=ttpar@strandMode)[strand_arg], 
                                                list(use.names=TRUE))))) {
-    avgreadlen <- avgreadlen + sum(width(ranges(alnreads)))
+    avgreadlen <- c(avgreadlen, width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
     thisov <- mode(alnreads, ttpar@features, ignoreStrand=ttpar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
   }
   close(bf)
 
-  ## getting the average fragment length
-  nmappedreads <- length(alnreadids)
-  avgreadlen <- avgreadlen / nmappedreads 
-
   ## get uniquely aligned-reads
   maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, fromLast = TRUE))
+  
+  ## getting the average fragment length
+  if (ttpar@singleEnd == TRUE) {
+    avgreadlen <- median(avgreadlen[!duplicated(alnreadids)]) # unique + multi-mapping reads (only once) are considered
+  } else {
+    avgreadlen <- median(avgreadlen[maskuniqaln]) # only unique reads are considered
+  }
   
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
@@ -348,6 +351,7 @@ setMethod("qtex", "TEtranscriptsParam",
 ## E-step of the EM algorithm of TEtranscripts
 .ttEstep <- function(Q, Pi) {
   X <- t(t(Q) * Pi)
+  X <- X[rowSums(X)>0,, drop=FALSE]
   X <- X / rowSums(X)
   X
 }
