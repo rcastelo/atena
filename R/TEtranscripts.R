@@ -125,15 +125,15 @@ setMethod("show", "TEtranscriptsParam",
             cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
                                                         paste(object@aggregateby, collapse=", "),
                                                         paste(class(object@features), "names"))))
-            cat(sprintf("# %s, %s",
+            cat(sprintf("# %s; %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
             if (!object@ignoreStrand)
               cat(sprintf(" (strandMode=%d)", object@strandMode))
             if (!object@singleEnd)
-              cat(sprintf(", %s",
-                          ifelse(object@fragments, "counting each paired-end mate",
-                                 "counting both paired-end mates")))
+              cat(sprintf("; %s",
+                          ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
+                                 "counting properly paired reads")))
             cat("\n")
           })
 
