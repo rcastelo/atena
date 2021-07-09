@@ -349,7 +349,7 @@ setMethod("qtex", "ERVmapParam",
   ## Expression quantification
   cntvec <- .quantexpress(avsoas, salnmask, empar, avgene, ov, alnreadidx, alnAS,
                           salnbestAS, readidx, mask, alnNH, readids, bf, 
-                          ovdiscard, n)
+                          ovdiscard, n, verbose, iste)
   cntvec
 }
 
@@ -826,7 +826,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom BiocGenerics basename path
 .quantexpress <- function(avsoas, salnmask, empar, avgene, ov, alnreadidx, alnAS,
                           salnbestAS, readidx, mask, alnNH, readids, bf, 
-                          ovdiscard, n) {
+                          ovdiscard, n, verbose, iste) {
   ## if suboptimal alignment scores are available or they are not but
   ## we do not have secondary alignments either, then simply count filtered
   ## reads. in the latter case, we issue a warning.
