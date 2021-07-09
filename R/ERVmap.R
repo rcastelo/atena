@@ -286,22 +286,11 @@ setMethod("qtex", "ERVmapParam",
     mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
 
     ## filter out alignments not passing the previous filter
-    if (empar@fragments) {
-      alnreadsdiscard <- unlist(alnreads)[!mask & !thissalnmask] 
-    } else {
-      alnreadsdiscard <- alnreads[!mask & !thissalnmask]
-    }
+    alnreadsdiscard <- .getreadsdiscard(empar, alnreads, mask, thissalnmask)
     alnreads <- .filteralnreads(empar, alnreads, mask, thissalnmask, avsoas, avgene)
     
     ## Reading NH tag if secondary alignments are not available
-    if (!any(thissalnmask) & avgene) {
-      if (isTRUE("NH" %in% avtags)) {
-        thisNH <- .getAlignmentTagScore(alnreads, tag="NH")
-        alnNH <- c(alnNH,thisNH)
-      } else {
-        warning("secondary alignments and NH tag not available in BAM file. Unique reads cannot be differentiated from multi-mapping reads. All reads aligned to overlapping regions between genes and TEs will be considered as gene counts.")
-      }
-    }
+    alnNH <- .fetchNHtag(thissalnmask, avgene, avtags, alnreads)
 
     ## calculate and store overlaps between the filtered reads and features
     thisov <- mode(alnreads, empar@features, ignoreStrand=empar@ignoreStrand)
@@ -321,12 +310,8 @@ setMethod("qtex", "ERVmapParam",
       ## store best secondary alignment score
       salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, alnreadids, 
                                           salnbestAS)
-
-      ## filter now alignment scores and read identifiers
-      thisalnAS <- thisalnAS[mask]
-      
-      ## store and alignment score
-      alnAS <- c(alnAS, thisalnAS)
+      ## filter and store now alignment scores 
+      alnAS <- c(alnAS, thisalnAS[mask])
     }
     
     ## store secondary alignment mask 
@@ -361,59 +346,12 @@ setMethod("qtex", "ERVmapParam",
   }
   close(bf)
   
-  
-  ## if suboptimal alignment scores are available or they are not but
-  ## we do not have secondary alignments either, then simply count filtered
-  ## reads. in the latter case, we issue a warning.
-  if (avsoas || !any(salnmask) || is.na(empar@suboptimalAlignmentCutoff)) {
-    
-    if (avgene) {
-      cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
-                               avgene, applysoasfilter = FALSE, readidx, mask, alnNH)
-    } else {
-      cntvec <- countSubjectHits(ov)
-    }
-      
-    if (!is.na(empar@suboptimalAlignmentCutoff) && !avsoas)
-      warning("suboptimal alignment scores and secondary alignments not available: skipping suboptimal alignment filtering.")
-  } else {
-    ## if suboptimal alignment scores are not available we can attempt to do
-    ## the suboptimal alignment filtering using the secondary alignments
-    salnbestAS <- salnbestAS[match(readids[alnreadidx], names(salnbestAS))]
-    salnbestAS[is.na(salnbestAS)] <- -99L
-    rm(readids)
-    gc()
-    cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
-                             avgene, applysoasfilter = TRUE, readidx, mask, alnNH)
-
-    if (verbose > 1)
-      cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
-                  basename(path(bf)), n, sum(cntvec)))
-  }
-  
-  names(cntvec) <- names(empar@features)
-
-  if (isTRUE(avgene) && empar@geneCountMode == "all") {
-    ## Adding counts of reads not passing ERVmap filters to genes 
-    cntvec[!iste] <- cntvec[!iste] + countSubjectHits(ovdiscard)
-  }
-    
-  ## aggregate quantifications if necessary
-  if (length(empar@aggregateby) > 0) {
-    if (avgene) {
-      f <- .factoraggregateby(empar@features[iste,], empar@aggregateby)
-      f <- c(f, names(empar@features)[!iste])
-    } else {
-      f <- .factoraggregateby(empar@features, empar@aggregateby)
-    }
-    
-    stopifnot(length(f) == length(cntvec)) ## QC
-    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
-  }
-
+  ## Expression quantification
+  cntvec <- .quantexpress(avsoas, salnmask, empar, avgene, ov, alnreadidx, alnAS,
+                          salnbestAS, readidx, mask, alnNH, readids, bf, 
+                          ovdiscard, n)
   cntvec
 }
-
 
 
 
@@ -848,7 +786,9 @@ setMethod("qtex", "ERVmapParam",
   cntvec <- rep(0, length(empar@features))
   
   if (isTRUE(avgene)) {
-    palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], readidx, mask, ov, maskthird, empar, alnreadidx, rd_idx, tx_idx, alnNH)
+    palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], readidx, 
+                                      mask, ov, maskthird, empar, alnreadidx, 
+                                      rd_idx, tx_idx, alnNH)
     cntvec[tx_idx] <- colSums(palnmatadj)
   } else {
     cntvec[tx_idx] <- colSums(palnmat[maskthird, ])
@@ -881,4 +821,83 @@ setMethod("qtex", "ERVmapParam",
     }
   }
   
+}
+
+#' @importFrom BiocGenerics basename path
+.quantexpress <- function(avsoas, salnmask, empar, avgene, ov, alnreadidx, alnAS,
+                          salnbestAS, readidx, mask, alnNH, readids, bf, 
+                          ovdiscard, n) {
+  ## if suboptimal alignment scores are available or they are not but
+  ## we do not have secondary alignments either, then simply count filtered
+  ## reads. in the latter case, we issue a warning.
+  if (avsoas || !any(salnmask) || is.na(empar@suboptimalAlignmentCutoff)) {
+    
+    if (avgene) {
+      cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
+                               avgene, applysoasfilter = FALSE, readidx, mask, alnNH)
+    } else {
+      cntvec <- countSubjectHits(ov)
+    }
+    
+    if (!is.na(empar@suboptimalAlignmentCutoff) && !avsoas)
+      warning("suboptimal alignment scores and secondary alignments not available: skipping suboptimal alignment filtering.")
+  } else {
+    ## if suboptimal alignment scores are not available we can attempt to do
+    ## the suboptimal alignment filtering using the secondary alignments
+    salnbestAS <- salnbestAS[match(readids[alnreadidx], names(salnbestAS))]
+    salnbestAS[is.na(salnbestAS)] <- -99L
+    rm(readids)
+    gc()
+    cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
+                             avgene, applysoasfilter = TRUE, readidx, mask, alnNH)
+    
+    if (verbose > 1)
+      cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
+                  basename(path(bf)), n, sum(cntvec)))
+  }
+  names(cntvec) <- names(empar@features)
+  
+  if (isTRUE(avgene) && empar@geneCountMode == "all") {
+    ## Adding counts of reads not passing ERVmap filters to genes 
+    cntvec[!iste] <- cntvec[!iste] + countSubjectHits(ovdiscard)
+  }
+  
+  ## aggregate quantifications if necessary
+  if (length(empar@aggregateby) > 0) {
+    if (avgene) {
+      f <- .factoraggregateby(empar@features[iste,], empar@aggregateby)
+      f <- c(f, names(empar@features)[!iste])
+    } else {
+      f <- .factoraggregateby(empar@features, empar@aggregateby)
+    }
+    
+    stopifnot(length(f) == length(cntvec)) ## QC
+    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+  }
+  
+  cntvec
+}
+
+
+.getreadsdiscard <- function(empar, alnreads, mask, thissalnmask) {
+  
+  if (empar@fragments) {
+    alnreadsdiscard <- unlist(alnreads)[!mask & !thissalnmask] 
+  } else {
+    alnreadsdiscard <- alnreads[!mask & !thissalnmask]
+  }
+  alnreadsdiscard
+}
+
+
+.fetchNHtag <- function(thissalnmask, avgene, avtags, alnreads) {
+
+  if (!any(thissalnmask) & avgene) {
+    if (isTRUE("NH" %in% avtags)) {
+      thisNH <- .getAlignmentTagScore(alnreads, tag="NH")
+      alnNH <- c(alnNH,thisNH)
+    } else {
+      warning("secondary alignments and NH tag not available in BAM file. Unique reads cannot be differentiated from multi-mapping reads. All reads aligned to overlapping regions between genes and TEs will be considered as gene counts.")
+    }
+  }
 }
