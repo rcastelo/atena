@@ -98,7 +98,7 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
 
   features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                geneFeatures, deparse(substitute(geneFeatures)),
-                               aggregateby)
+                               aggregateby, aggregateexons = TRUE)
 
   new("TEtranscriptsParam", bfl=bfl, features=features,
       aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
@@ -178,17 +178,10 @@ setMethod("qtex", "TEtranscriptsParam",
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
   
-  iste <- as.vector(ttpar@features$isTE)
+  iste <- as.vector(attributes(ttpar@features)$isTE[,1])
   
   if (any(duplicated(names(ttpar@features[iste])))) {
     stop(".qtex_tetranscripts: transposable element annotations do not contain unique names for each element")
-  }
-  
-  if (!all(iste) & !is.null(mcols(ttpar@features)$type)) {
-    iste <- aggregate(iste,by = list(names(ttpar@features)), unique)
-    ttpar@features <- .groupGeneExons(ttpar@features)
-    mtname <- match(names(ttpar@features), iste$Group.1)
-    iste <- iste[mtname,"x"]
   }
   
   ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
@@ -380,17 +373,6 @@ setMethod("qtex", "TEtranscriptsParam",
   mask <- z == 0
   z[mask] <- NA
   sum(X * log(z), na.rm=TRUE)
-}
-
-
-## private function .groupGeneExons()
-## groups exons from the same gene creating a 'GRangesList' object
-.groupGeneExons <- function(features) {
-  if (!any(mcols(features)$type == "exon")) {
-    stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
-  }
-  featuressplit <- split(x = features, f = names(features))
-  featuressplit
 }
 
 

@@ -100,9 +100,9 @@
 ##                           to be used later for aggregating estimated
 ##                           counts.
 
-#' @importFrom S4Vectors mcols Rle
+#' @importFrom S4Vectors mcols Rle DataFrame
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
-                             geneFeaturesobjname, aggregateby) {
+                             geneFeaturesobjname, aggregateby, aggregateexons) {
 
   if (missing(teFeatures))
     stop("missing 'teFeatures' argument.")
@@ -149,8 +149,31 @@
   } else {
     features$isTE <- rep(TRUE, length(features))
   }
+  
+  ## Aggregating exons into genes for TEtranscripts gene annotations
+  iste <- as.vector(features$isTE)
+  if (aggregateexons & !all(iste) & !is.null(mcols(features)$type)) {
+    iste <- aggregate(iste, by = list(names(features)), unique)
+    features <- .groupGeneExons(features)
+    mtname <- match(names(features), iste$Group.1)
+    iste <- iste[mtname,"x"]
+  }
+  attr(features, "isTE") <- DataFrame("isTE" = iste)
+  
   features
 }
+
+
+## private function .groupGeneExons()
+## groups exons from the same gene creating a 'GRangesList' object
+.groupGeneExons <- function(features) {
+  if (!any(mcols(features)$type == "exon")) {
+    stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+  }
+  featuressplit <- split(x = features, f = names(features))
+  featuressplit
+}
+
 
 ## private function .consolidateFeatures()
 ## builds a 'GRanges' or 'GRangesList' object
@@ -164,21 +187,25 @@
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList
 .consolidateFeatures <- function(x, fnames) {
+  
+  iste <- as.vector(attributes(x@features)$isTE[,1])
   teFeatures <- x@features
-  if (!is.null(x@features$isTE) && any(x@features$isTE)) {
-    teFeatures <- x@features[x@features$isTE]
+  if (!is.null(iste) && any(iste)) {
+    teFeatures <- x@features[iste]
   }
 
   if (length(x@aggregateby) > 0) {
     f <- .factoraggregateby(teFeatures, x@aggregateby)
+    if (is(teFeatures, "GRangesList"))
+      teFeatures <- unlist(teFeatures)
     teFeatures <- split(teFeatures, f)
   }
 
   features <- teFeatures
-  if (!is.null(x@features$isTE) && any(!x@features$isTE)) {
-    geneFeatures <- x@features[!x@features$isTE]
-    if (is(features, "GRangesList")) ## otherwise is a GRanges object
-      geneFeatures <- split(geneFeatures, names(geneFeatures))
+  if (!is.null(iste) && any(!iste)) {
+    geneFeatures <- x@features[!iste]
+    # if (is(features, "GRangesList")) ## otherwise is a GRanges object
+    #   geneFeatures <- split(geneFeatures, names(geneFeatures))
     features <- c(features, geneFeatures)
   }
 
@@ -187,6 +214,33 @@
 
   features
 }
+
+
+# .consolidateFeatures <- function(x, fnames) {
+# 
+#   teFeatures <- x@features
+#   if (!is.null(x@features$isTE) && any(x@features$isTE)) {
+#     teFeatures <- x@features[x@features$isTE]
+#   }
+#   
+#   if (length(x@aggregateby) > 0) {
+#     f <- .factoraggregateby(teFeatures, x@aggregateby)
+#     teFeatures <- split(teFeatures, f)
+#   }
+#   
+#   features <- teFeatures
+#   if (!is.null(x@features$isTE) && any(!x@features$isTE)) {
+#     geneFeatures <- x@features[!x@features$isTE]
+#     if (is(features, "GRangesList")) ## otherwise is a GRanges object
+#       geneFeatures <- split(geneFeatures, names(geneFeatures))
+#     features <- c(features, geneFeatures)
+#   }
+#   
+#   stopifnot(length(features) == length(fnames)) ## QC
+#   features <- features[match(fnames, names(features))]
+#   
+#   features
+# }
 
 ## private function .factoraggregateby()
 ## builds a factor with as many values as the
