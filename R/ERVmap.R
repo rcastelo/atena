@@ -790,16 +790,18 @@ setMethod("qtex", "ERVmapParam",
                                       mask, ov, maskthird, empar, alnreadidx, 
                                       rd_idx, tx_idx, alnNH)
     cntvec[tx_idx] <- colSums(palnmatadj)
+    ## counting counts of discarded reads mapping to genes
+    if (empar@geneCountMode == "all" && applysoasfilter) {
+      cntvecdisc <- rep(0, length(empar@features))
+      cntvecdisc[tx_idx] <- colSums(palnmat[!maskthird, ])
+      cntvec <- cntvec + cntvecdisc
+    }
+    
   } else {
     cntvec[tx_idx] <- colSums(palnmat[maskthird, ])
   }
   
-  ## counting counts of discarded reads mapping to genes
-  if (empar@geneCountMode == "all" && applysoasfilter) {
-    cntvecdisc <- rep(0, length(empar@features))
-    cntvecdisc[tx_idx] <- colSums(palnmat[!maskthird, ])
-    cntvec <- cntvec + cntvecdisc
-  }
+
   
   cntvec
 }
