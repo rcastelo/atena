@@ -761,7 +761,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix rowSums
 #' @importFrom sparseMatrixStats rowMaxs
-.countbymatrix <- function(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, avgene, applysoasfilter, readidx, mask, alnNH) {
+.countbymatrix <- function(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, avgene, applysoasfilter, readidx, mask, alnNH, iste) {
   
   ## fetch all different read identifiers from the overlapping alignments
   rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
@@ -852,7 +852,7 @@ setMethod("qtex", "ERVmapParam",
     rm(readids)
     gc()
     cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
-                             avgene, applysoasfilter = TRUE, readidx, mask, alnNH)
+                             avgene, applysoasfilter = TRUE, readidx, mask, alnNH, iste)
     
     if (verbose > 1)
       cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
