@@ -13,7 +13,6 @@ ERVmapParam(
   ignoreStrand = TRUE,
   strandMode = 1L,
   fragments = !singleEnd,
-  filterUniqReads = FALSE,
   maxMismatchRate = 0.02,
   suboptimalAlignmentTag = "auto",
   suboptimalAlignmentCutoff = 5,

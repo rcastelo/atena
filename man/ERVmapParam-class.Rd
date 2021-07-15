@@ -39,16 +39,6 @@ reads which overlap the TE and are on the same strand are counted. On the
 contrary, when \code{ignore_strand = TRUE}, any read overlapping an element 
 in \code{teFeatures} is counted regardless of the strand.}
 
-\item{\code{filterUniqReads}}{(Default TRUE) Logical value indicating whether to apply
-the filters of the ERVmap algorithm to unique reads (TRUE) or not (FALSE). 
-These filters, which are always applied to multi-mapping reads, can be 
-optional for unique reads. If \code{filterUniqReads = TRUE} (equivalent to 
-the original approach proposed by ERVmap authors), the unique reads not 
-passing one or more filters from the ERVmap algorithm are discarded to 
-compute TE expression. When \code{filterUniqReads = FALSE} secondary 
-alignments need to the present in the input BAM file in order to
-differentiate unique from multi-mapping reads.}
-
 \item{\code{fragments}}{(Default not \code{singleEnd}) A logical; applied to
 paired-end data only. When \code{fragments=TRUE} (default), the read-counting
 method in the original ERVmap algorithm will be applied: each mate of a

@@ -111,7 +111,6 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                         ignoreStrand=TRUE,
                         strandMode=1L,
                         fragments=!singleEnd,
-                        filterUniqReads=FALSE,
                         maxMismatchRate=0.02,
                         suboptimalAlignmentTag="auto",
                         suboptimalAlignmentCutoff=5,
@@ -128,8 +127,8 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
   new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
       singleEnd=singleEnd, ignoreStrand=ignoreStrand,
       strandMode=as.integer(strandMode), fragments=fragments,
-      filterUniqReads=filterUniqReads, maxMismatchRate=maxMismatchRate,
-      readMapper=readmapper, suboptimalAlignmentTag=suboptimalAlignmentTag,
+      maxMismatchRate=maxMismatchRate, readMapper=readmapper,
+      suboptimalAlignmentTag=suboptimalAlignmentTag,
       suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff),
       geneCountMode=geneCountMode)
 }
@@ -154,9 +153,6 @@ setMethod("show", "ERVmapParam",
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
             if (!object@ignoreStrand)
               cat(sprintf(" (strandMode=%d)", object@strandMode))
-            cat(sprintf(", %s",
-                        ifelse(object@filterUniqReads, "unique-read filtering",
-                               "unfiltered unique reads")))
             if (!object@singleEnd)
               cat(sprintf(", %s",
                           ifelse(object@fragments, "counting each paired-end mate",
