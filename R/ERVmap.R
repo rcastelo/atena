@@ -204,7 +204,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom GenomicRanges pintersect
 .qtex_ervmap <- function(bf, empar, mode, yieldSize=1000000, verbose) {
   
-  iste <- as.vector(attributes(x@features)$isTE[,1])
+  iste <- as.vector(attributes(empar@features)$isTE[,1])
 
   mode=match.fun(mode)
   readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
