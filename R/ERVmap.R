@@ -204,7 +204,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom GenomicRanges pintersect
 .qtex_ervmap <- function(bf, empar, mode, yieldSize=1000000, verbose) {
   
-  iste <- as.vector(empar@features$isTE)
+  iste <- as.vector(attributes(x@features)$isTE[,1])
 
   mode=match.fun(mode)
   readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
@@ -724,7 +724,7 @@ setMethod("qtex", "ERVmapParam",
 
 
 #' @importFrom Matrix rowSums
-.adjustcommonTEgene <- function(palnmatfilt, readidx, mask, ov, maskthird, empar, alnreadidx, rd_idx, tx_idx, alnNH) {
+.adjustcommonTEgene <- function(palnmatfilt, readidx, mask, ov, maskthird, empar, alnreadidx, rd_idx, tx_idx, alnNH, iste) {
   
   ## Identifying multi-mapping reads
   if (length(alnNH) > 0) {
@@ -739,7 +739,8 @@ setMethod("qtex", "ERVmapParam",
   maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx, rd_idx, tx_idx)
   maskUniqmat <- maskUniqmat[maskthird, ]
   
-  istex <- as.vector(empar@features$isTE[tx_idx])
+  #istex <- as.vector(empar@features$isTE[tx_idx])
+  istex <- iste[tx_idx]
   ## which reads overlap both genes and TEs?
   idx <- (rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex]) > 0)
   ## of these, keep only the overlap with the TE in case of a multimapping read
@@ -788,7 +789,7 @@ setMethod("qtex", "ERVmapParam",
   if (isTRUE(avgene)) {
     palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], readidx, 
                                       mask, ov, maskthird, empar, alnreadidx, 
-                                      rd_idx, tx_idx, alnNH)
+                                      rd_idx, tx_idx, alnNH, iste)
     cntvec[tx_idx] <- colSums(palnmatadj)
     ## counting counts of discarded reads mapping to genes
     if (empar@geneCountMode == "all" && applysoasfilter) {
