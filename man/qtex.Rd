@@ -22,7 +22,7 @@
   x,
   phenodata = NULL,
   mode = ovUnion,
-  yieldSize = 1e6L,
+  yieldSize = 1000000L,
   BPPARAM = SerialParam(progressbar = TRUE)
 )
 

@@ -18,24 +18,27 @@ TEtranscriptsParam(
 )
 }
 \arguments{
-\item{bfl}{a character string vector of BAM filenames.}
+\item{bfl}{a character string vector of BAM file names.}
 
 \item{teFeatures}{A \code{GRanges} or \code{GRangesList} object with the
 TE annotated features to be quantified. Elements in this object should have
-names, which will be used as a grouping factor for genomic ranges forming a
+names, which are used as a grouping factor for genomic ranges forming a
 common locus, unless other metadata column names are specified in the
 \code{aggregateby} parameter.}
 
-\item{aggregateby}{Character vector with column names in the annotation
+\item{aggregateby}{Character vector with column names from the annotation
 to be used to aggregate quantifications. By default, this is an empty vector,
 which means that the names of the input \code{GRanges} or \code{GRangesList}
-object given in the \code{annotations} parameter will be used to aggregate
+object given in the \code{teFeatures} parameter are used to aggregate
 quantifications.}
 
 \item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
 gene annotated features to be quantified. Following the TEtranscripts
 algorithm, overlaps with unique reads are first tallied with respect to these
-gene features.}
+gene features. Elements should have names indicating the gene name/id. In 
+case that \code{geneFeatures} contains a metadata column named \code{type},
+only the elements with \code{type} = \code{exon} are considered for the
+analysis. Then, exon counts are summarized to the gene level.}
 
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
@@ -43,22 +46,23 @@ gene features.}
 \item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
 should be taken into consideration when computing the overlap between reads
 and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
-will be considered to be overlapping an annotated feature as long as they
-have a non-empty intersecting genomic ranges on the same strand, while when
-\code{ignoreStrand = TRUE} the strand will not be considered.}
+is considered to be overlapping an annotated feature as long as they
+have a non-empty intersecting genomic range on the same strand, while when
+\code{ignoreStrand = TRUE} the strand is not considered.}
 
 \item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
 The strand mode is a per-object switch on
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 objects that controls the behavior of the strand getter. See
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
-class for further detail. If \code{singleEnd = TRUE}, then use either
-\code{strandMode = NULL} or do not specify the \code{strandMode} parameter.}
+class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+is ignored.}
 
 \item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
-When \code{fragments=TRUE}, the read-counting method will also
-count reads without mates, while when \code{fragments=FALSE} (default), those
-reads will not be counted. For further details see
+When \code{fragments=FALSE} (default), the read-counting method only counts 
+‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+are also counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
 \item{tolerance}{A positive numeric scalar storing the minimum tolerance
@@ -90,7 +94,7 @@ to optimally distribute ambiguously mapped reads.
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
-ttpar <- TEtranscriptsParam(bamfiles, annot, singleEnd = TRUE)
+ttpar <- TEtranscriptsParam(bfl = bamfiles, teFeatures = annot, singleEnd = TRUE)
 ttpar
 
 }
