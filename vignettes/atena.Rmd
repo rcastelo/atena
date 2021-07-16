@@ -79,7 +79,7 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot <- ERVmap_ann()
 empar <- ERVmapParam(bamfiles, teFeatures = annot, singleEnd = TRUE, 
-                     ignoreStrand = TRUE, filterUniqReads = TRUE)
+                     ignoreStrand = TRUE)
 empar
 ```
 
