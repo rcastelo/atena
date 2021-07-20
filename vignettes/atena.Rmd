@@ -124,7 +124,6 @@ Here, the Telescope annotations will be used and TE quantifications will be aggr
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 annot_tel <- Telescope_ann(type = "all", version = "hg38")
-names(annot_tel) <- paste(names(annot_tel), 1:length(annot_tel), sep = "_")
 ttpar <- TEtranscriptsParam(bamfiles, teFeatures = annot_tel, singleEnd = TRUE, 
                             ignoreStrand=TRUE, aggregateby = c("repName"))
 
