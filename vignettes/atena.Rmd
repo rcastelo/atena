@@ -187,7 +187,7 @@ colSums(assay(tsq))
 
 For the TEtranscripts method, TE expression is quantified by using the following call:
 
-```{r, results='hide', warning=FALSE}
+```{r, results='hide'}
 ttq <- qtex(ttpar)
 ```
 ```{r}
