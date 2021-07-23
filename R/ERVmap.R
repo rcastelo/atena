@@ -828,7 +828,7 @@ setMethod("qtex", "ERVmapParam",
     
     if (avgene) {
       cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
-                               avgene, applysoasfilter = FALSE, readidx, mask, alnNH)
+                               avgene, applysoasfilter = FALSE, readidx, mask, alnNH, iste)
     } else {
       cntvec <- countSubjectHits(ov)
     }
