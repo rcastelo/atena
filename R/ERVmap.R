@@ -18,7 +18,12 @@
 #' quantifications.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
-#' gene annotated features to be quantified.
+#' gene annotated features to be quantified. Overlaps with unique reads are 
+#' first tallied with respect to these gene features. Elements should have 
+#' names indicating the gene name/id. In case that \code{geneFeatures} contains
+#' a metadata column named \code{type}, only the elements with 
+#' \code{type} = \code{exon} are considered for the analysis. Then, exon
+#' counts are summarized to the gene level.
 #'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -124,7 +129,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
 
   features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                geneFeatures, deparse(substitute(geneFeatures)),
-                               aggregateby, aggregateexons = FALSE)
+                               aggregateby, aggregateexons = TRUE)
   
   new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
       singleEnd=singleEnd, ignoreStrand=ignoreStrand,
