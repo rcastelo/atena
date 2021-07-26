@@ -7,18 +7,55 @@
 #'
 #' @param teFeatures A \code{GRanges} or \code{GRangesList} object. Elements
 #' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus.
+#' for ranges forming a common locus.(equivalent to "locus" column in 
+#' Telescope), unless other metadata column names are specified in the
+#' \code{aggregateby} parameter.
+#' 
+#' @param aggregateby Character vector with column names from the annotation
+#' to be used to aggregate quantifications. By default, this is an empty vector,
+#' which means that the names of the input \code{GRanges} or \code{GRangesList}
+#' object given in the \code{teFeatures} parameter are used to aggregate
+#' quantifications.
+#' 
+#' @param singleEnd (Default TRUE) Logical value indicating if reads are single
+#' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @param opts A \code{list} object specifying options to to pass to the
-#' telescope algorithm, where a list element name should the option name and
-#' its value should be the option value, which in the case of flags should be
-#' be set as a logical \code{TRUE} or \code{FALSE} value. Defaults correspond
-#' to those from the telescope software, with the exception of setting
-#' \code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
-#' The following Telescope options cannot be set: \code{--attribute},
-#' \code{--outdir}, \code{--exp_tag}, \code{--tempdir}, \code{--ncpu},
-#' \code{--skip_em}. For a full documentation on Telescope options please
-#' consult \url{https://github.com/mlbendall/telescope}.
+#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#' The strand mode is a per-object switch on
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' objects that controls the behavior of the strand getter. See
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+#' is ignored.
+#' 
+#' @param ignoreStrand (Default FALSE) A logical which defines if the strand
+#' should be taken into consideration when computing the overlap between reads
+#' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+#' is considered to be overlapping an annotated feature as long as they
+#' have a non-empty intersecting genomic range on the same strand, while when
+#' \code{ignoreStrand = TRUE} the strand is not considered.
+#' 
+#' @param fragments (Default FALSE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE} (default), the read-counting method only counts 
+#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+#' are also counted. For further details see
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @param pi_prior (Default 0) A positive integer scalar indicating the prior 
+#' on pi. This is equivalent to adding n unique reads.
+#'
+#' @param theta_prior (Default 0) A positive integer scalar storing the prior 
+#' on Q. Equivalent to adding n non-unique reads.
+#'
+#' @param em_epsilon (Default 1e-7) A numeric scalar indicating the EM 
+#' Algorithm Epsilon cutoff.
+#' 
+#' @param maxIter A positive integer scalar storing the maximum number of
+#' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
+#' is 100 and this value is passed to the \code{maxiter} parameter of the
+#' \code{\link[SQUAREM]{squarem}()} function.
+#'
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -29,10 +66,9 @@
 #' @return A \linkS4class{TelescopeParam} object.
 #'
 #' @examples
-#' \dontshow{basilisk.utils::installConda()}
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' annot <- ERVmap_ann()
+#' annot <- Telescope_ann()
 #' tspar <- TelescopeParam(bamfiles, annot)
 #' tspar
 #'
@@ -45,82 +81,29 @@
 #' @importFrom methods is new
 #' @importFrom Rsamtools BamFileList
 #' @importFrom S4Vectors mcols
-#' @importFrom basilisk BasiliskEnvironment basiliskStart basiliskStop
-#' @importFrom basilisk.utils installConda
 #' @export
-TelescopeParam <- function(bfl, teFeatures, opts=list(quiet=TRUE)) {
-  if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
-    stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object.")
-
-  if (is.character(bfl)) {
-    mask <- sapply(bfl, file.exists)
-    if (any(!mask))
-      stop(sprintf("the following input BAM files cannot be found:\n%s",
-                   paste(paste("  ", bfl), collapse="\n")))
-  }
-  if (!is(bfl, "BamFileList"))
-    bfl <- BamFileList(bfl)
-
-  annotationsobjname <- deparse(substitute(teFeatures))
-  env <- parent.frame()
-  if (!exists(annotationsobjname))
-    stop(sprintf("input annotation object '%s' is not defined.", annotationsobjname))
-
-  if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
-    stop(sprintf("teFeatures object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                 annotationsobjname))
-
-  if (is.null(names(teFeatures)))
-    stop(sprintf("the teFeatures object '%s' has no names.", annotationsobjname))
-
-  gr <- teFeatures
-  if (is(teFeatures, "GRangesList"))
-    gr <- unlist(teFeatures)
-
-  if ("locus" %in% colnames(mcols(gr)))
-    warning(sprintf("the metadata column 'locus' in the teFeatures will be overwritten with the '%s' names.",
-                    class(teFeatures)))
-
-  gr$locus <- names(gr)
-
-  if (is(teFeatures, "GRangesList")) ## was a GRangesList, convert it into that
-    teFeatures <- split(gr, names(gr))
-  else ## was a GRanges object, leave it as such
-    teFeatures <- gr
-
-  if (!is.list(opts))
-    stop("argument 'opts' should be a 'list' object.")
-
-  if (length(opts) > 0) {
-    bannedOpts <- c("attribute", "no_feature_key", "outdir", "exp_tag",
-                    "tempdir", "ncpu", "skip_em")
-    if (any(names(opts) %in% bannedOpts))
-      stop(sprintf("The following Telescope options cannot be used from this package:\n  %s",
-                   paste(bannedOpts, collapse=", ")))
-
-    mask <- sapply(lapply(opts,
-                          function(x) if (is.logical(x) && !x) NULL else x),
-                   is.null)
-    opts[mask] <- NULL
-  }
-  opts$outdir <- tempdir()
-
-  pyenv <- BasiliskEnvironment("pyenv", pkgname="atena",
-                                channels=c("conda-forge", "bioconda"),
-                                packages=c("future==0.18.2", "pyyaml==5.3.1",
-                                           "cython==0.29.7", "numpy==1.16.3",
-                                           "scipy==1.2.1", "pysam>=0.16.0.1",
-                                           "htslib==1.9", "intervaltree==3.0.2"),
-                                paths="telescope")
-  cl <- basiliskStart(pyenv)
-  tsversion <- basiliskRun(cl, function() {
-                             tsmod <- reticulate::import("telescope")
-                             tsmod[["_version"]]$VERSION
-                           })
-  basiliskStop(cl)
-
+TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
+                           singleEnd=TRUE, 
+                           strandMode=1L, 
+                           ignoreStrand=FALSE,
+                           fragments=FALSE, 
+                           pi_prior=0L, 
+                           theta_prior=0L, 
+                           em_epsilon=1e-7,
+                           maxIter=100L) {
+  bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
+  
+  features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
+                               geneFeatures=NA, 
+                               deparse(substitute(geneFeatures)),
+                               aggregateby, 
+                               aggregateexons = TRUE)
+  
   new("TelescopeParam", bfl=bfl, features=teFeatures,
-      basiliskEnv=pyenv, telescopeVersion=tsversion, telescopeOptions=opts)
+      aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+      strandMode=as.integer(strandMode), fragments=fragments,
+      pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
+      maxIter=as.integer(maxIter))
 }
 
 #' @param object A \linkS4class{TelescopeParam} object.
@@ -134,16 +117,24 @@ setMethod("show", "TelescopeParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# features (%d): %s\n", length(object@features),
+            cat(sprintf("# features (%s length %d): %s\n", class(object@features),
+                        length(object@features),
                         ifelse(is.null(names(object@features)),
                                paste("on", .pprintnames(seqlevels(object@features))),
                                .pprintnames(names(object@features)))))
-            cat(sprintf("# Telescope version: %s\n", object@telescopeVersion))
-            opts <- object@telescopeOptions
-            opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))
-            opts_str <- paste(gsub(" TRUE", "", opts_str), collapse=" ")
-            cat("# Telescope non-default options:\n")
-            writeLines(paste0("#   ", strwrap(opts_str, width=60)))
+            cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
+                                                        paste(object@aggregateby, collapse=", "),
+                                                        paste(class(object@features), "names"))))
+            cat(sprintf("# %s; %s",
+                        ifelse(object@singleEnd, "single-end", "paired-end"),
+                        ifelse(object@ignoreStrand, "unstranded", "stranded")))
+            if (!object@ignoreStrand)
+              cat(sprintf(" (strandMode=%d)", object@strandMode))
+            if (!object@singleEnd)
+              cat(sprintf("; %s",
+                          ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
+                                 "counting properly paired reads")))
+            cat("\n")
           })
 
 #' @importFrom basilisk basiliskStart basiliskRun basiliskStop

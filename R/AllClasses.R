@@ -126,13 +126,44 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' This is a class for storing parameters
 #' provided to the Telescope algorithm.
 #'
-#' @slot basiliskEnv A 'BasiliskEnvironment' object; see the
-#' \code{BasiliskEnvironment-class} in the \code{basilisk} package.
+#' @slot singleEnd (Default TRUE) Logical value indicating if reads are single
+#' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @slot telescopeVersion 'character' string storing the Telescope version.
+#' @slot strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#' The strand mode is a per-object switch on
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' objects that controls the behavior of the strand getter. See
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+#' is ignored.
+#' 
+#' @slot ignoreStrand (Default FALSE) A logical which defines if the strand
+#' should be taken into consideration when computing the overlap between reads
+#' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+#' is considered to be overlapping an annotated feature as long as they
+#' have a non-empty intersecting genomic range on the same strand, while when
+#' \code{ignoreStrand = TRUE} the strand is not considered.
+#' 
+#' @slot fragments (Default FALSE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE} (default), the read-counting method only counts 
+#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+#' are also counted. For further details see
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @slot pi_prior (Default 0) A positive integer scalar indicating the prior 
+#' on pi. This is equivalent to adding n unique reads.
 #'
-#' @slot telescopeOptions 'list' object storing the options for the
-#' Telescope algorithm.
+#' @slot theta_prior (Default 0) A positive integer scalar storing the prior 
+#' on Q. Equivalent to adding n non-unique reads.
+#'
+#' @slot em_epsilon (Default 1e-7) A numeric scalar indicating the EM 
+#' Algorithm Epsilon cutoff.
+#' 
+#' @slot maxIter A positive integer scalar storing the maximum number of
+#' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
+#' is 100 and this value is passed to the \code{maxiter} parameter of the
+#' \code{\link[SQUAREM]{squarem}()} function.
 #'
 #' @references
 #' Bendall et al. Telescope: characterization of the retrotranscriptome by
@@ -142,12 +173,16 @@ setClass("ERVmapParam", contains="AtenaParam",
 #'
 #' @name TelescopeParam-class
 #' @rdname TelescopeParam-class
-#' @importClassesFrom basilisk BasiliskEnvironment
 #' @exportClass TelescopeParam
 setClass("TelescopeParam", contains="AtenaParam",
-         representation(basiliskEnv="BasiliskEnvironment",
-                        telescopeVersion="character",
-                        telescopeOptions="list"))
+         representation(singleEnd="logical",
+                        strandMode="integer",
+                        ignoreStrand="logical",
+                        fragments="logical",
+                        pi_prior="integer",
+                        theta_prior="integer",
+                        em_epsilon="numeric",
+                        maxIter="integer"))
 
 #' TEtranscripts parameter class
 #'
