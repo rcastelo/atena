@@ -99,7 +99,7 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                                aggregateby, 
                                aggregateexons = TRUE)
   
-  new("TelescopeParam", bfl=bfl, features=teFeatures,
+  new("TelescopeParam", bfl=bfl, features=features,
       aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
       strandMode=as.integer(strandMode), fragments=fragments,
       pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
@@ -137,7 +137,6 @@ setMethod("show", "TelescopeParam",
             cat("\n")
           })
 
-#' @importFrom basilisk basiliskStart basiliskRun basiliskStop
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom S4Vectors DataFrame
 #' @importFrom SummarizedExperiment SummarizedExperiment
@@ -146,181 +145,180 @@ setMethod("show", "TelescopeParam",
 #' @aliases qtex,TelescopeParam-method
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
-          function(x, phenodata=NULL, BPPARAM=SerialParam(progressbar=TRUE)) {
+          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
+                   BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
 
-            cnt <- bplapply(x@bfl,
-                            function(bf) {
-                              tsexp <- basiliskRun(env=x@basiliskEnv,
-                                                   fun=.qtex_telescope, bf=bf,
-                                                   tspar=x)
-                            }, BPPARAM=BPPARAM)
+            cnt <- bplapply(x@bfl, .qtex_telescope, tspar=x, mode=mode,
+                            yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
-
+            
+            features <- .consolidateFeatures(x, rownames(cnt))
+            
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=x@features,
+                                 rowRanges=features,
                                  colData=colData)
           })
 
 #' @importFrom utils read.table
-#' @importFrom reticulate import import_main
 #' @importFrom BiocGenerics path
-.qtex_telescope <- function(bf, tspar) {
-  opts <- tspar@telescopeOptions
-  opts$exp_tag <- gsub(".bam", "", basename(path(bf)))
-  opts_str <- paste(paste0("--", names(opts)), sapply(opts, as.character))
-  opts_str <- paste(gsub(" TRUE", "", opts_str), collapse=" ")
-  opts_str_vec <- strsplit(opts_str, " ")[[1]]
-
-  annfile <- file.path(tspar@telescopeOptions$outdir, "annotations.gtf")
-  .exportTelescopeGTF(tspar@features, annfile)
-  apmod <- reticulate::import("argparse")
-  tsmod <- reticulate::import("telescope")
-  pymain <- reticulate::import_main()
-  pymain$sys$argv <- c("telescope", "assign", opts_str_vec, path(bf), annfile)
-  desctxt <- "Tools for analysis of repetitive DNA elements"
-  parser <- apmod$ArgumentParser(description=desctxt)
-  VERSION <- tsmod[["_version"]]$VERSION
-  parser$add_argument("--version", action="version",
-                      version=VERSION, default=VERSION)
-  subparsers <- parser$add_subparsers(help="sub-command help")
-  assign_parser <- subparsers$add_parser("assign",
-    description="Reassign ambiguous fragments that map to repetitive elements",
-    formatter_class=apmod$ArgumentDefaultsHelpFormatter)
-  tsmod$telescope_assign$IDOptions$add_arguments(assign_parser)
-  assign_parser$set_defaults(func=tsmod$telescope_assign$run)
-  pyargs <- parser$parse_args()
-  pyargs$func(pyargs)
-  dtf <- read.table(file.path(opts$outdir,
-                              sprintf("%s-telescope_report.tsv", opts$exp_tag)),
-                    header=TRUE)
-
-  ## place quantifications in a vector matching the order of the annotations
-  ## this also implies discarding the '__no_feature' quantification given by
-  ## Telescope. note also that, with the exception of the '__no_feature',
-  ## Telescope only outputs features that have a positive quantification.
-  mt <- match(names(tspar@features), dtf$transcript)
-  cntvec <- rep(0L, length=length(tspar@features))
-  cntvec[!is.na(mt)] <- dtf$final_count[mt[!is.na(mt)]]
-  names(cntvec) <- names(tspar@features)
+.qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
+  mode=match.fun(mode)
   
-  cntvec
+  readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
+  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                         isDuplicate=FALSE,
+                         isNotPassingQualityControls=FALSE)
+  param <- ScanBamParam(flag=sbflags, tag="AS")
+  
+  iste <- as.vector(attributes(tspar@features)$isTE[,1])
+  
+  if (any(duplicated(names(tspar@features[iste])))) {
+    stop(".qtex_tetranscripts: transposable element annotations do not contain unique names for each element")
+  }
+  
+  ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
+  alnreadids <- character(0)
+  avgreadlen <- integer()
+  asvalues <- integer()
+  
+  strand_arg <- "strandMode" %in% formalArgs(readfun)
+  yieldSize(bf) <- yieldSize
+  open(bf)
+  while (length(alnreads <- do.call(readfun, c(list(file = bf), 
+                                               list(param=param), 
+                                               list(strandMode=tspar@strandMode)[strand_arg], 
+                                               list(use.names=TRUE))))) {
+    avgreadlen <- c(avgreadlen, width(ranges(alnreads)))
+    alnreadids <- c(alnreadids, names(alnreads))
+    asvalues <- c(asvalues, mcols(alnreads)$AS)
+    thisov <- suppressWarnings(mode(alnreads, tspar@features, 
+                                    ignoreStrand=tspar@ignoreStrand))
+    ov <- .appendHits(ov, thisov)
+  }
+  close(bf)
+  
+  ## create a logical mask for uniquely aligned-reads
+  maskuniqaln <- !(duplicated(alnreadids) | 
+                     duplicated(alnreadids, fromLast = TRUE))
+  
+  ## fetch all different read identifiers from the overlapping alignments
+  readids <- unique(alnreadids[queryHits(ov)])
+  
+  ## store logical mask for multi-mapping reads for only those present in the 
+  ## ov matrix
+  mt <- match(readids, alnreadids)
+  maskmulti <- !maskuniqaln[mt]
+  
+  ## fetch all different transcripts from the overlapping alignments
+  tx_idx <- sort(unique(subjectHits(ov)))
+  
+  istex <- as.vector(iste[tx_idx])
+  
+  ## build a matrix representation of the overlapping alignments
+  ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
+  
+  # Getting counts from unique reads
+  # uniqcnt <- .countUniqueRead(tspar, ovalnmat, maskuniqaln, mt, tx_idx, istex)
+  
+  ## initialize vector of counts derived from multi-mapping reads
+  cntvec <- rep(0L, length(tspar@features))
+  
+  # --- EM-step --- 
+  alnreadidx <- match(alnreadids, readids)
+  rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
+  asvalues <- (asvalues - min(asvalues)) / (max(asvalues) - min(asvalues))
+  QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
+  QmatTS <- QmatTS / rowSums(QmatTS)
+  
+  # Telescope [Bendall et al. (2019)) defines the initial π estimate uniformly.
+  PiTS <- rep(1 / length(tx_idx), length(tx_idx))
+  
+  # Telescope also defines an additional reassignment parameter (θ) as uniform
+  Theta <- rep(1 / length(tx_idx), length(tx_idx))
+
+  ## The SQUAREM algorithm to run the EM procedure
+  a <- tspar@pi_prior # 0
+  b <- tspar@theta_prior # 0
+  GlobalTheta <<- Theta
+  tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti, a=a, b=b,
+                   fixptfn=.tsFixedPointFun,
+                   control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
+  PiTS <- tsres$par
+  PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+  # --- end EM-step ---
+  
+  # Implementation for reassign_mode=exclude
+  X <- .tsEstep(QmatTS, GlobalTheta, maskmulti, PiTS)
+  maxbyrow <- rowMaxs(X)
+  Xind <- X == maxbyrow
+  nmaxbyrow <- rowSums(Xind)
+  cntvecTS <- rep(0L, length(teann))
+  cntvecTS[tx_idx][istex] <- colSums(Xind[nmaxbyrow == 1, ])
+  
+  ## aggregate TE quantifications if necessary
+  if (length(tspar@aggregateby) > 0) {
+    f <- .factoraggregateby(tspar@features[iste], tspar@aggregateby)
+    stopifnot(length(f) == length(cntvecTS)) ## QC
+    cntvecTS <- tapply(cntvecTS, f, sum, na.rm=TRUE)
+  }
+  
+  setNames(as.integer(cntvecTS), names(cntvecTS))
+
 }
 
-## adapted from rtracklayer/R/gff.R
-## private function to export a 'GRanges' or 'GRangesList' object to a GTF
-## file in the GTF format expected by Telescope, which has the following two
-## requirements:
-##
-## (1) one column must be called 'locus' and should contain
-## values that group features forming part of the same locus
-## (2) every line should end with a semicolon ';'
-##
-## arguments:
-## gr : GRanges object
-## fname : GTF filename
-## src : value on the GTF source column
 
-#' @importFrom methods is
-#' @importFrom utils write.table
-#' @importFrom GenomeInfoDb seqnames
-#' @importFrom BiocGenerics start end
-#' @importFrom S4Vectors mcols mcols<-
-.exportTelescopeGTF <- function(gr, fname, src="Telescope") {
 
-  if (is(gr, "GRangesList")) {
-    gr <- unlist(gr)
-  }
-
-  con <- file(fname, open="wt")
-  cat("", file=con) ## overwrite any existing file
-  cat("##gff-version 2\n", file=con)
-
-  seqs <- seqnames(gr)
-
-  if (is.null(mcols(gr)$ID))
-    mcols(gr)$ID <- names(gr)
-
-  if (!is.null(mcols(gr)$source) && missing(src))
-    src <- mcols(gr)$source
-  else
-    src <- rep(src, length(gr))
-
-  features <- mcols(gr)$type
-  if (is.null(features))
-    features <- rep("feature", length(gr))
-
-  scores <- mcols(gr)$score
-  if (is.null(scores))
-    scores <- rep(NA_real_, length(gr))
-
-  strand <- strand(gr)
-  if (is.null(strand))
-    strand <- rep(strand(NA_character_), length(gr))
-  strand[strand == "*"] <- NA_integer_
-
-  phase <- mcols(gr)$phase
-  if (is.null(phase)) {
-    phase <- rep(NA_integer_, length(gr))
-    if ("CDS" %in% features)
-      warning("Annotation contains CDS features without phase information.")
-  } else {
-    if (anyNA(phase[features %in% "CDS"]))
-      warning("Annotation contains CDS features with some phase information missing.")
-  }
-
-  if (is.null(mcols(gr)$locus))
-      stop(".exportTelescopeGTF: input 'GRanges' object has no 'locus' metadata column.")
-
-  tab <- data.frame(seqs, src, features, start(gr), end(gr),
-                    scores, strand, phase)
-
-  builtin <- c("type", "score", "phase", "source")
-  custom <- setdiff(colnames(mcols(gr)), builtin)
-  if (length(custom) > 0) {
-    attrs <- mcols(gr)
-    ## only deals with metadata columns that store atomic types, i.e.,
-    ## not lists for instance.
-    mdcols <- lapply(custom, function(name, attrs) {
-                       x <- attrs[[name]]
-                       res <- NULL
-                       if (!is.atomic(x))
-                         warning(sprintf("skipping non-atomic metadata column %s.", name))
-                       else {
-                         x_char <- as.character(x)
-                         x_char <- sub(" *$", "", sub("^ *", "", as.character(x_char)))
-                         x_char[is.na(x_char)] <- "\r"
-                         if (!is.numeric(x))
-                           x_char <- paste0("\"", x_char, "\"")
-                         res <- paste(name, x_char, sep=" ")
-                       }
-                       res
-                       }, attrs)
-    mask <- sapply(lapply(mdcols,
-                          function(x) if (is.logical(x) && !x) NULL else x),
-                   is.null)
-    mdcols[mask] <- NULL
-    attrs <- as.data.frame(mdcols)
-    attrs <- do.call(paste, c(attrs, sep="; "))
-    attrs <- gsub("[^;]*?\r\"?(;|$)", "", attrs)
-    attrs <- paste0(attrs, ";")
-    attrs[nchar(attrs) == 0] <- NA
-  }
-
-  scipen <- getOption("scipen")
-  options(scipen=100) ## prevent use of scientific notation
-  on.exit(options(scipen=scipen))
-
-  if (!is.null(attrs)) { # write out the rows with attributes first
-    write.table(cbind(tab, attrs)[!is.na(attrs), ], con, sep="\t",
-                na=".", quote=FALSE, col.names=FALSE, row.names=FALSE,
-                append=TRUE)
-    tab <- tab[is.na(attrs), ]
-  }
-  write.table(tab, con, sep="\t", na=".", quote=FALSE, col.names=FALSE,
-              row.names=FALSE, append=TRUE)
-
-  close(con)
+## private function .tsEstep()
+## E-step of the EM algorithm of Telescope
+.tsEstep <- function(Q, Theta, maskmulti, Pi) {
+  X <- t(t(Q) * Pi)
+  X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+  X <- X[rowSums(X)>0,, drop=FALSE]
+  X <- X / rowSums(X)
+  X
 }
+
+## private function .tsMstepPi()
+## M-step of the EM algorithm of Telescope
+.tsMstepPi <- function(X, a) {
+  Pi <- (colSums(X) + a) / (sum(X)+a*ncol(X))
+  Pi
+}
+
+## private function .tsMstepTheta()
+## Update the estimate of the MAP value of θ
+.tsMstepTheta <- function(X, maskmulti, b) {
+  Theta <- (colSums(X[maskmulti, , drop=FALSE]) + b) / (sum(maskmulti) + b*ncol(X))
+}
+
+## private function .tsFixedPointFun()
+## fixed point function of the EM algorithm of Telescope
+.tsFixedPointFun <- function(Pi, Q, maskmulti, a, b) {
+  Theta <- GlobalTheta
+  X <- .tsEstep(Q, Theta, maskmulti, Pi)
+  Pi2 <- .tsMstepPi(X, a)
+  Theta2 <- .tsMstepTheta (X, maskmulti, b)
+  GlobalTheta <<- Theta2 ## need to work with a global variable
+  
+  Pi2
+}
+
+## private function .buildOvValuesMatrixTS()
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix
+.buildOvValuesMatrixTS <- function(ov, values, aridx, ridx, fidx) {
+  ovmat <- Matrix(do.call(class(values), list(1)),
+                  nrow=length(ridx), ncol=length(fidx))
+  mt1 <- match(aridx[queryHits(ov)], ridx)
+  mt2 <- match(subjectHits(ov), fidx)
+  ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
+  ovmat
+}
+
+
+
+
+
