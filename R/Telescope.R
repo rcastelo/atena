@@ -17,6 +17,16 @@
 #' object given in the \code{teFeatures} parameter are used to aggregate
 #' quantifications.
 #' 
+#' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' gene annotated features to be quantified. The TEtranscripts approach for
+#' gene expression quantification is used, in which overlaps with unique reads 
+#' are first tallied with respect to these gene features whereas multi-mapping
+#' reads are preferentially assigned to TEs. Elements should have names 
+#' indicating the gene name/id. In case that \code{geneFeatures} contains a 
+#' metadata column named \code{type}, only the elements with 
+#' \code{type} = \code{exon} are considered for the analysis. Then, exon counts 
+#' are summarized to the gene level.
+#' 
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
@@ -61,7 +71,9 @@
 #' This is the constructor function for objects of the class
 #' \code{TelescopeParam-class}. This type of object is the input to the
 #' function \code{\link{qtex}()} for quantifying expression of transposable
-#' elements, which will call the Telescope algorithm with this type of object.
+#' elements, which will call the Telescope algorithm 
+#' \href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)} 
+#' with this type of object.
 #'
 #' @return A \linkS4class{TelescopeParam} object.
 #'
@@ -83,6 +95,7 @@
 #' @importFrom S4Vectors mcols
 #' @export
 TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
+                           geneFeatures=NA,
                            singleEnd=TRUE, 
                            strandMode=1L, 
                            ignoreStrand=FALSE,
@@ -94,10 +107,8 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
   bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
   
   features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                               geneFeatures=NA, 
-                               deparse(substitute(geneFeatures)),
-                               aggregateby, 
-                               aggregateexons = TRUE)
+                               geneFeatures, deparse(substitute(geneFeatures)),
+                               aggregateby, aggregateexons = TRUE)
   
   new("TelescopeParam", bfl=bfl, features=features,
       aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
@@ -148,7 +159,7 @@ setMethod("qtex", "TelescopeParam",
           function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
                    BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
-
+            
             cnt <- bplapply(x@bfl, .qtex_telescope, tspar=x, mode=mode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
@@ -162,8 +173,14 @@ setMethod("qtex", "TelescopeParam",
                                  colData=colData)
           })
 
-#' @importFrom utils read.table
+#' @importFrom stats setNames
+#' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom BiocGenerics path
+#' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
+#' @importFrom GenomicAlignments readGAlignmentPairs
+#' @importFrom S4Vectors Hits queryHits subjectHits
+#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
   mode=match.fun(mode)
   
@@ -176,7 +193,7 @@ setMethod("qtex", "TelescopeParam",
   iste <- as.vector(attributes(tspar@features)$isTE[,1])
   
   if (any(duplicated(names(tspar@features[iste])))) {
-    stop(".qtex_tetranscripts: transposable element annotations do not contain unique names for each element")
+    stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
   }
   
   ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
@@ -207,24 +224,31 @@ setMethod("qtex", "TelescopeParam",
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
   
-  ## store logical mask for multi-mapping reads for only those present in the 
-  ## ov matrix
-  mt <- match(readids, alnreadids)
-  maskmulti <- !maskuniqaln[mt]
-  
   ## fetch all different transcripts from the overlapping alignments
   tx_idx <- sort(unique(subjectHits(ov)))
-  
   istex <- as.vector(iste[tx_idx])
   
   ## build a matrix representation of the overlapping alignments
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
   
-  # Getting counts from unique reads
-  # uniqcnt <- .countUniqueRead(tspar, ovalnmat, maskuniqaln, mt, tx_idx, istex)
+  ## store logical mask for multi-mapping reads for only those present in the 
+  ## ov matrix
+  mt <- match(readids, alnreadids)
+  maskmulti <- !maskuniqaln[mt]
+  
+  if (!all(iste)) {
+    ## Correcting for preference of unique/multi-mapping reads to genes or TEs, respectively
+    ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
+    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 & rowSums(ovalnmat[,!istex]) > 0))
+  }
   
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(tspar@features))
+  
+  # Getting counts from reads overlapping only one feature (this excludes
+  # unique reads mapping to two or more overlapping features)
+  ovunique <- rowSums(ovalnmat) == 1
+  cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
   
   # --- EM-step --- 
   alnreadidx <- match(alnreadids, readids)
@@ -232,13 +256,13 @@ setMethod("qtex", "TelescopeParam",
   asvalues <- (asvalues - min(asvalues)) / (max(asvalues) - min(asvalues))
   QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
   QmatTS <- QmatTS / rowSums(QmatTS)
-  
+  QmatTS[is.na(rowSums(QmatTS)),] <- rep(0, )
   # Telescope [Bendall et al. (2019)) defines the initial π estimate uniformly.
   PiTS <- rep(1 / length(tx_idx), length(tx_idx))
   
   # Telescope also defines an additional reassignment parameter (θ) as uniform
   Theta <- rep(1 / length(tx_idx), length(tx_idx))
-
+  
   ## The SQUAREM algorithm to run the EM procedure
   a <- tspar@pi_prior # 0
   b <- tspar@theta_prior # 0
@@ -246,6 +270,10 @@ setMethod("qtex", "TelescopeParam",
   tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti, a=a, b=b,
                    fixptfn=.tsFixedPointFun,
                    control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
+  # maskmulti_ovmulti <- maskmulti | !ovunique
+  # tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti_ovmulti, a=a, b=b,
+  #                  fixptfn=.tsFixedPointFun,
+  #                  control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
   PiTS <- tsres$par
   PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
   # --- end EM-step ---
@@ -255,18 +283,18 @@ setMethod("qtex", "TelescopeParam",
   maxbyrow <- rowMaxs(X)
   Xind <- X == maxbyrow
   nmaxbyrow <- rowSums(Xind)
-  cntvecTS <- rep(0L, length(teann))
-  cntvecTS[tx_idx][istex] <- colSums(Xind[nmaxbyrow == 1, ])
+  #cntvec[tx_idx][istex] <- colSums(Xind[nmaxbyrow == 1, ])
+  cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1 & !ovunique, ]) # ovunique reads have already been count. Do not differenciate between TEs and genes with istex because in Telescope genes are also included in the EMstep.
   
   ## aggregate TE quantifications if necessary
   if (length(tspar@aggregateby) > 0) {
     f <- .factoraggregateby(tspar@features[iste], tspar@aggregateby)
-    stopifnot(length(f) == length(cntvecTS)) ## QC
-    cntvecTS <- tapply(cntvecTS, f, sum, na.rm=TRUE)
+    stopifnot(length(f) == length(cntvec)) ## QC
+    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
   }
   
-  setNames(as.integer(cntvecTS), names(cntvecTS))
-
+  setNames(as.integer(cntvec), names(cntvec))
+  
 }
 
 

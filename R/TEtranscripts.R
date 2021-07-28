@@ -391,7 +391,7 @@ setMethod("qtex", "TEtranscriptsParam",
   
   ## Removing overlaps of multi-mapping reads to genes if at least one 
   ## alignment of the read overlaps a TE
-  idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0
+  idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0 # could be changed to: (rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[!maskuniqaln[mt],!istex]) > 0)
   if (length(idxm)>0) {
     ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
   }
