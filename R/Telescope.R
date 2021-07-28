@@ -253,10 +253,9 @@ setMethod("qtex", "TelescopeParam",
   # --- EM-step --- 
   alnreadidx <- match(alnreadids, readids)
   rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
-  asvalues <- (asvalues - min(asvalues)) / (max(asvalues) - min(asvalues))
+  asvalues <- (asvalues - min(asvalues) +1) / (max(asvalues) - min(asvalues))
   QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
   QmatTS <- QmatTS / rowSums(QmatTS)
-  QmatTS[is.na(rowSums(QmatTS)),] <- rep(0, )
   # Telescope [Bendall et al. (2019)) defines the initial π estimate uniformly.
   PiTS <- rep(1 / length(tx_idx), length(tx_idx))
   
@@ -286,11 +285,20 @@ setMethod("qtex", "TelescopeParam",
   #cntvec[tx_idx][istex] <- colSums(Xind[nmaxbyrow == 1, ])
   cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1 & !ovunique, ]) # ovunique reads have already been count. Do not differenciate between TEs and genes with istex because in Telescope genes are also included in the EMstep.
   
+  names(cntvec) <- names(tspar@features)
+  cntvec_t <- cntvec[iste]
   ## aggregate TE quantifications if necessary
   if (length(tspar@aggregateby) > 0) {
     f <- .factoraggregateby(tspar@features[iste], tspar@aggregateby)
-    stopifnot(length(f) == length(cntvec)) ## QC
-    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+    stopifnot(length(f) == length(cntvec_t)) ## QC
+    cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
+  }
+  
+  ## aggregating exon counts to genes
+  if (!all(iste)) {
+    cntvec <- c(cntvec_t, cntvec[!iste])
+  } else {
+    cntvec <- cntvec_t
   }
   
   setNames(as.integer(cntvec), names(cntvec))
