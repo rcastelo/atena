@@ -7,7 +7,7 @@
 #'
 #' @param teFeatures A \code{GRanges} or \code{GRangesList} object. Elements
 #' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus.(equivalent to "locus" column in 
+#' for ranges forming a common locus (equivalent to "locus" column in 
 #' Telescope), unless other metadata column names are specified in the
 #' \code{aggregateby} parameter.
 #' 
@@ -247,8 +247,8 @@ setMethod("qtex", "TelescopeParam",
   
   # Getting counts from reads overlapping only one feature (this excludes
   # unique reads mapping to two or more overlapping features)
-  ovunique <- rowSums(ovalnmat) == 1
-  cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
+  # ovunique <- rowSums(ovalnmat) == 1
+  # cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
   
   # --- EM-step --- 
   alnreadidx <- match(alnreadids, readids)
@@ -269,10 +269,6 @@ setMethod("qtex", "TelescopeParam",
   tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti, a=a, b=b,
                    fixptfn=.tsFixedPointFun,
                    control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
-  # maskmulti_ovmulti <- maskmulti | !ovunique
-  # tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti_ovmulti, a=a, b=b,
-  #                  fixptfn=.tsFixedPointFun,
-  #                  control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
   PiTS <- tsres$par
   PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
   # --- end EM-step ---
@@ -282,8 +278,9 @@ setMethod("qtex", "TelescopeParam",
   maxbyrow <- rowMaxs(X)
   Xind <- X == maxbyrow
   nmaxbyrow <- rowSums(Xind)
-  #cntvec[tx_idx][istex] <- colSums(Xind[nmaxbyrow == 1, ])
-  cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1 & !ovunique, ]) # ovunique reads have already been count. Do not differenciate between TEs and genes with istex because in Telescope genes are also included in the EMstep.
+  # Do not differenciate between TEs and genes with istex because in Telescope 
+  # genes are also included in the EMstep.
+  cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
   
   names(cntvec) <- names(tspar@features)
   cntvec_t <- cntvec[iste]

@@ -26,7 +26,13 @@
   BPPARAM = SerialParam(progressbar = TRUE)
 )
 
-\S4method{qtex}{TelescopeParam}(x, phenodata = NULL, BPPARAM = SerialParam(progressbar = TRUE))
+\S4method{qtex}{TelescopeParam}(
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  yieldSize = 1000000L,
+  BPPARAM = SerialParam(progressbar = TRUE)
+)
 }
 \arguments{
 \item{x}{An \code{AtenaParam} object of one of the following

@@ -4,7 +4,20 @@
 \alias{TelescopeParam}
 \title{Build a Telescope parameter object}
 \usage{
-TelescopeParam(bfl, teFeatures, opts = list(quiet = TRUE))
+TelescopeParam(
+  bfl,
+  teFeatures,
+  aggregateby = character(0),
+  geneFeatures = NA,
+  singleEnd = TRUE,
+  strandMode = 1L,
+  ignoreStrand = FALSE,
+  fragments = FALSE,
+  pi_prior = 0L,
+  theta_prior = 0L,
+  em_epsilon = 1e-07,
+  maxIter = 100L
+)
 }
 \arguments{
 \item{bfl}{A \code{BamFile} or \code{BamFileList} object, or a character
@@ -12,18 +25,64 @@ string vector of BAM filenames.}
 
 \item{teFeatures}{A \code{GRanges} or \code{GRangesList} object. Elements
 in this object should have names, which will be used as a grouping factor
-for ranges forming a common locus.}
+for ranges forming a common locus (equivalent to "locus" column in 
+Telescope), unless other metadata column names are specified in the
+\code{aggregateby} parameter.}
 
-\item{opts}{A \code{list} object specifying options to to pass to the
-telescope algorithm, where a list element name should the option name and
-its value should be the option value, which in the case of flags should be
-be set as a logical \code{TRUE} or \code{FALSE} value. Defaults correspond
-to those from the telescope software, with the exception of setting
-\code{quiet=TRUE} by using \code{--quiet} in the call to telescope.
-The following Telescope options cannot be set: \code{--attribute},
-\code{--outdir}, \code{--exp_tag}, \code{--tempdir}, \code{--ncpu},
-\code{--skip_em}. For a full documentation on Telescope options please
-consult \url{https://github.com/mlbendall/telescope}.}
+\item{aggregateby}{Character vector with column names from the annotation
+to be used to aggregate quantifications. By default, this is an empty vector,
+which means that the names of the input \code{GRanges} or \code{GRangesList}
+object given in the \code{teFeatures} parameter are used to aggregate
+quantifications.}
+
+\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+gene annotated features to be quantified. The TEtranscripts approach for
+gene expression quantification is used, in which overlaps with unique reads 
+are first tallied with respect to these gene features whereas multi-mapping
+reads are preferentially assigned to TEs. Elements should have names 
+indicating the gene name/id. In case that \code{geneFeatures} contains a 
+metadata column named \code{type}, only the elements with 
+\code{type} = \code{exon} are considered for the analysis. Then, exon counts 
+are summarized to the gene level.}
+
+\item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
+(\code{TRUE}) or paired-end (\code{FALSE}).}
+
+\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
+The strand mode is a per-object switch on
+\code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+objects that controls the behavior of the strand getter. See
+\code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+is ignored.}
+
+\item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
+should be taken into consideration when computing the overlap between reads
+and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+is considered to be overlapping an annotated feature as long as they
+have a non-empty intersecting genomic range on the same strand, while when
+\code{ignoreStrand = TRUE} the strand is not considered.}
+
+\item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
+When \code{fragments=FALSE} (default), the read-counting method only counts 
+‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+are also counted. For further details see
+\code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
+
+\item{pi_prior}{(Default 0) A positive integer scalar indicating the prior 
+on pi. This is equivalent to adding n unique reads.}
+
+\item{theta_prior}{(Default 0) A positive integer scalar storing the prior 
+on Q. Equivalent to adding n non-unique reads.}
+
+\item{em_epsilon}{(Default 1e-7) A numeric scalar indicating the EM 
+Algorithm Epsilon cutoff.}
+
+\item{maxIter}{A positive integer scalar storing the maximum number of
+iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
+is 100 and this value is passed to the \code{maxiter} parameter of the
+\code{\link[SQUAREM]{squarem}()} function.}
 }
 \value{
 A \linkS4class{TelescopeParam} object.
@@ -35,13 +94,14 @@ Build an object of the class \code{TelescopeParam}.
 This is the constructor function for objects of the class
 \code{TelescopeParam-class}. This type of object is the input to the
 function \code{\link{qtex}()} for quantifying expression of transposable
-elements, which will call the Telescope algorithm with this type of object.
+elements, which will call the Telescope algorithm 
+\href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)} 
+with this type of object.
 }
 \examples{
-\dontshow{basilisk.utils::installConda()}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-annot <- ERVmap_ann()
+annot <- Telescope_ann()
 tspar <- TelescopeParam(bamfiles, annot)
 tspar
 
