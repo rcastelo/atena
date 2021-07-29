@@ -5,16 +5,21 @@ Version: 0.99.33
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
-Description: Quantify expression of transposable elements from RNA-seq data through
-    different methods, including ERVmap, TEtranscripts and Telescope.
+Description: Quantify expression of transposable elements (TEs) from RNA-seq data through
+    different methods, including ERVmap, TEtranscripts and Telescope. A common interface
+    is provided to use each of these methods, which consists of building a parameter object,
+    calling the quantification function with this object and getting a SummarizedExperiment
+    object as output container of the quantified expression profiles. The implementation
+    allows one to quantify TEs and gene transcripts in an integrated manner.
 License: Artistic-2.0
 Encoding: UTF-8
 LazyData: false
 Depends:
-    R (>= 3.5),
+    R (>= 4.1),
     SummarizedExperiment
 Imports: 
     methods,
+    stats,
     utils,
     Matrix,
     BiocGenerics,
@@ -32,5 +37,6 @@ Suggests:
     BiocStyle,
     knitr,
     rmarkdown,
+biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
