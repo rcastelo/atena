@@ -75,5 +75,12 @@
 #' @aliases qtex,AtenaParam-method
 #' @rdname qtex
 #' @name qtex
+#'
+#' @examples
+#' bamfiles <- list.files(system.file("extdata", package="atena"),
+#'                        pattern="*.bam", full.names=TRUE)
+#' annot <- Telescope_ann()
+#' tspar <- TelescopeParam(bamfiles, annot)
+#' tsSE <- qtex(tspar)
 NULL
 
