@@ -27,8 +27,6 @@ Imports:
     Rsamtools,
     GenomeInfoDb,
     reticulate,
-    basilisk,
-    basilisk.utils,
     SQUAREM,
     sparseMatrixStats
 Suggests:
