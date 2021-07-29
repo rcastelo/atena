@@ -265,16 +265,17 @@ setMethod("qtex", "TelescopeParam",
   ## The SQUAREM algorithm to run the EM procedure
   a <- tspar@pi_prior # 0
   b <- tspar@theta_prior # 0
-  GlobalTheta <<- Theta
-  tsres <- squarem(par=PiTS, Q=QmatTS, maskmulti=maskmulti, a=a, b=b,
-                   fixptfn=.tsFixedPointFun,
+  Thetaenv <- new.env()
+  tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatTS, maskmulti=maskmulti,
+                   a=a, b=b, fixptfn=.tsFixedPointFun,
                    control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
   PiTS <- tsres$par
   PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
   # --- end EM-step ---
   
   # Implementation for reassign_mode=exclude
-  X <- .tsEstep(QmatTS, GlobalTheta, maskmulti, PiTS)
+  Theta <- get("Theta", envir=Thetaenv)
+  X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
   maxbyrow <- rowMaxs(X)
   Xind <- X == maxbyrow
   nmaxbyrow <- rowSums(Xind)
@@ -329,12 +330,12 @@ setMethod("qtex", "TelescopeParam",
 
 ## private function .tsFixedPointFun()
 ## fixed point function of the EM algorithm of Telescope
-.tsFixedPointFun <- function(Pi, Q, maskmulti, a, b) {
-  Theta <- GlobalTheta
+.tsFixedPointFun <- function(Pi, Thetaenv, Q, maskmulti, a, b) {
+  Theta <- get("Theta", envir=Thetaenv)
   X <- .tsEstep(Q, Theta, maskmulti, Pi)
   Pi2 <- .tsMstepPi(X, a)
   Theta2 <- .tsMstepTheta (X, maskmulti, b)
-  GlobalTheta <<- Theta2 ## need to work with a global variable
+  assign("Theta", Theta2, envir=Thetaenv)
   
   Pi2
 }

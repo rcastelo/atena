@@ -1,16 +1,15 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 0.99.32
+Version: 0.99.33
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
 Description: Quantify expression of transposable elements from RNA-seq data through
-    different methods, including ERVmap (Tokuyama et al., 2018) and Telescope
-    (Bendall et al., 2019).
+    different methods, including ERVmap, TEtranscripts and Telescope.
 License: Artistic-2.0
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Depends:
     R (>= 3.5),
     SummarizedExperiment
