@@ -26,9 +26,7 @@
 #' have a non-empty intersecting genomic ranges on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand will not be considered.
 #'
-#' @details
-#'
-#' These functions are given to the \code{mode} parameter of the
+#' @details These functions are given to the \code{mode} parameter of the
 #' \code{\link{qtex}()} function and are similar to the functions
 #' \code{\link[GenomicAlignments]{Union}()} and
 #' \code{\link[GenomicAlignments]{IntersectionStrict}()} from the
@@ -39,6 +37,9 @@
 #' more than one feature. For this same reason, these functions lack
 #' the \code{inter.feature} argument found in the corresponding functions
 #' from the \code{GenomicAlignments} package.
+#'
+#' @value A \code{Hits} object; see the \code{\link[S4Vectors]{Hits-class}}
+#' manual page.
 #'
 #' @importFrom GenomicAlignments findOverlaps
 #' @importFrom S4Vectors countQueryHits
