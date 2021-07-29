@@ -64,7 +64,7 @@ Quantification of TE expression with `atena` consists in the following two steps
 
 ## Building a parameter object for ERVmap
 
-To use the ERVmap method in `atena` we should first build an object of the class `ERVmapParam` using the function `ERVmapParam()`. In the example below, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` parameter is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` parameter works analogously to the same parameter in the function `summarizeOverlaps()` from package `r BiocPkg("GenomicAlignments")` and should be set to `TRUE` whenever the RNA library preparation protocol was stranded.
+To use the ERVmap method in `atena` we should first build an object of the class `ERVmapParam` using the function `ERVmapParam()`. In the example below, the annotations of 3,220 HERVs included in this package are used. The `singleEnd` parameter is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` parameter works analogously to the same parameter in the function `summarizeOverlaps()` from package `r Biocpkg("GenomicAlignments")` and should be set to `TRUE` whenever the RNA library preparation protocol was stranded.
 
 One of the filters applied by the ERVmap method compares the alignment score of a given primary alignment, stored in the `AS` tag of a SAM record, to the largest alignment score among every other secondary alignment, known as the suboptimal alignment score. The original ERVmap software assumes that input BAM files are generated using the Burrows-Wheeler Aligner (BWA) software [@li2009fast], which stores suboptimal alignment scores in the `XS` tag. Although `AS` is an optional tag, most short-read aligners provide this tag with alignment scores in BAM files. However, the suboptimal alignment score, stored in the `XS` tag by BWA, is either stored in a different tag or not stored at all by other short-read aligner software, such as STAR [@dobin2013star].
 
@@ -95,7 +95,7 @@ empar
 
 In the case of paired-end BAM files (`singleEnd=FALSE`), two additional arguments can be specified, `strandMode` and `fragments`:
 
-* `strandMode` defines the behavior of the strand getter when internally reading the BAM files with the `GAlignmentPairs()` function. See the help page of `strandMode` in the `r BiocPkg("GenomicAlignments")` package for further details.
+* `strandMode` defines the behavior of the strand getter when internally reading the BAM files with the `GAlignmentPairs()` function. See the help page of `strandMode` in the `r Biocpkg("GenomicAlignments")` package for further details.
  
 * `fragments` controls how read filtering and counting criteria are applied to the read mates in a paired-end read. To use the original ERVmap algorithm [@tokuyama2018ervmap] one should set `fragments=TRUE` (default when `singleEnd=FALSE`), which filters and counts each mate of a paired-end read independently (i.e., two read mates overlapping the same feature count twice on that feature, treating paired-end reads as if they were single-end). On the other hand, when `fragments=FALSE`, if the two read mates pass the filtering criteria and overlap the same feature, they count once on that feature. If either read mate fails to pass the filtering criteria, then both read mates are discarded.
 
