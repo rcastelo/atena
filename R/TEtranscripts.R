@@ -290,7 +290,12 @@ setMethod("qtex", "TEtranscriptsParam",
     ## use the estimated transcript expression probabilities
     ## to finally distribute ambiguously mapping reads
     probmassbyread <- as.vector(ovalnmat %*% Pi) 
-    cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+    # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+    # sparce version of the previous commented line, improves memory consumption
+    wh <- which(ovalnmat, arr.ind=TRUE)
+    cntvecovtx <- rep(0, length(tx_idx))
+    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"], FUN=sum)
+    cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
   }
   
