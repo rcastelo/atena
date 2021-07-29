@@ -112,6 +112,7 @@
 #'
 #' @importFrom methods is new
 #' @export
+#' @rdname ERVmapParam-class
 ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                         geneFeatures=NA,
                         singleEnd=TRUE,
@@ -142,7 +143,9 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
 
 #' @param object A \linkS4class{ERVmapParam} object.
 #'
+#' @importFrom methods show
 #' @importFrom GenomeInfoDb seqlevels
+#'
 #' @export
 #' @aliases show,ERVmapParam-method
 #' @rdname ERVmapParam-class

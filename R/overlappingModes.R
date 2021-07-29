@@ -38,8 +38,15 @@
 #' the \code{inter.feature} argument found in the corresponding functions
 #' from the \code{GenomicAlignments} package.
 #'
-#' @value A \code{Hits} object; see the \code{\link[S4Vectors]{Hits-class}}
+#' @return A \code{Hits} object; see the \code{\link[S4Vectors]{Hits-class}}
 #' manual page.
+#'
+#' @examples
+#' bamfiles <- list.files(system.file("extdata", package="atena"),
+#'                        pattern="*.bam", full.names=TRUE)
+#' annot <- Telescope_ann()
+#' tspar <- TelescopeParam(bamfiles, annot)
+#' tsSE <- qtex(tspar, mode=ovIntersectionStrict)
 #'
 #' @importFrom GenomicAlignments findOverlaps
 #' @importFrom S4Vectors countQueryHits

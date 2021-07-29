@@ -93,6 +93,13 @@ quantification will be selected depending on the specific
 sub-class of input \code{AtenaParam} object, see argument
 \code{x} above.
 }
+\examples{
+bamfiles <- list.files(system.file("extdata", package="atena"),
+                       pattern="*.bam", full.names=TRUE)
+annot <- Telescope_ann()
+tspar <- TelescopeParam(bamfiles, annot)
+tsSE <- qtex(tspar)
+}
 \references{
 Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
 endogenous retroviruses. PNAS, 115(50):12565-12572, 2018.

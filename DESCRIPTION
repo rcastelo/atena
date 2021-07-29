@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 0.99.33
+Version: 0.99.34
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
@@ -13,14 +13,12 @@ Description: Quantify expression of transposable elements (TEs) from RNA-seq dat
     allows one to quantify TEs and gene transcripts in an integrated manner.
 License: Artistic-2.0
 Encoding: UTF-8
-LazyData: false
 Depends:
     R (>= 4.1),
     SummarizedExperiment
 Imports: 
     methods,
     stats,
-    utils,
     Matrix,
     BiocGenerics,
     BiocParallel,
@@ -30,7 +28,6 @@ Imports:
     GenomicAlignments,
     Rsamtools,
     GenomeInfoDb,
-    reticulate,
     SQUAREM,
     sparseMatrixStats
 Suggests:

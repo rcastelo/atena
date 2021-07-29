@@ -171,7 +171,7 @@ ttpar_gen
 Let's see the result of the gene annotation processing:
 
 ```{r}
-ttpar_gen@features[!attributes(ttpar_gen@features)$isTE$isTE]
+features(ttpar_gen)[!attributes(features(ttpar_gen))$isTE$isTE]
 ```
 
 

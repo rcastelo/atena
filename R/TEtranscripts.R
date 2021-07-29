@@ -86,6 +86,7 @@
 #' @importFrom methods is new
 #' @importFrom Rsamtools BamFileList
 #' @export
+#' @rdname TEtranscriptsParam-class
 TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
                                geneFeatures=NA,
                                singleEnd=TRUE,

@@ -4,12 +4,24 @@
 \name{AtenaParam-class}
 \alias{AtenaParam-class}
 \alias{path,AtenaParam-method}
+\alias{features,AtenaParam-method}
+\alias{features}
 \title{Atena parameter class}
 \usage{
 \S4method{path}{AtenaParam}(object)
+
+\S4method{features}{AtenaParam}(object)
 }
 \arguments{
 \item{object}{A \linkS4class{AtenaParam} object.}
+}
+\value{
+\code{path()}: Filesystem paths to the BAM files in the input
+parameter object.
+
+code{features()}: The \code{GenomicRanges} or
+\code{GenomicRangesList} object with the features in the input parameter
+object.
 }
 \description{
 This is a virtual class from which other classes are derived
@@ -27,6 +39,14 @@ transposable elements from RNA-seq data.
 to be used to aggregate quantifications.}
 }}
 
+\examples{
+bamfiles <- list.files(system.file("extdata", package="atena"),
+                       pattern="*.bam", full.names=TRUE)
+annot <- ERVmap_ann()
+ttpar <- TEtranscriptsParam(bfl = bamfiles, teFeatures = annot, singleEnd = TRUE)
+path(ttpar)
+
+}
 \seealso{
 \code{\link{ERVmapParam-class}}
 \code{\link{TelescopeParam-class}}

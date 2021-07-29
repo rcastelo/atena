@@ -3,17 +3,102 @@
 \docType{class}
 \name{TEtranscriptsParam-class}
 \alias{TEtranscriptsParam-class}
+\alias{TEtranscriptsParam}
 \alias{show,TEtranscriptsParam-method}
 \title{TEtranscripts parameter class}
 \usage{
+TEtranscriptsParam(
+  bfl,
+  teFeatures,
+  aggregateby = character(0),
+  geneFeatures = NA,
+  singleEnd = TRUE,
+  ignoreStrand = FALSE,
+  strandMode = 1L,
+  fragments = FALSE,
+  tolerance = 1e-04,
+  maxIter = 100L
+)
+
 \S4method{show}{TEtranscriptsParam}(object)
 }
 \arguments{
+\item{bfl}{a character string vector of BAM file names.}
+
+\item{teFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+TE annotated features to be quantified. Elements in this object should have
+names, which are used as a grouping factor for genomic ranges forming a
+common locus, unless other metadata column names are specified in the
+\code{aggregateby} parameter.}
+
+\item{aggregateby}{Character vector with column names from the annotation
+to be used to aggregate quantifications. By default, this is an empty vector,
+which means that the names of the input \code{GRanges} or \code{GRangesList}
+object given in the \code{teFeatures} parameter are used to aggregate
+quantifications.}
+
+\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+gene annotated features to be quantified. Following the TEtranscripts
+algorithm, overlaps with unique reads are first tallied with respect to these
+gene features. Elements should have names indicating the gene name/id. In 
+case that \code{geneFeatures} contains a metadata column named \code{type},
+only the elements with \code{type} = \code{exon} are considered for the
+analysis. Then, exon counts are summarized to the gene level.}
+
+\item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
+(\code{TRUE}) or paired-end (\code{FALSE}).}
+
+\item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
+should be taken into consideration when computing the overlap between reads
+and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+is considered to be overlapping an annotated feature as long as they
+have a non-empty intersecting genomic range on the same strand, while when
+\code{ignoreStrand = TRUE} the strand is not considered.}
+
+\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
+The strand mode is a per-object switch on
+\code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+objects that controls the behavior of the strand getter. See
+\code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+is ignored.}
+
+\item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
+When \code{fragments=FALSE} (default), the read-counting method only counts 
+‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+are also counted. For further details see
+\code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
+
+\item{tolerance}{A positive numeric scalar storing the minimum tolerance
+above which the SQUAREM algorithm (Du and Varadhan, 2020) keeps iterating.
+Default is \code{1e-4} and this value is passed to the \code{tol} parameter
+of the \code{\link[SQUAREM]{squarem}()} function.}
+
+\item{maxIter}{A positive integer scalar storing the maximum number of
+iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
+is 100 and this value is passed to the \code{maxiter} parameter of the
+\code{\link[SQUAREM]{squarem}()} function.}
+
 \item{object}{A \linkS4class{TEtranscriptsParam} object.}
 }
+\value{
+A \linkS4class{TEtranscriptsParam} object.
+}
 \description{
-This is a class for storing parameters provided to the TEtranscripts algorithm.
-It is a subclass of the 'AtenaParam-class'.
+This is a class for storing parameters provided to the TEtranscripts
+algorithm. It is a subclass of the 'AtenaParam-class'.
+
+Build an object of the class \code{TEtranscriptsParam}
+}
+\details{
+This is the constructor function for objects of the class
+\code{TEtranscriptsParam-class}. This type of object is the input to the
+function \code{\link{qtex}()} for quantifying expression of transposable
+elements using the TEtranscripts method
+\href{https://doi.org/10.1093/bioinformatics/btv422}{Jin et al. (2015)}. The
+TEtranscripts algorithm quantifies TE expression by using an EM algorithm
+to optimally distribute ambiguously mapped reads.
 }
 \section{Slots}{
 
@@ -53,7 +138,20 @@ is 100 and this value is passed to the \code{maxiter} parameter of the
 \code{\link[SQUAREM]{squarem}()} function.}
 }}
 
+\examples{
+bamfiles <- list.files(system.file("extdata", package="atena"),
+                       pattern="*.bam", full.names=TRUE)
+annot <- ERVmap_ann()
+ttpar <- TEtranscriptsParam(bfl = bamfiles, teFeatures = annot, singleEnd = TRUE)
+ttpar
+
+}
 \references{
+Jin Y et al. TEtranscripts: a package for including transposable elements
+in differential expression analysis of RNA-seq datasets.
+Bioinformatics. 2015;31(22):3593-3599. DOI:
+\url{https://doi.org/10.1093/bioinformatics/btv422}
+
 Jin Y et al. TEtranscripts: a package for including transposable elements
 in differential expression analysis of RNA-seq datasets.
 Bioinformatics. 2015;31(22):3593-3599. DOI:

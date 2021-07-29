@@ -22,6 +22,10 @@ will be considered to be overlapping an annotated feature as long as they
 have a non-empty intersecting genomic ranges on the same strand, while when
 \code{ignoreStrand = TRUE} the strand will not be considered.}
 }
+\value{
+A \code{Hits} object; see the \code{\link[S4Vectors]{Hits-class}}
+manual page.
+}
 \description{
 The following functions control the way in which overlaps between
 aligned reads and annotated features are resolved when an aligned
@@ -38,8 +42,6 @@ read overlaps more than one feature on the same locus:
 
 They take the following parameters:
 
-
-
 These functions are given to the \code{mode} parameter of the
 \code{\link{qtex}()} function and are similar to the functions
 \code{\link[GenomicAlignments]{Union}()} and
@@ -51,4 +53,12 @@ algorithms that follow some specific strategy when a read maps to
 more than one feature. For this same reason, these functions lack
 the \code{inter.feature} argument found in the corresponding functions
 from the \code{GenomicAlignments} package.
+}
+\examples{
+bamfiles <- list.files(system.file("extdata", package="atena"),
+                       pattern="*.bam", full.names=TRUE)
+annot <- Telescope_ann()
+tspar <- TelescopeParam(bamfiles, annot)
+tsSE <- qtex(tspar, mode=ovIntersectionStrict)
+
 }
