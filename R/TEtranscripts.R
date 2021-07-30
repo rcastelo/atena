@@ -296,7 +296,8 @@ setMethod("qtex", "TEtranscriptsParam",
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     # sparce version of the previous commented line, improves memory consumption
     wh <- which(ovalnmat, arr.ind=TRUE)
-    cntvecovtx <- rep(0, length(tx_idx))
+    #cntvecovtx <- rep(0, length(tx_idx))
+    cntvecovtx <- rep(0, ncol(ovalnmat))
     x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"], FUN=sum)
     cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
@@ -387,28 +388,32 @@ setMethod("qtex", "TEtranscriptsParam",
 
 
 ## private function .correctPreference()
-## Corrects ovalnmat for preference of unique/multi-mapping reads to genes/TEs, respectively
+## Corrects ovalnmat for preference of unique/multi-mapping reads to genes/TEs,
+## respectively
 .correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
+  indx <- (rowSums(ovalnmat[,istex]) > 0) & (rowSums(ovalnmat[,!istex]) > 0)
+  
   ## Assigning unique reads mapping to both a TE and a gene as gene counts
-  # which unique reads overlap to both genes and TEs?
-  idxu <- (rowSums(ovalnmat[maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[maskuniqaln[mt],!istex]) > 0)
-  # Removing overlaps of unique reads to TEs if they also overlap a gene
-  if (length(idxu)>0) {
-    ovalnmat[maskuniqaln[mt],][idxu,istex] <- FALSE
+  # Which unique reads overlap to both genes and TEs?
+  idxu <- indx & maskuniqaln[mt]
+  if (any(idxu)) {
+    ovalnmat[idxu,istex] <- FALSE
   }
   
   ## Removing overlaps of multi-mapping reads to genes if at least one 
   ## alignment of the read overlaps a TE
-  idxm <- rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0 # could be changed to: (rowSums(ovalnmat[!maskuniqaln[mt],istex]) > 0) & (rowSums(ovalnmat[!maskuniqaln[mt],!istex]) > 0)
-  if (length(idxm)>0) {
-    ovalnmat[!maskuniqaln[mt],][idxm,!istex] <- FALSE
+  idxm <- indx & !maskuniqaln[mt]
+  if (any(idxm)) {
+    ovalnmat[idxm,!istex] <- FALSE
   }
+
   ovalnmat
 }
 
 
 ## private function .countMultiReadsGenes()
-## Counts multi-mapping reads mapping to multiple genes by counting fraction counts
+## Counts multi-mapping reads mapping to multiple genes by counting fraction 
+## counts
 .countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste, istex, tx_idx, readids, alnreadids, ov, uniqcnt) {
   ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
   yesg <- rowSums(ovalnmat_multig)>0
