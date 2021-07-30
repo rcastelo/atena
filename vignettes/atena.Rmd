@@ -37,7 +37,7 @@ TE expression has been observed in association with physiological processes in a
 
 # Currently available methods for quantifying TE expression
 
-The study of TE expression faces one main challenge: given their repetitive nature, the majority of TE-derived reads map to multiple regions of the genome and these multi-mapping reads are consequently discarded in standard RNA-seq data processing pipelines. For this reason, specific software packages for the quantification of TE expression have been developed [@goerner2018computational], such as TEtranscripts [jin2015tetranscripts], ERVmap [@tokuyama2018ervmap] and Telescope [@bendall2019telescope]. The main differences between these three methods are the following: 
+The study of TE expression faces one main challenge: given their repetitive nature, the majority of TE-derived reads map to multiple regions of the genome and these multi-mapping reads are consequently discarded in standard RNA-seq data processing pipelines. For this reason, specific software packages for the quantification of TE expression have been developed [@goerner2018computational], such as TEtranscripts [@jin2015tetranscripts], ERVmap [@tokuyama2018ervmap] and Telescope [@bendall2019telescope]. The main differences between these three methods are the following: 
 
 * [TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts) reassigns multi-mapping reads to TEs proportionally to their relative abundance, which is estimated using an expectation-maximization (EM) algorithm.
 
@@ -61,6 +61,8 @@ Quantification of TE expression with `atena` consists in the following two steps
 
 2. Calling the TE expression quantification method `qtex()` using the previously
    built parameter object.
+   
+The dataset that will be used to quantify TE expression is a published RNA-seq dataset of _Drosophila_ available at the National Center for Biotechnology Information (NCBI) Gene Expression Omnibus (accession no. GSE47006, https://www.ncbi.nlm.nih.gov). The two selected samples are: piwi knockdown and piwi control (GSM1142845 and GSM1142844). The piwi-associated silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the knockdown of piwi causes the de-repression of TEs.
 
 ## Building a parameter object for ERVmap
 
@@ -76,7 +78,7 @@ To enable using ERVmap on BAM files produced by short-read aligner software othe
 
 * The value "auto" (default), by which `atena` will first extract the name of the short-read aligner software from the BAM file and if that software is BWA, then suboptimal alignment scores will be obtained from the `XS` tag. Otherwise, it will trigger the calculation previously explained for `suboptimalAlignemntTag="none"`.
 
-Finally, this filter is applied by comparing the difference between alignment and suboptimal alignment scores to a cutoff value, which by default is 5 but which can be modified using the parameter `suboptimalAlignmentCutoff`. The default value 5 is the one employed in the original ERVmap software that assumes the BAM file was generated with BWA and for which lower values are interpreted as "equivalent to second best match has one or more mismatches than the best match" [@tokuyama2018ervmap, pg. 12571]. From a different perspective, in BWA the mismatch penalty has a value of 4 and therefore, a `suboptimalAlignmentCutoff` value of 5 only retains those reads where the suboptimal alignment has at least 1 mismatch more than the best match. Therefore, the `suboptimalAlignmentCutoff` value is specific to the short-read mapper software and we recommend to set this value according to the mismatch penalty of that software.
+Finally, this filter is applied by comparing the difference between alignment and suboptimal alignment scores to a cutoff value, which by default is 5 but which can be modified using the parameter `suboptimalAlignmentCutoff`. The default value 5 is the one employed in the original ERVmap software that assumes the BAM file was generated with BWA and for which lower values are interpreted as "equivalent to second best match has one or more mismatches than the best match" [@tokuyama2018ervmap, pg. 12571]. From a different perspective, in BWA the mismatch penalty has a value of 4 and therefore, a `suboptimalAlignmentCutoff` value of 5 only retains those reads where the suboptimal alignment has at least 1 mismatch more than the best match. Therefore, the `suboptimalAlignmentCutoff` value is specific to the short-read mapper software and we recommend to set this value according to the mismatch penalty of that software. Another option is to set `suboptimalAlignmentCutoff=NA`, which prevents the filtering of reads based on this criteria, as set in the following example.
 
 ```{r, message=FALSE, warning=FALSE}
 library(atena)
@@ -87,9 +89,10 @@ library(GenomicRanges)
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-annot_erv <- ERVmap_ann()
-empar <- ERVmapParam(bamfiles, teFeatures = annot_erv, singleEnd = TRUE, 
-                     ignoreStrand = TRUE)
+TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+                                       package="atena"))
+empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
+                     ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
 empar
 ```
 
@@ -114,13 +117,17 @@ To use the Telescope method for TE expression quantification, the `TelescopePara
 
 As in the case of `ERVmapParam()`, the `aggregateby` argument, which should be a character vector of column names in the annotation, determines the columns to be used to aggregate TE expression quantifications. This way, `atena` provides not only quantifications at the subfamily level, but also allows to quantify TEs at the desired level (family, class, etc.), including locus based quantifications. For such a use case, the object with the TE annotations should include a column with unique identifiers for each TE locus and the `aggregateby` argument should specify the name of that column. When `aggregateby` is not specified, the `names()` of the object containing TE annotations are used to aggregate quantifications.
 
-Here, the Telescope annotations will be used and TE quantifications will be aggregated according to the `names()` of the `annot_tel` object.
+Here, the Telescope annotations will be used and TE quantifications will be aggregated according to the `names()` of the `TE_annot` object.
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-annot_tel <- Telescope_ann(type = "all", version = "hg38")
-tspar <- TelescopeParam(bfl=bamfiles, teFeatures=annot_tel,
+TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+                                       package="atena"))
+gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
+                                         package="atena"))
+tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
+                        geneFeatures = gene_annot,
                         singleEnd = TRUE, ignoreStrand=TRUE)
 tspar
 ```
@@ -139,8 +146,9 @@ Here, the Telescope annotations will be used and TE quantifications will be aggr
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-annot_tel <- Telescope_ann(type = "all", version = "hg38")
-ttpar <- TEtranscriptsParam(bamfiles, teFeatures = annot_tel, singleEnd = TRUE, 
+TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+                                       package="atena"))
+ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
                             ignoreStrand=TRUE, aggregateby = c("repName"))
 
 ttpar
@@ -154,7 +162,7 @@ Following the gene annotation processing present in the TEtranscripts algorithm,
 
 ```{r}
 # Creating an example of gene annotations
-annot_gen <- GRanges(seqnames = rep("chr1",10),
+annot_gen <- GRanges(seqnames = rep("2L",10),
                      ranges = IRanges(start = c(1,20,45,80,110,130,150,170,200,220),
                                       width = c(10,20,35,10,5,15,10,25,5,20)),
                      strand = "*", 
@@ -162,7 +170,7 @@ annot_gen <- GRanges(seqnames = rep("chr1",10),
 # Setting gene ids
 names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,3)))
 annot_gen
-ttpar_gen <- TEtranscriptsParam(bamfiles, teFeatures = annot_erv, 
+ttpar_gen <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, 
                                 geneFeatures = annot_gen, singleEnd = TRUE, 
                                 ignoreStrand=TRUE)
 ttpar_gen
@@ -211,7 +219,7 @@ ttq
 colSums(assay(ttq))
 ```
 
-As mentioned, TE expression quantification is provided at the repeat name level. The expression levels of the initial 72169 TE features have been a aggregated into 229 elements with different repeat names.
+As mentioned, TE expression quantification is provided at the repeat name level. All 28 TE features share the same repeat name. This, the expression levels of the initial 28 TE features have been a aggregated into 1 element with repeat name _ROO_LTR_.
 
 ```{r}
 nrow(ttq)

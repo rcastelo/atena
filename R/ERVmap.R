@@ -71,9 +71,7 @@
 #' of the third ERVmap filter. When \code{suboptimalAlignmentTag="none"}, it also 
 #' performs the latter approach even when the tag \code{XS} is available. When
 #' this parameter is different from \code{"auto"} and \code{"none"}, a tag
-#' with the given name is used to extract the suboptimal alignment score. 
-#' Finally, if \code{suboptimalAlignmentTag=NA}, the third filter of ERVmap is 
-#' not applied to the data.
+#' with the given name is used to extract the suboptimal alignment score.
 #'
 #' @param suboptimalAlignmentCutoff (Default 5) Numeric value storing the cutoff
 #' above which the difference between the alignment score and the suboptimal
@@ -101,8 +99,10 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' annot <- ERVmap_ann()
-#' empar <- ERVmapParam(bamfiles, annot, singleEnd = TRUE)
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#'                     package="atena"))
+#' empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
+#'                      ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
 #' empar
 #'
 #' @references

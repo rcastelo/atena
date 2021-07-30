@@ -22,8 +22,10 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' annot <- ERVmap_ann()
-#' ttpar <- TEtranscriptsParam(bfl = bamfiles, teFeatures = annot, singleEnd = TRUE)
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#'                     package="atena"))
+#' ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE, 
+#'                             ignoreStrand=TRUE, aggregateby = c("repName"))
 #' path(ttpar)
 #'
 #' @name AtenaParam-class

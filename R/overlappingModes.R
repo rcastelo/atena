@@ -44,8 +44,10 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' annot <- Telescope_ann()
-#' tspar <- TelescopeParam(bamfiles, annot)
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#'                     package="atena"))
+#' tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
+#'                         singleEnd = TRUE, ignoreStrand=TRUE)
 #' tsSE <- qtex(tspar, mode=ovIntersectionStrict)
 #'
 #' @importFrom GenomicAlignments findOverlaps

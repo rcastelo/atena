@@ -101,6 +101,7 @@
 ##                           counts.
 
 #' @importFrom S4Vectors mcols Rle DataFrame
+#' @importFrom GenomeInfoDb seqlevels<- seqlevels
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
                              geneFeaturesobjname, aggregateby, aggregateexons) {
 
@@ -141,7 +142,11 @@
 
     if (is(geneFeatures, "GRangesList"))
       geneFeatures <- unlist(geneFeatures)
-
+    
+    
+    slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
+    seqlevels(teFeatures) <- slev
+    seqlevels(geneFeatures) <- slev
     features <- c(teFeatures, geneFeatures)
     temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
     temask[1:length(teFeatures)] <- TRUE
@@ -152,11 +157,13 @@
   
   ## Aggregating exons into genes for TEtranscripts gene annotations
   iste <- as.vector(features$isTE)
-  if (aggregateexons & !all(iste) & !is.null(mcols(features)$type)) {
-    iste <- aggregate(iste, by = list(names(features)), unique)
-    features <- .groupGeneExons(features)
-    mtname <- match(names(features), iste$Group.1)
-    iste <- iste[mtname,"x"]
+  if (!all(is.na(geneFeatures))) {
+    if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
+      iste <- aggregate(iste, by = list(names(features)), unique)
+      features <- .groupGeneExons(features)
+      mtname <- match(names(features), iste$Group.1)
+      iste <- iste[mtname,"x"]
+    }
   }
   attr(features, "isTE") <- DataFrame("isTE" = iste)
   
