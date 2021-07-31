@@ -313,7 +313,10 @@ setMethod("qtex", "TelescopeParam",
 ## E-step of the EM algorithm of Telescope
 .tsEstep <- function(Q, Theta, maskmulti, Pi) {
   X <- t(t(Q) * Pi)
-  X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+  # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+  # quicker computation of previous line
+  wh <- which(X*maskmulti > 0, arr.ind = TRUE)
+  X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
   X <- X[rowSums(X)>0,, drop=FALSE]
   X <- X / rowSums(X)
   X
