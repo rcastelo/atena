@@ -294,11 +294,11 @@ setMethod("qtex", "TEtranscriptsParam",
     ## to finally distribute ambiguously mapping reads
     probmassbyread <- as.vector(ovalnmat %*% Pi) 
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
-    # sparce version of the previous commented line, improves memory consumption
+    # sparce version of the previous commented line, improves memory usage
     wh <- which(ovalnmat, arr.ind=TRUE)
-    #cntvecovtx <- rep(0, length(tx_idx))
-    cntvecovtx <- rep(0, ncol(ovalnmat))
-    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"], FUN=sum)
+    cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
+    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"], 
+                FUN=sum, na.rm=TRUE)
     cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
   }
