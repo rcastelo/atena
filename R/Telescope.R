@@ -204,7 +204,6 @@ setMethod("qtex", "TelescopeParam",
   
   ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
-  avgreadlen <- integer()
   asvalues <- integer()
   
   strand_arg <- "strandMode" %in% formalArgs(readfun)
@@ -214,7 +213,6 @@ setMethod("qtex", "TelescopeParam",
                                                list(param=param), 
                                                list(strandMode=tspar@strandMode)[strand_arg], 
                                                list(use.names=TRUE))))) {
-    avgreadlen <- c(avgreadlen, width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
     asvalues <- c(asvalues, mcols(alnreads)$AS)
     thisov <- suppressWarnings(mode(alnreads, tspar@features, 
