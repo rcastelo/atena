@@ -397,14 +397,18 @@ setMethod("qtex", "TEtranscriptsParam",
   # Which unique reads overlap to both genes and TEs?
   idxu <- indx & maskuniqaln[mt]
   if (any(idxu)) {
-    ovalnmat[idxu,istex] <- FALSE
+    # ovalnmat[idxu,istex] <- FALSE
+    whu <- which(ovalnmat[idxu,istex], arr.ind = TRUE)
+    ovalnmat[whu] <- FALSE
   }
   
   ## Removing overlaps of multi-mapping reads to genes if at least one 
   ## alignment of the read overlaps a TE
   idxm <- indx & !maskuniqaln[mt]
   if (any(idxm)) {
-    ovalnmat[idxm,!istex] <- FALSE
+    # ovalnmat[idxm,!istex] <- FALSE
+    whm <- which(ovalnmat[idxm,!istex], arr.ind = TRUE)
+    ovalnmat[whm] <- FALSE
   }
 
   ovalnmat
