@@ -282,15 +282,13 @@ setMethod("qtex", "TelescopeParam",
   X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
   maxbyrow <- rowMaxs(X)
   # Xind <- X == maxbyrow
-  # nmaxbyrow <- rowSums(Xind)
-  # cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
-  # Quicker version of the previous 3 lines
-  Xind2 <- round(X, digits = 0)
-  Xind02 <- rowSums(Xind2) == 0
-  X <- X[Xind02,] == maxbyrow[Xind02]
+  # Quicker version of the previous line
+  Xind <- (X / maxbyrow) == 1
+  nmaxbyrow <- rowSums(Xind)
+  
   # Do not differenciate between TEs and genes with istex because in Telescope 
   # genes are also included in the EMstep.
-  cntvec[tx_idx] <- colSums(X[rowSums(X)==1,]) + colSums(Xind2[rowSums(Xind2)==1,])
+  cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
   
   names(cntvec) <- names(tspar@features)
   cntvec_t <- cntvec[iste]
