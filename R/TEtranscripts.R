@@ -388,8 +388,8 @@ setMethod("qtex", "TEtranscriptsParam",
 
 
 ## private function .correctPreference()
-## Corrects ovalnmat for preference of unique/multi-mapping reads to genes/TEs,
-## respectively
+## Corrects ovalnmat for preference of unique/multi-mapping reads to 
+## genes/TEs, respectively
 .correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
   indx <- (rowSums(ovalnmat[,istex]) > 0) & (rowSums(ovalnmat[,!istex]) > 0)
   
@@ -399,7 +399,8 @@ setMethod("qtex", "TEtranscriptsParam",
   if (any(idxu)) {
     # ovalnmat[idxu,istex] <- FALSE
     whu <- which(ovalnmat[idxu,istex], arr.ind = TRUE)
-    ovalnmat[whu] <- FALSE
+    whudf <- cbind(which(idxu)[whu[,"row"]], which(istex)[whu[,"col"]])
+    ovalnmat[whudf] <- FALSE
   }
   
   ## Removing overlaps of multi-mapping reads to genes if at least one 
@@ -408,7 +409,8 @@ setMethod("qtex", "TEtranscriptsParam",
   if (any(idxm)) {
     # ovalnmat[idxm,!istex] <- FALSE
     whm <- which(ovalnmat[idxm,!istex], arr.ind = TRUE)
-    ovalnmat[whm] <- FALSE
+    whmdf <- cbind(which(idxm)[whm[,"row"]], which(!istex)[whm[,"col"]])
+    ovalnmat[whmdf] <- FALSE
   }
 
   ovalnmat
