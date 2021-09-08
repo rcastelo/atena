@@ -130,19 +130,19 @@ have a non-empty intersecting genomic range on the same strand, while when
 \code{ignoreStrand = TRUE} the strand is not considered.}
 
 \item{\code{fragments}}{(Default FALSE) A logical; applied to paired-end data only.
-When \code{fragments=FALSE} (default), the read-counting method only counts 
+When \code{fragments=FALSE} (default), the read-counting method only counts
 ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+same-strand pairs, singletons, reads with unmapped pairs and other fragments
 are also counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
-\item{\code{pi_prior}}{(Default 0) A positive integer scalar indicating the prior 
+\item{\code{pi_prior}}{(Default 0) A positive integer scalar indicating the prior
 on pi. This is equivalent to adding n unique reads.}
 
-\item{\code{theta_prior}}{(Default 0) A positive integer scalar storing the prior 
+\item{\code{theta_prior}}{(Default 0) A positive integer scalar storing the prior
 on Q. Equivalent to adding n non-unique reads.}
 
-\item{\code{em_epsilon}}{(Default 1e-7) A numeric scalar indicating the EM 
+\item{\code{em_epsilon}}{(Default 1e-7) A numeric scalar indicating the EM
 Algorithm Epsilon cutoff.}
 
 \item{\code{maxIter}}{A positive integer scalar storing the maximum number of
