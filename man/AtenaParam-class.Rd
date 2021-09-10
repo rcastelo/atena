@@ -19,7 +19,7 @@
 \code{path()}: Filesystem paths to the BAM files in the input
 parameter object.
 
-code{features()}: The \code{GenomicRanges} or
+\code{features()}: The \code{GenomicRanges} or
 \code{GenomicRangesList} object with the features in the input parameter
 object.
 }
@@ -42,9 +42,9 @@ to be used to aggregate quantifications.}
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
                     package="atena"))
-ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE, 
+ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE,
                             ignoreStrand=TRUE, aggregateby = c("repName"))
 path(ttpar)
 

@@ -29,7 +29,7 @@ options(width=80)
 
 # What are transposable elements
 
-Transposable elements (TEs) are autonomous mobile genetic elements. They are DNA sequences that have, or once had, the ability to mobilize within the genome either directly or through an RNA intermediate [@payer2019transposable]. TEs can be categorized into two classes based on the intermediate substrate propagating insertions (RNA or DNA). Class I TEs, also called retrotransposons, first transcribe an RNA copy that is then reverse transcribed to cDNA before inserting in the genome. In turn, these can be divided into long terminal repeat (LTR) retrotransposons, which refer to endogenous retroviruses (ERVs), and non-LTR retrotransposons, which include long interspersed element class 1 (LINE-1 or L1) and short interspersed elements (SINEs). Class II TEs, also known as DNA transposons, directly excise themselves from one location before reinsertion. TEs are further split into families and subfamilies depending on various structural features [@goerner2018computational,@guffanti2018novel].
+Transposable elements (TEs) are autonomous mobile genetic elements. They are DNA sequences that have, or once had, the ability to mobilize within the genome either directly or through an RNA intermediate [@payer2019transposable]. TEs can be categorized into two classes based on the intermediate substrate propagating insertions (RNA or DNA). Class I TEs, also called retrotransposons, first transcribe an RNA copy that is then reverse transcribed to cDNA before inserting in the genome. In turn, these can be divided into long terminal repeat (LTR) retrotransposons, which refer to endogenous retroviruses (ERVs), and non-LTR retrotransposons, which include long interspersed element class 1 (LINE-1 or L1) and short interspersed elements (SINEs). Class II TEs, also known as DNA transposons, directly excise themselves from one location before reinsertion. TEs are further split into families and subfamilies depending on various structural features [@goerner2018computational; @guffanti2018novel].
 
 Most TEs have lost the capacity for generating new insertions over their evolutionary history and are now fixed in the human population. Their insertions have resulted in a complex distribution of interspersed repeats comprising almost half (50%) of the human genome [@payer2019transposable].
 
@@ -217,7 +217,7 @@ ttq
 colSums(assay(ttq))
 ```
 
-As mentioned, TE expression quantification is provided at the repeat name level. All 28 TE features share the same repeat name. This, the expression levels of the initial 28 TE features have been a aggregated into 1 element with repeat name _ROO_LTR_.
+As mentioned, TE expression quantification is provided at the repeat name level. All 28 TE features share the same repeat name. Thus, the expression levels of the initial 28 TE features have been a aggregated into 1 element with repeat name _ROO_LTR_.
 
 ```{r}
 nrow(ttq)

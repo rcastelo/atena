@@ -22,9 +22,9 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
 #'                     package="atena"))
-#' ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE, 
+#' ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE,
 #'                             ignoreStrand=TRUE, aggregateby = c("repName"))
 #' path(ttpar)
 #'
@@ -55,7 +55,7 @@ setGeneric("features", function(object) standardGeneric("features"))
 
 #' @param object A \linkS4class{AtenaParam} object.
 #'
-#' @return code{features()}: The \code{GenomicRanges} or
+#' @return \code{features()}: The \code{GenomicRanges} or
 #' \code{GenomicRangesList} object with the features in the input parameter
 #' object.
 #'
@@ -73,9 +73,9 @@ setMethod("features", "AtenaParam",
 #' This is a class for storing parameters provided to the ERVmap algorithm.
 #' It is a subclass of the 'AtenaParam-class'.
 #'
-#' @slot readMapper The name of the software used to align reads, obtained from 
+#' @slot readMapper The name of the software used to align reads, obtained from
 #' the BAM file header.
-#' 
+#'
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
@@ -90,8 +90,8 @@ setMethod("features", "AtenaParam",
 #' @slot ignoreStrand (Default TRUE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
 #' and TEs in the annotations. When \code{ignore_strand = FALSE}, only those
-#' reads which overlap the TE and are on the same strand are counted. On the 
-#' contrary, when \code{ignore_strand = TRUE}, any read overlapping an element 
+#' reads which overlap the TE and are on the same strand are counted. On the
+#' contrary, when \code{ignore_strand = TRUE}, any read overlapping an element
 #' in \code{teFeatures} is counted regardless of the strand.
 #'
 #' @slot fragments (Default not \code{singleEnd}) A logical; applied to
@@ -102,7 +102,7 @@ setMethod("features", "AtenaParam",
 #' \code{fragments=FALSE}, if the two mates of a paired-end read map to the same
 #' element, they are counted as a single hit and singletons, reads with unmapped
 #' pairs and other fragments, are not counted.
-#' 
+#'
 #' @slot maxMismatchRate (Default 0.02) Numeric value storing the maximum
 #' mismatch rate employed by the ERVmap algorithm to discard aligned reads
 #' whose rate of sum of hard and soft clipping, or of the edit distance over
@@ -126,10 +126,10 @@ setMethod("features", "AtenaParam",
 #' alignment score is considered sufficiently large to retain the alignment.
 #' When this value is set to \code{NA}, then the filtering step based on
 #' suboptimal alignment scores is skipped.
-#' 
+#'
 #' @slot geneCountMode (Default "all") Character string indicating if the ERVmap
 #' read filters applied to quantify TEs expression should also be applied when
-#' quantifying gene expression ("ervmap") or not ("all"), in which case all 
+#' quantifying gene expression ("ervmap") or not ("all"), in which case all
 #' primary alignments mapping to genes are counted.
 #'
 #' @references
@@ -166,30 +166,30 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 #' is ignored.
-#' 
+#'
 #' @slot ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
 #' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
 #' is considered to be overlapping an annotated feature as long as they
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
-#' 
+#'
 #' @slot fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts 
+#' When \code{fragments=FALSE} (default), the read-counting method only counts
 #' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
 #' are also counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
-#' 
-#' @slot pi_prior (Default 0) A positive integer scalar indicating the prior 
+#'
+#' @slot pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
 #'
-#' @slot theta_prior (Default 0) A positive integer scalar storing the prior 
+#' @slot theta_prior (Default 0) A positive integer scalar storing the prior
 #' on Q. Equivalent to adding n non-unique reads.
 #'
-#' @slot em_epsilon (Default 1e-7) A numeric scalar indicating the EM 
+#' @slot em_epsilon (Default 1e-7) A numeric scalar indicating the EM
 #' Algorithm Epsilon cutoff.
-#' 
+#'
 #' @slot maxIter A positive integer scalar storing the maximum number of
 #' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
 #' is 100 and this value is passed to the \code{maxiter} parameter of the
@@ -242,7 +242,7 @@ setClass("TelescopeParam", contains="AtenaParam",
 #' count reads without mates, while when \code{fragments=FALSE} those reads
 #' will not be counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
-#' 
+#'
 #' @slot tolerance A positive numeric scalar storing the minimum tolerance
 #' above which the SQUAREM algorithm (Du and Varadhan, 2020) keeps iterating.
 #' Default is \code{1e-4} and this value is passed to the \code{tol} parameter

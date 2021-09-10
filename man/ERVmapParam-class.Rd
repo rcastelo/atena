@@ -131,7 +131,7 @@ to provide reliable raw count data for each TE.
 \section{Slots}{
 
 \describe{
-\item{\code{readMapper}}{The name of the software used to align reads, obtained from 
+\item{\code{readMapper}}{The name of the software used to align reads, obtained from
 the BAM file header.}
 
 \item{\code{singleEnd}}{(Default FALSE) Logical value indicating if reads are single
@@ -148,8 +148,8 @@ class for further detail. If \code{singleEnd = TRUE}, then
 \item{\code{ignoreStrand}}{(Default TRUE) A logical which defines if the strand
 should be taken into consideration when computing the overlap between reads
 and TEs in the annotations. When \code{ignore_strand = FALSE}, only those
-reads which overlap the TE and are on the same strand are counted. On the 
-contrary, when \code{ignore_strand = TRUE}, any read overlapping an element 
+reads which overlap the TE and are on the same strand are counted. On the
+contrary, when \code{ignore_strand = TRUE}, any read overlapping an element
 in \code{teFeatures} is counted regardless of the strand.}
 
 \item{\code{fragments}}{(Default not \code{singleEnd}) A logical; applied to
@@ -187,7 +187,7 @@ suboptimal alignment scores is skipped.}
 
 \item{\code{geneCountMode}}{(Default "all") Character string indicating if the ERVmap
 read filters applied to quantify TEs expression should also be applied when
-quantifying gene expression ("ervmap") or not ("all"), in which case all 
+quantifying gene expression ("ervmap") or not ("all"), in which case all
 primary alignments mapping to genes are counted.}
 }}
 
