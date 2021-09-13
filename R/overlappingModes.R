@@ -79,7 +79,7 @@ ovIntersectionStrict <- function(reads, features, ignoreStrand) {
     } else if (is(features, "GRangesList")) {
         regions <- disjoin(features@unlistData, ignore.strand=ignore.strand)
     } else {
-        stop("internal error")  # should never happen
+        stop("internal fail")  # should never happen
     }
     ov <- findOverlaps(features, regions,
                        ignore.strand=ignore.strand)

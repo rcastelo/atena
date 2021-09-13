@@ -119,8 +119,8 @@
 
   if (length(aggregateby) > 0)
     if (any(!aggregateby %in% colnames(mcols(teFeatures))))
-        stop(sprintf("%s not in metadata columns of the TE features object.",
-             paste(aggregateby[!aggregateby %in% colnames(mcols(teFeatures))])))
+           stop(sprintf("%s not in metadata columns of the TE features object.",
+               aggregateby[!aggregateby %in% colnames(mcols(teFeatures))]))
 
   if (is.null(names(teFeatures)) && length(aggregateby) == 0)
     stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
@@ -150,7 +150,7 @@
     seqlevels(geneFeatures) <- slev
     features <- c(teFeatures, geneFeatures)
     temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
-    temask[1:length(teFeatures)] <- TRUE
+    temask[seq_along(teFeatures)] <- TRUE
     features$isTE <- temask
   } else {
     features$isTE <- rep(TRUE, length(features))

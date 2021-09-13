@@ -215,8 +215,7 @@ setMethod("qtex", "TelescopeParam",
                                                list(use.names=TRUE))))) {
     alnreadids <- c(alnreadids, names(alnreads))
     asvalues <- c(asvalues, mcols(alnreads)$AS)
-    thisov <- suppressWarnings(mode(alnreads, tspar@features, 
-                                    ignoreStrand=tspar@ignoreStrand))
+    thisov <- mode(alnreads, tspar@features, ignoreStrand=tspar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
   }
   close(bf)
