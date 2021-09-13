@@ -610,18 +610,21 @@ setMethod("qtex", "ERVmapParam",
 .getAlignmentSumClipping <- function(aln) {
   sc <- NULL
   if (is(aln, "GAlignments"))
-    sc <- sapply(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")), sum)
+    sc <- vapply(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")), 
+                 FUN.VALUE = integer(1), FUN = sum)
   else if (is(aln, "GAlignmentPairs")) {
     ## take the ceiling of the mean of query widths from both mates
-    sc1 <- sapply(explodeCigarOpLengths(cigar(first(aln)), ops=c("H", "S")), sum)
-    sc2 <- sapply(explodeCigarOpLengths(cigar(second(aln)), ops=c("H", "S")), sum)
+    sc1 <- vapply(explodeCigarOpLengths(cigar(first(aln)), ops=c("H", "S")), 
+                  FUN.VALUE = integer(1), FUN = sum)
+    sc2 <- vapply(explodeCigarOpLengths(cigar(second(aln)), ops=c("H", "S")), 
+                  FUN.VALUE = integer(1), FUN = sum)
     sc1[is.na(sc1)] <- sc2[is.na(sc1)]
     sc2[is.na(sc2)] <- sc1[is.na(sc2)]
     sc <- ceiling((sc1 + sc2) / 2)
   } else if (is(aln, "GAlignmentsList")) {
-    sc <- sapply(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
+    sc <- vapply(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
                                        ops=c("H", "S")),
-                 sum)
+                 FUN.VALUE = integer(1), FUN = sum)
   } else
     stop(sprintf(".getAlignmentSumClipping: wrong class %s\n", class(aln)))
   
@@ -707,7 +710,7 @@ setMethod("qtex", "ERVmapParam",
 ## Find the suboptimal alignment score from the AS of the secondary alignments.
 .findSuboptAlignScore <- function(thisalnAS, thissalnmask, alnreadids, salnbestAS) {
   maxsaasbyreadid <- split(thisalnAS[thissalnmask], alnreadids[thissalnmask])
-  maxsaasbyreadid <- sapply(maxsaasbyreadid, max)
+  maxsaasbyreadid <- vapply(maxsaasbyreadid, FUN.VALUE = integer(1), FUN = max)
   mt <- match(names(maxsaasbyreadid), names(salnbestAS))
   if (any(is.na(mt))) {
     tmpas <- rep(NA_integer_, sum(is.na(mt)))

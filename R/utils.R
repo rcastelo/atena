@@ -30,7 +30,7 @@
     stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
 
   if (is.character(bfl)) {
-    mask <- sapply(bfl, file.exists)
+    mask <- vapply(bfl, FUN = file.exists, FUN.VALUE = logical(1))
     if (any(!mask))
       stop(sprintf("The following input BAM files cannot be found:\n%s",
                    paste(paste("  ", bfl[!mask]), collapse="\n")))
@@ -59,24 +59,25 @@
   if (missing(bamfiles) || !"character" %in% class(bamfiles))
     stop("argument 'bamfiles' should be a string character vector of BAM file names")
 
-  mask <- sapply(bamfiles, file.exists)
+  mask <- vapply(bamfiles, FUN = file.exists, FUN.VALUE = logical(1L))
   if (any(!mask))
     stop(sprintf("The following input BAM files cannot be found:\n%s",
                  paste(paste("  ", bamfiles[!mask]), collapse="\n")))
 
   hdr <- scanBamHeader(bamfiles)
-  readaligner <- sapply(hdr, function(x) {
+  readaligner <- vapply(hdr, FUN = function(x) {
                           ra <- NA_character_
                           if (!is.null(x$text[["@PG"]])) {
                             pgstr <- x$text[["@PG"]]
                             mt <- gregexpr("^PN:", pgstr)
-                            wh <- which(sapply(mt, function(x) x!=-1))
+                            wh <- which(vapply(mt, FUN = function(x) x!=-1,
+                                          FUN.VALUE = logical(1L)))
                             ra <- substr(pgstr[[wh]],
-                                         attr(mt[[wh]], "match.length")+1,
-                                         100000L)
+                                          attr(mt[[wh]], "match.length")+1,
+                                          100000L)
                           }
                           tolower(ra)
-                 })
+                 }, FUN.VALUE = character(1))
   readaligner <- readaligner[!duplicated(readaligner)]
   readaligner <- as.vector(readaligner[!is.na(readaligner)])
   if (length(readaligner) == 0)

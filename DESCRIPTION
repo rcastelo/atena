@@ -34,6 +34,6 @@ Suggests:
     BiocStyle,
     knitr,
     rmarkdown,
-biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software
+biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
