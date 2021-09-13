@@ -106,7 +106,7 @@
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
                              geneFeaturesobjname, aggregateby, aggregateexons) {
 
-  if (missing(teFeatures))
+  if (missing(teFeatures)) 
     stop("missing 'teFeatures' argument.")
 
   if (!exists(teFeaturesobjname))
@@ -127,47 +127,27 @@
                  teFeaturesobjname))
 
   features <- teFeatures
-  if (is(teFeatures, "GRangesList"))
+  if (is(teFeatures, "GRangesList")) 
     features <- unlist(teFeatures)
 
   if (!all(is.na(geneFeatures))) {
-    geneFeaturesobjname <- deparse(substitute(geneFeatures))
-    if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
-      stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                   geneFeaturesobjname))
-    if (any(names(geneFeatures) %in% names(teFeatures)))
-      stop("gene features have some common identifiers with the TE features.")
-
-    if (length(geneFeatures) == 0)
-      stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
-
-    if (is(geneFeatures, "GRangesList"))
+    if (is(geneFeatures, "GRangesList")) 
       geneFeatures <- unlist(geneFeatures)
     
-    
-    slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
-    seqlevels(teFeatures) <- slev
-    seqlevels(geneFeatures) <- slev
-    features <- c(teFeatures, geneFeatures)
-    temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
-    temask[seq_along(teFeatures)] <- TRUE
-    features$isTE <- temask
+    features <- .joinTEsGenes(teFeatures, geneFeatures)
   } else {
     features$isTE <- rep(TRUE, length(features))
   }
   
-  ## Aggregating exons into genes for TEtranscripts gene annotations
   iste <- as.vector(features$isTE)
-  if (!all(is.na(geneFeatures))) {
-    if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
-      iste <- aggregate(iste, by = list(names(features)), unique)
-      features <- .groupGeneExons(features)
-      mtname <- match(names(features), iste$Group.1)
-      iste <- iste[mtname,"x"]
-    }
+  if (!all(is.na(geneFeatures)) & aggregateexons & !all(iste) & 
+      !is.null(mcols(geneFeatures)$type)) {
+        iste <- aggregate(iste, by = list(names(features)), unique)
+        features <- .groupGeneExons(features)
+        mtname <- match(names(features), iste$Group.1)
+        iste <- iste[mtname,"x"]
   }
   attr(features, "isTE") <- DataFrame("isTE" = iste)
-  
   features
 }
 
@@ -304,4 +284,28 @@ f <- .factoraggregateby <- function(ann, aggby) {
                  nLnode=nLnode(hits1)+nLnode(hits2),
                  nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
   hits
+}
+
+
+#' @importFrom GenomeInfoDb seqlevels<- seqlevels
+.joinTEsGenes <- function(teFeatures, geneFeatures) {
+  
+  geneFeaturesobjname <- deparse(substitute(geneFeatures))
+  if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
+    stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+                 geneFeaturesobjname))
+  if (any(names(geneFeatures) %in% names(teFeatures)))
+    stop("gene features have some common identifiers with the TE features.")
+  
+  if (length(geneFeatures) == 0)
+    stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
+  
+  slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
+  seqlevels(teFeatures) <- slev
+  seqlevels(geneFeatures) <- slev
+  features <- c(teFeatures, geneFeatures)
+  temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
+  temask[seq_along(teFeatures)] <- TRUE
+  features$isTE <- temask
+  features
 }
