@@ -189,7 +189,6 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
   mode=match.fun(mode)
-  
   readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                          isDuplicate=FALSE,
@@ -197,22 +196,19 @@ setMethod("qtex", "TelescopeParam",
   param <- ScanBamParam(flag=sbflags, tag="AS")
   
   iste <- as.vector(attributes(tspar@features)$isTE[,1])
-  
   if (any(duplicated(names(tspar@features[iste])))) {
     stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
   }
-  
   ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
   alnreadids <- character(0)
   asvalues <- integer()
-  
   strand_arg <- "strandMode" %in% formalArgs(readfun)
   yieldSize(bf) <- yieldSize
   open(bf)
-  while (length(alnreads <- do.call(readfun, c(list(file = bf), 
-                                               list(param=param), 
-                                               list(strandMode=tspar@strandMode)[strand_arg], 
-                                               list(use.names=TRUE))))) {
+  while (length(alnreads <- do.call(readfun, 
+                                c(list(file = bf), list(param=param), 
+                                list(strandMode=tspar@strandMode)[strand_arg], 
+                                list(use.names=TRUE))))) {
     alnreadids <- c(alnreadids, names(alnreads))
     asvalues <- c(asvalues, mcols(alnreads)$AS)
     thisov <- mode(alnreads, tspar@features, ignoreStrand=tspar@ignoreStrand)
@@ -220,31 +216,34 @@ setMethod("qtex", "TelescopeParam",
   }
   close(bf)
   
-  ## create a logical mask for uniquely aligned-reads
   maskuniqaln <- !(duplicated(alnreadids) | 
                      duplicated(alnreadids, fromLast = TRUE))
-  
   ## fetch all different read identifiers from the overlapping alignments
   readids <- unique(alnreadids[queryHits(ov)])
-  
   ## fetch all different transcripts from the overlapping alignments
   tx_idx <- sort(unique(subjectHits(ov)))
   istex <- as.vector(iste[tx_idx])
-  
   ## build a matrix representation of the overlapping alignments
   ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
-  
-  ## store logical mask for multi-mapping reads for only those present in the 
-  ## ov matrix
   mt <- match(readids, alnreadids)
-  maskmulti <- !maskuniqaln[mt]
-  
+  maskmulti <- !maskuniqaln[mt] # multimapping reads present in the ov matrix
   if (!all(iste)) {
-    ## Correcting for preference of unique/multi-mapping reads to genes or TEs, respectively
+    ## Correcting for preference of unique/multimapping reads to genes/TEs
     ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
-    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 & rowSums(ovalnmat[,!istex]) > 0))
+    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 & 
+                     rowSums(ovalnmat[,!istex]) > 0))
   }
-  
+  cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx, 
+                      maskmulti, iste)
+  setNames(as.integer(cntvec), names(cntvec))
+}
+
+
+#' @importFrom S4Vectors Hits queryHits subjectHits
+#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom SQUAREM 
+.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx, 
+                      maskmulti, iste) {
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(tspar@features))
   
@@ -290,6 +289,12 @@ setMethod("qtex", "TelescopeParam",
   cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
   
   names(cntvec) <- names(tspar@features)
+  cntvec <- .tssummarizeCounts(cntvec, iste, tspar)
+  cntvec
+}
+
+
+.tssummarizeCounts <- function(cntvec, iste, tspar) {
   cntvec_t <- cntvec[iste]
   ## aggregate TE quantifications if necessary
   if (length(tspar@aggregateby) > 0) {
@@ -305,11 +310,8 @@ setMethod("qtex", "TelescopeParam",
     cntvec <- cntvec_t
   }
   
-  setNames(as.integer(cntvec), names(cntvec))
-  
+  cntvec
 }
-
-
 
 ## private function .tsEstep()
 ## E-step of the EM algorithm of Telescope
