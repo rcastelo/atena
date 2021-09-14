@@ -11,23 +11,24 @@
 #' \code{aggregateby} parameter.
 #'
 #' @param aggregateby Character vector with column names from the annotation
-#' to be used to aggregate quantifications. By default, this is an empty vector,
-#' which means that the names of the input \code{GRanges} or \code{GRangesList}
-#' object given in the \code{teFeatures} parameter are used to aggregate
-#' quantifications.
+#' to be used to aggregate quantifications. By default, this is an empty
+#' vector, which means that the names of the input \code{GRanges} or
+#' \code{GRangesList} object given in the \code{teFeatures} parameter are used
+#' to aggregate quantifications.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. Following the TEtranscripts
-#' algorithm, overlaps with unique reads are first tallied with respect to these
-#' gene features. Elements should have names indicating the gene name/id. In 
-#' case that \code{geneFeatures} contains a metadata column named \code{type},
-#' only the elements with \code{type} = \code{exon} are considered for the
-#' analysis. Then, exon counts are summarized to the gene level.
+#' algorithm, overlaps with unique reads are first tallied with respect to
+#' these gene features. Elements should have names indicating the gene name/id.
+#' In case that \code{geneFeatures} contains a metadata column named
+#' \code{type}, only the elements with \code{type} = \code{exon} are considered
+#' for the analysis. Then, exon counts are summarized to the gene level.
 #'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or
+#' 2.
 #' The strand mode is a per-object switch on
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #' objects that controls the behavior of the strand getter. See
@@ -43,9 +44,9 @@
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
 #' @param fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts 
+#' When \code{fragments=FALSE} (default), the read-counting method only counts
 #' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
 #' are also counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
@@ -73,10 +74,11 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
 #'                     package="atena"))
-#' ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
-#'                             ignoreStrand=TRUE, aggregateby = c("repName"))
+#' ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot,
+#'                             singleEnd = TRUE, ignoreStrand=TRUE,
+#'                             aggregateby = c("repName"))
 #' ttpar
 #'
 #' @references
@@ -121,14 +123,17 @@ setMethod("show", "TEtranscriptsParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# features (%s length %d): %s\n", class(object@features),
+            cat(sprintf("# features (%s length %d): %s\n",
+                        class(object@features),
                         length(object@features),
                         ifelse(is.null(names(object@features)),
-                               paste("on", .pprintnames(seqlevels(object@features))),
+                               paste("on",
+                                     .pprintnames(seqlevels(object@features))),
                                .pprintnames(names(object@features)))))
-            cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
-                                                        paste(object@aggregateby, collapse=", "),
-                                                        paste(class(object@features), "names"))))
+            cat(sprintf("# aggregated by: %s\n",
+                        ifelse(length(object@aggregateby) > 0,
+                               paste(object@aggregateby, collapse=", "),
+                               paste(class(object@features), "names"))))
             cat(sprintf("# %s; %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -191,8 +196,8 @@ setMethod("qtex", "TEtranscriptsParam",
   yieldSize(bf) <- yieldSize
   open(bf)
   while (length(alnreads <- do.call(readfun, 
-                                c(list(file = bf), list(param=param), 
-                                list(strandMode=ttpar@strandMode)[strand_arg], 
+                                c(list(file = bf), list(param=param),
+                                list(strandMode=ttpar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
     avgreadlen <- c(avgreadlen, width(ranges(alnreads)))
     alnreadids <- c(alnreadids, names(alnreads))
@@ -264,9 +269,9 @@ setMethod("qtex", "TEtranscriptsParam",
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
                       avgreadlen, cntvec) {
   if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
-    ## TEtranscripts doesn't use uniquely-aligned reads to inform the procedure
-    ## of distributing multiple-mapping reads, as explained in Jin et
-    ## al. (2015) pg. 3594, "to reduce potential bias to certain TEs."
+    ## TEtranscripts doesn't use uniquely-aligned reads to inform the
+    ## procedure of distributing multiple-mapping reads, as explained in
+    ## Jin et al. (2015) pg. 3594, "to reduce potential bias to certain TEs."
     ## Hence, once counted, we discard unique alignments
     ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
     yesov <- rowSums(ovalnmat)>0
@@ -280,7 +285,7 @@ setMethod("qtex", "TEtranscriptsParam",
     Qmat <- Qmat / rowSums(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
-    ## (2015) stores probabilities of expression for each transcript, corrected 
+    ## (2015) stores probabilities of expression for each transcript, corrected
     ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
     Pi <- colSums(Qmat)
     if (is(ttpar@features,"GRangesList")) {
@@ -304,7 +309,7 @@ setMethod("qtex", "TEtranscriptsParam",
     # sparce version of the previous commented line, improves memory usage
     wh <- which(ovalnmat, arr.ind=TRUE)
     cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
-    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"], 
+    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
                 FUN=sum, na.rm=TRUE)
     cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
@@ -344,8 +349,8 @@ setMethod("qtex", "TEtranscriptsParam",
 ##             elen - effective length of each transcript
 .correctForTxEffectiveLength <- function(x, elen) {
   x[elen > 0] <- x[elen > 0] / elen[elen > 0]
-  x[elen <= 0] <- 0 ## (this is done in the original Python code but we don't do it
-  if (sum(x) > 0) {  ## here to avoid numerical instability) --> it is now 
+  x[elen <= 0] <- 0 ## (this is done in the original Python code but we don't
+  if (sum(x) > 0) {  ## do it here to avoid numerical instability)--> it is now
     x <- x / sum(x) ## implemented since now it does not create an error
   }
   x
@@ -388,7 +393,7 @@ setMethod("qtex", "TEtranscriptsParam",
 
 
 ## private function .correctPreference()
-## Corrects ovalnmat for preference of unique/multi-mapping reads to 
+## Corrects ovalnmat for preference of unique/multi-mapping reads to
 ## genes/TEs, respectively
 .correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
   indx <- (rowSums(ovalnmat[,istex]) > 0) & (rowSums(ovalnmat[,!istex]) > 0)
@@ -403,7 +408,7 @@ setMethod("qtex", "TEtranscriptsParam",
     ovalnmat[whudf] <- FALSE
   }
   
-  ## Removing overlaps of multi-mapping reads to genes if at least one 
+  ## Removing overlaps of multi-mapping reads to genes if at least one
   ## alignment of the read overlaps a TE
   idxm <- indx & !maskuniqaln[mt]
   if (any(idxm)) {
@@ -418,20 +423,22 @@ setMethod("qtex", "TEtranscriptsParam",
 
 
 ## private function .countMultiReadsGenes()
-## Counts multi-mapping reads mapping to multiple genes by counting fraction 
+## Counts multi-mapping reads mapping to multiple genes by counting fraction
 ## counts
-.countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste, istex, tx_idx, readids, alnreadids, ov, uniqcnt) {
+.countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste,
+                                  istex, tx_idx, readids, alnreadids, ov,
+                                  uniqcnt) {
   ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
   yesg <- rowSums(ovalnmat_multig)>0
   ovalnmat_multig <- ovalnmat_multig[yesg,,drop=FALSE]
   
   # Getting the number of different alignments mapping to a gene for each read
-  alnreadids_multig <- alnreadids[unique(queryHits(ov[!iste[subjectHits(ov)]]))]
+  alnreadids_multig <-alnreadids[unique(queryHits(ov[!iste[subjectHits(ov)]]))]
   nalnperread <- table(alnreadids_multig) # getting only overlaps from TEs
   readids_multig <- readids[!maskuniqaln[mt]][yesg]
   mt_multig <- match(readids_multig, names(nalnperread))
   
-  # Counts provided by unique reads for genes to which multi-mapping reads map to
+  #Counts provided by unique reads for genes to which multimapping reads map to
   matmultiguniqc <- t(t(ovalnmat_multig)*uniqcnt[tx_idx][!istex])
   rsum <- rowSums(matmultiguniqc)
   rsum0 <- rsum == 0
@@ -440,7 +447,8 @@ setMethod("qtex", "TEtranscriptsParam",
   matmultiguniqc[!rsum0,] <- matmultiguniqc[!rsum0,]/rsum[!rsum0]
   
   # Reads for which the genes to which the read aligns have 0 counts
-  matmultiguniqc[rsum0,] <- ovalnmat_multig[rsum0,]/rowSums(ovalnmat_multig[rsum0,])
+  matmultiguniqc[rsum0,] <- (ovalnmat_multig[rsum0,] /
+    rowSums(ovalnmat_multig[rsum0,]))
   
   # Adjusting for number of alignments
   matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
@@ -471,7 +479,7 @@ setMethod("qtex", "TEtranscriptsParam",
     uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g)
   }
   
-  # Addressing TE counts: count divided by the number of different TEs 
+  # Addressing TE counts: count divided by the number of different TEs
   # proportionally to the expression level of each TE provided by unique counts
   if (any(ovmultite)) {
     # Counting reads overlapping only 1 element

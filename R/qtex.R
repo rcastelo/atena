@@ -33,11 +33,11 @@
 #'        
 #' @param yieldSize Field inherited from \code{\link[Rsamtools]{BamFile}}.
 #'        The method for signature \code{\link{ERVmapParam}()} reads the BAM
-#'        file by chunks. \code{yieldSize} represents the number of records 
+#'        file by chunks. \code{yieldSize} represents the number of records
 #'        (chunk size) to yield each time the file is read.
 #'
-#' @param verbose (Default 1). When \code{verbose} > 1, detailed information on 
-#'        the quantification steps is provided. Warnings are always present  
+#' @param verbose (Default 1). When \code{verbose} > 1, detailed information on
+#'        the quantification steps is provided. Warnings are always present
 #'        regardless of the value of \code{verbose}.
 #'
 #' @param BPPARAM An object of a \linkS4class{BiocParallelParam} subclass

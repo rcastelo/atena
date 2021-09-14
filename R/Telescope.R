@@ -7,30 +7,31 @@
 #'
 #' @param teFeatures A \code{GRanges} or \code{GRangesList} object. Elements
 #' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus (equivalent to "locus" column in 
+#' for ranges forming a common locus (equivalent to "locus" column in
 #' Telescope), unless other metadata column names are specified in the
 #' \code{aggregateby} parameter.
 #' 
 #' @param aggregateby Character vector with column names from the annotation
-#' to be used to aggregate quantifications. By default, this is an empty vector,
-#' which means that the names of the input \code{GRanges} or \code{GRangesList}
-#' object given in the \code{teFeatures} parameter are used to aggregate
-#' quantifications.
+#' to be used to aggregate quantifications. By default, this is an empty
+#' vector, which means that the names of the input \code{GRanges} or
+#' \code{GRangesList} object given in the \code{teFeatures} parameter are used
+#' to aggregate quantifications.
 #' 
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. The TEtranscripts approach for
-#' gene expression quantification is used, in which overlaps with unique reads 
+#' gene expression quantification is used, in which overlaps with unique reads
 #' are first tallied with respect to these gene features whereas multi-mapping
-#' reads are preferentially assigned to TEs. Elements should have names 
-#' indicating the gene name/id. In case that \code{geneFeatures} contains a 
-#' metadata column named \code{type}, only the elements with 
-#' \code{type} = \code{exon} are considered for the analysis. Then, exon counts 
+#' reads are preferentially assigned to TEs. Elements should have names
+#' indicating the gene name/id. In case that \code{geneFeatures} contains a
+#' metadata column named \code{type}, only the elements with
+#' \code{type} = \code{exon} are considered for the analysis. Then, exon counts
 #' are summarized to the gene level.
 #' 
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 
+#' 2.
 #' The strand mode is a per-object switch on
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #' objects that controls the behavior of the strand getter. See
@@ -46,19 +47,19 @@
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #' 
 #' @param fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts 
+#' When \code{fragments=FALSE} (default), the read-counting method only counts
 #' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
 #' are also counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
-#' @param pi_prior (Default 0) A positive integer scalar indicating the prior 
+#' @param pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
 #'
-#' @param theta_prior (Default 0) A positive integer scalar storing the prior 
+#' @param theta_prior (Default 0) A positive integer scalar storing the prior
 #' on Q. Equivalent to adding n non-unique reads.
 #'
-#' @param em_epsilon (Default 1e-7) A numeric scalar indicating the EM 
+#' @param em_epsilon (Default 1e-7) A numeric scalar indicating the EM
 #' Algorithm Epsilon cutoff.
 #' 
 #' @param maxIter A positive integer scalar storing the maximum number of
@@ -71,8 +72,8 @@
 #' This is the constructor function for objects of the class
 #' \code{TelescopeParam-class}. This type of object is the input to the
 #' function \code{\link{qtex}()} for quantifying expression of transposable
-#' elements, which will call the Telescope algorithm 
-#' \href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)} 
+#' elements, which will call the Telescope algorithm
+#' \href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)}
 #' with this type of object.
 #'
 #' @return A \linkS4class{TelescopeParam} object.
@@ -80,11 +81,11 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
 #'                     package="atena"))
-#' gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
+#' gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds",
 #'                                          package="atena"))
-#' tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
+#' tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot,
 #'                         geneFeatures = gene_annot,
 #'                         singleEnd = TRUE, ignoreStrand=TRUE)
 #' tspar
@@ -134,14 +135,17 @@ setMethod("show", "TelescopeParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# features (%s length %d): %s\n", class(object@features),
+            cat(sprintf("# features (%s length %d): %s\n", 
+                        class(object@features),
                         length(object@features),
                         ifelse(is.null(names(object@features)),
-                               paste("on", .pprintnames(seqlevels(object@features))),
+                               paste("on", 
+                                     .pprintnames(seqlevels(object@features))),
                                .pprintnames(names(object@features)))))
-            cat(sprintf("# aggregated by: %s\n", ifelse(length(object@aggregateby) > 0,
-                                                        paste(object@aggregateby, collapse=", "),
-                                                        paste(class(object@features), "names"))))
+            cat(sprintf("# aggregated by: %s\n", 
+                        ifelse(length(object@aggregateby) > 0,
+                               paste(object@aggregateby, collapse=", "),
+                               paste(class(object@features), "names"))))
             cat(sprintf("# %s; %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
@@ -205,9 +209,9 @@ setMethod("qtex", "TelescopeParam",
   strand_arg <- "strandMode" %in% formalArgs(readfun)
   yieldSize(bf) <- yieldSize
   open(bf)
-  while (length(alnreads <- do.call(readfun, 
-                                c(list(file = bf), list(param=param), 
-                                list(strandMode=tspar@strandMode)[strand_arg], 
+  while (length(alnreads <- do.call(readfun,
+                                c(list(file = bf), list(param=param),
+                                list(strandMode=tspar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
     alnreadids <- c(alnreadids, names(alnreads))
     asvalues <- c(asvalues, mcols(alnreads)$AS)
@@ -230,10 +234,10 @@ setMethod("qtex", "TelescopeParam",
   if (!all(iste)) {
     ## Correcting for preference of unique/multimapping reads to genes/TEs
     ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
-    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 & 
+    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 &
                      rowSums(ovalnmat[,!istex]) > 0))
   }
-  cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx, 
+  cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx,
                       maskmulti, iste)
   setNames(as.integer(cntvec), names(cntvec))
 }
@@ -242,7 +246,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM 
-.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx, 
+.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx,
                       maskmulti, iste) {
   ## initialize vector of counts derived from multi-mapping reads
   cntvec <- rep(0L, length(tspar@features))
@@ -284,7 +288,7 @@ setMethod("qtex", "TelescopeParam",
   Xind <- (X / maxbyrow) == 1
   nmaxbyrow <- rowSums(Xind)
   
-  # Do not differenciate between TEs and genes with istex because in Telescope 
+  # Do not differenciate between TEs and genes with istex because in Telescope
   # genes are also included in the EMstep.
   cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
   
@@ -336,7 +340,7 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-  Theta <- (colSums(X[maskmulti, , drop=FALSE]) + b) / (sum(maskmulti) + b*ncol(X))
+  Theta <- (colSums(X[maskmulti, , drop=FALSE])+b) / (sum(maskmulti)+b*ncol(X))
 }
 
 ## private function .tsFixedPointFun()

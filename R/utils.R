@@ -104,7 +104,8 @@
 #' @importFrom S4Vectors mcols Rle DataFrame
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
-                             geneFeaturesobjname, aggregateby, aggregateexons) {
+                             geneFeaturesobjname, aggregateby,
+                             aggregateexons) {
 
   if (missing(teFeatures)) 
     stop("missing 'teFeatures' argument.")
