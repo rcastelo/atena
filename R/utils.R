@@ -140,13 +140,15 @@
   }
   
   iste <- as.vector(features$isTE)
-  if (!all(is.na(geneFeatures)) & aggregateexons & !all(iste) & 
-      !is.null(mcols(geneFeatures)$type)) {
+  if (!all(is.na(geneFeatures))) {
+    if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
         iste <- aggregate(iste, by = list(names(features)), unique)
         features <- .groupGeneExons(features)
         mtname <- match(names(features), iste$Group.1)
         iste <- iste[mtname,"x"]
+    }
   }
+  
   attr(features, "isTE") <- DataFrame("isTE" = iste)
   features
 }
