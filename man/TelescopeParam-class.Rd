@@ -8,18 +8,18 @@
 \title{Telescope parameter class}
 \usage{
 TelescopeParam(
-    bfl,
-    teFeatures,
-    aggregateby = character(0),
-    geneFeatures = NA,
-    singleEnd = TRUE,
-    strandMode = 1L,
-    ignoreStrand = FALSE,
-    fragments = FALSE,
-    pi_prior = 0L,
-    theta_prior = 0L,
-    em_epsilon = 1e-07,
-    maxIter = 100L
+  bfl,
+  teFeatures,
+  aggregateby = character(0),
+  geneFeatures = NA,
+  singleEnd = TRUE,
+  strandMode = 1L,
+  ignoreStrand = FALSE,
+  fragments = FALSE,
+  pi_prior = 0L,
+  theta_prior = 0L,
+  em_epsilon = 1e-07,
+  maxIter = 100L
 )
 
 \S4method{show}{TelescopeParam}(object)
@@ -30,30 +30,31 @@ string vector of BAM filenames.}
 
 \item{teFeatures}{A \code{GRanges} or \code{GRangesList} object. Elements
 in this object should have names, which will be used as a grouping factor
-for ranges forming a common locus (equivalent to "locus" column in 
+for ranges forming a common locus (equivalent to "locus" column in
 Telescope), unless other metadata column names are specified in the
 \code{aggregateby} parameter.}
 
 \item{aggregateby}{Character vector with column names from the annotation
-to be used to aggregate quantifications. By default, this is an empty vector,
-which means that the names of the input \code{GRanges} or \code{GRangesList}
-object given in the \code{teFeatures} parameter are used to aggregate
-quantifications.}
+to be used to aggregate quantifications. By default, this is an empty
+vector, which means that the names of the input \code{GRanges} or
+\code{GRangesList} object given in the \code{teFeatures} parameter are used
+to aggregate quantifications.}
 
 \item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
 gene annotated features to be quantified. The TEtranscripts approach for
-gene expression quantification is used, in which overlaps with unique reads 
+gene expression quantification is used, in which overlaps with unique reads
 are first tallied with respect to these gene features whereas multi-mapping
-reads are preferentially assigned to TEs. Elements should have names 
-indicating the gene name/id. In case that \code{geneFeatures} contains a 
-metadata column named \code{type}, only the elements with 
-\code{type} = \code{exon} are considered for the analysis. Then, exon counts 
+reads are preferentially assigned to TEs. Elements should have names
+indicating the gene name/id. In case that \code{geneFeatures} contains a
+metadata column named \code{type}, only the elements with
+\code{type} = \code{exon} are considered for the analysis. Then, exon counts
 are summarized to the gene level.}
 
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
 
-\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 2.
+\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 
+2.
 The strand mode is a per-object switch on
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 objects that controls the behavior of the strand getter. See
@@ -69,19 +70,19 @@ have a non-empty intersecting genomic range on the same strand, while when
 \code{ignoreStrand = TRUE} the strand is not considered.}
 
 \item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
-When \code{fragments=FALSE} (default), the read-counting method only counts 
+When \code{fragments=FALSE} (default), the read-counting method only counts
 ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-same-strand pairs, singletons, reads with unmapped pairs and other fragments 
+same-strand pairs, singletons, reads with unmapped pairs and other fragments
 are also counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
-\item{pi_prior}{(Default 0) A positive integer scalar indicating the prior 
+\item{pi_prior}{(Default 0) A positive integer scalar indicating the prior
 on pi. This is equivalent to adding n unique reads.}
 
-\item{theta_prior}{(Default 0) A positive integer scalar storing the prior 
+\item{theta_prior}{(Default 0) A positive integer scalar storing the prior
 on Q. Equivalent to adding n non-unique reads.}
 
-\item{em_epsilon}{(Default 1e-7) A numeric scalar indicating the EM 
+\item{em_epsilon}{(Default 1e-7) A numeric scalar indicating the EM
 Algorithm Epsilon cutoff.}
 
 \item{maxIter}{A positive integer scalar storing the maximum number of
@@ -104,8 +105,8 @@ Build an object of the class \code{TelescopeParam}.
 This is the constructor function for objects of the class
 \code{TelescopeParam-class}. This type of object is the input to the
 function \code{\link{qtex}()} for quantifying expression of transposable
-elements, which will call the Telescope algorithm 
-\href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)} 
+elements, which will call the Telescope algorithm
+\href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al. (2019)}
 with this type of object.
 }
 \section{Slots}{
@@ -153,12 +154,12 @@ is 100 and this value is passed to the \code{maxiter} parameter of the
 
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
+                       pattern="*.bam", full.names=TRUE)
+TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
                     package="atena"))
-gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
-                                        package="atena"))
-tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
+gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds",
+                                         package="atena"))
+tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot,
                         geneFeatures = gene_annot,
                         singleEnd = TRUE, ignoreStrand=TRUE)
 tspar

@@ -1,0 +1,60 @@
+#' atena: analysis of transposable elements in R and Bioconductor
+#' 
+#' The atena package provides a complete re-implementation in R of three
+#' existing methods for the quantification of transposable element (TE)
+#' expression in order to facilitate its integration into Bioconductor
+#' workflows for the analysis of RNA-seq data. The three methods are
+#' TEtranscripts
+#' (\href{https://doi.org/10.1093/bioinformatics/btv422}{Jin et al. (2015)}),
+#' ERVmap
+#' (\href{https://doi.org/10.1073/pnas.1814589115}{Tokuyama et al. (2018)})
+#' and Telescope
+#' (\href{https://doi.org/10.1371/journal.pcbi.1006453}{Bendall et al.(2019)}).
+#' 
+#' 
+#' The main functions are:
+#'
+#' \itemize{
+#' \item \code{\link{TEtranscriptsParam}} - build parameter objects of the class \code{TEtranscriptsParam-class} for the TEtranscripts expression quantification method
+#' \item \code{\link{ERVmapParam}} - build parameter objects of the class \code{ERVmapParam-class} for the ERVmap expression quantification method
+#' \item \code{\link{TelescopeParam}} - build parameter objects of the class \code{TelescopeParam-class} for the Telescope expression quantification method
+#' \item \code{\link{qtex}} - call the TE expression quantification method using a previously built parameter object
+#' }
+#' 
+#' For detailed information on usage, see the package vignette, by typing
+#' \code{vignette("atena")}.
+#' 
+#' All questions and bug reports should be posted to the Bioconductor Support 
+#' Site:
+#' 
+#' \url{https://support.bioconductor.org}
+#'
+#' The code of the development version of the package is available at the
+#' GitHub repository:
+#'
+#' \url{https://github.com/functionalgenomics/atena}
+#' 
+#' @references
+#' 
+#' Jin Y et al. TEtranscripts: a package for including transposable elements
+#' in differential expression analysis of RNA-seq datasets.
+#' Bioinformatics. 2015;31(22):3593-3599. DOI:
+#' \url{https://doi.org/10.1093/bioinformatics/btv422}
+#' 
+#' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of
+#' human endogenous retroviruses. PNAS. 2018;115(50):12565-12572. DOI:
+#' \url{https://doi.org/10.1073/pnas.1814589115}
+#' 
+#' Bendall et al. Telescope: characterization of the retrotranscriptome by
+#' accurate estimation of transposable element expression.
+#' PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
+#' \url{https://doi.org/10.1371/journal.pcbi.1006453}
+#' 
+#' 
+#' 
+#' @docType package
+#' @name atena-package
+#' @aliases atena-package
+#' @keywords package
+
+NULL

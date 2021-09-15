@@ -10,39 +10,39 @@
 \title{Quantify transposable element expression}
 \usage{
 \S4method{qtex}{ERVmapParam}(
-    x,
-    phenodata = NULL,
-    mode = ovUnion,
-    yieldSize = 1000000L,
-    verbose = 1,
-    BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  yieldSize = 1000000L,
+  verbose = 1,
+  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
 )
 
 \S4method{qtex}{TEtranscriptsParam}(
-    x,
-    phenodata = NULL,
-    mode = ovUnion,
-    yieldSize = 1000000L,
-    BPPARAM = SerialParam(progressbar = TRUE)
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  yieldSize = 1000000L,
+  BPPARAM = SerialParam(progressbar = TRUE)
 )
 
 \S4method{qtex}{TelescopeParam}(
-    x,
-    phenodata = NULL,
-    mode = ovUnion,
-    yieldSize = 1000000L,
-    BPPARAM = SerialParam(progressbar = TRUE)
+  x,
+  phenodata = NULL,
+  mode = ovUnion,
+  yieldSize = 1000000L,
+  BPPARAM = SerialParam(progressbar = TRUE)
 )
 }
 \arguments{
 \item{x}{An \code{AtenaParam} object of one of the following
 subclasses:
 \itemize{
-    \item A \code{ERVmapParam} object built using the constructor
+  \item A \code{ERVmapParam} object built using the constructor
         function \code{\link{ERVmapParam}()}. This object will
         trigger \code{qtex()} to use the algorithm by
         Tokuyama et al. (2018).
-    \item A \code{TelescopeParam} object built using the constructor
+  \item A \code{TelescopeParam} object built using the constructor
         function \code{\link{TelescopeParam}()}. This object will
         trigger \code{qtex()} to use the algorithm by
         Bendall et al. (2019).
@@ -66,11 +66,11 @@ the \code{GenomicAlignments} package.}
 
 \item{yieldSize}{Field inherited from \code{\link[Rsamtools]{BamFile}}.
 The method for signature \code{\link{ERVmapParam}()} reads the BAM
-file by chunks. \code{yieldSize} represents the number of records 
+file by chunks. \code{yieldSize} represents the number of records
 (chunk size) to yield each time the file is read.}
 
-\item{verbose}{(Default 1). When \code{verbose} > 1, detailed information on 
-the quantification steps is provided. Warnings are always present  
+\item{verbose}{(Default 1). When \code{verbose} > 1, detailed information on
+the quantification steps is provided. Warnings are always present
 regardless of the value of \code{verbose}.}
 
 \item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
@@ -95,11 +95,11 @@ sub-class of input \code{AtenaParam} object, see argument
 }
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                        pattern="*.bam", full.names=TRUE)
+                       pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
                     package="atena"))
 gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds",
-                                        package="atena"))
+                                         package="atena"))
 tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot,
                         geneFeatures = gene_annot,
                         singleEnd = TRUE, ignoreStrand=TRUE)

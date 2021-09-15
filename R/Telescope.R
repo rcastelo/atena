@@ -245,7 +245,7 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
-#' @importFrom SQUAREM 
+#' @importFrom SQUAREM squarem
 .tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx,
                         maskmulti, iste) {
     ## initialize vector of counts derived from multi-mapping reads

@@ -33,9 +33,9 @@ read overlaps more than one feature on the same locus:
 }
 \details{
 \itemize{
-    \item \code{ovUnion()}: (default)
-    \item \code{ovIntersectionStrict()}:
-    \item User supplied: a function taking the same parameters as the
+  \item \code{ovUnion()}: (default)
+  \item \code{ovIntersectionStrict()}:
+  \item User supplied: a function taking the same parameters as the
         previous three functions and returning a
         \code{\link[S4Vectors]{Hits}} object.
 }
@@ -56,7 +56,7 @@ from the \code{GenomicAlignments} package.
 }
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                        pattern="*.bam", full.names=TRUE)
+                       pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
                     package="atena"))
 tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
