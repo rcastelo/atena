@@ -3,6 +3,7 @@
 \docType{package}
 \name{atena-package}
 \alias{atena-package}
+\alias{atena}
 \title{atena: analysis of transposable elements in R and Bioconductor}
 \description{
 The atena package provides a complete re-implementation in R of three

@@ -55,6 +55,7 @@
 #' @docType package
 #' @name atena-package
 #' @aliases atena-package
+#' @aliases atena
 #' @keywords package
 
 NULL
