@@ -125,22 +125,22 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                         suboptimalAlignmentTag="auto",
                         suboptimalAlignmentCutoff=5,
                         geneCountMode="all") {
-  
-  bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
-  
-  readmapper <- .checkBamReadMapper(path(bfl))
-  
-  features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                               geneFeatures, deparse(substitute(geneFeatures)),
-                               aggregateby, aggregateexons = TRUE)
-  
-  new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
-      singleEnd=singleEnd, ignoreStrand=ignoreStrand,
-      strandMode=as.integer(strandMode), fragments=fragments,
-      maxMismatchRate=maxMismatchRate, readMapper=readmapper,
-      suboptimalAlignmentTag=suboptimalAlignmentTag,
-      suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff),
-      geneCountMode=geneCountMode)
+    
+    bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
+    
+    readmapper <- .checkBamReadMapper(path(bfl))
+    
+    features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
+                            geneFeatures, deparse(substitute(geneFeatures)),
+                            aggregateby, aggregateexons = TRUE)
+    
+    new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
+        singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+        strandMode=as.integer(strandMode), fragments=fragments,
+        maxMismatchRate=maxMismatchRate, readMapper=readmapper,
+        suboptimalAlignmentTag=suboptimalAlignmentTag,
+        suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff),
+        geneCountMode=geneCountMode)
 }
 
 #' @param object A \linkS4class{ERVmapParam} object.
@@ -152,27 +152,27 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
 #' @aliases show,ERVmapParam-method
 #' @rdname ERVmapParam-class
 setMethod("show", "ERVmapParam",
-          function(object) {
+        function(object) {
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
             cat(sprintf("# features (%d): %s\n", length(object@features),
                         ifelse(is.null(names(object@features)),
-                               paste("on",
-                                     .pprintnames(seqlevels(object@features))),
-                               .pprintnames(names(object@features)))))
+                                paste("on",
+                                    .pprintnames(seqlevels(object@features))),
+                                .pprintnames(names(object@features)))))
             cat(sprintf("# %s, %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
             if (!object@ignoreStrand)
-              cat(sprintf(" (strandMode=%d)", object@strandMode))
+                cat(sprintf(" (strandMode=%d)", object@strandMode))
             if (!object@singleEnd)
-              cat(sprintf(", %s",
-                          ifelse(object@fragments, 
-                                 "counting each paired-end mate",
-                                 "counting both paired-end mates")))
+                cat(sprintf(", %s",
+                            ifelse(object@fragments, 
+                                "counting each paired-end mate",
+                                "counting both paired-end mates")))
             cat("\n")
-          })
+        })
 
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom SummarizedExperiment SummarizedExperiment
@@ -181,7 +181,7 @@ setMethod("show", "ERVmapParam",
 #' @aliases qtex,ERVmapParam-method
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
-          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L, verbose=1,
+        function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L, verbose=1,
             BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE))) {
             .checkPhenodata(phenodata, length(x@bfl))
             
@@ -195,9 +195,9 @@ setMethod("qtex", "ERVmapParam",
             features <- .consolidateFeatures(x, rownames(cnt))
             
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=features,
-                                 colData=colData)
-          })
+                                rowRanges=features,
+                                colData=colData)
+        })
 
 
 
@@ -207,54 +207,54 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom IRanges findOverlapPairs
 #' @importFrom GenomicRanges pintersect
 .qtex_ervmap <- function(bf, empar, mode, yieldSize=1000000, verbose) {
-  
-  iste <- as.vector(attributes(empar@features)$isTE[,1])
-  mode=match.fun(mode)
-  readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
-  
-  ## suboptimalAlignmentTag set to 'auto' implies following the original
-  ## ERVmap algorithm; when the read mapper is BWA, it is assumed that
-  ## the tag 'XS' stores the suboptimal alignment score.
-  soatag <- .getsoatag(empar@suboptimalAlignmentTag, empar@readMapper)
-  avtags <- .getavtags(empar, bf, soatag)
-  avgene <- !all(iste)
-  sbflags <- .setBamFlags(bf, empar, avtags, avgene)
-  avsoas <- .soasAvail(empar@suboptimalAlignmentCutoff, soatag, avtags, 
-                       bf, verbose)
-  if ((!is.na(empar@suboptimalAlignmentCutoff)) & isTRUE(soatag %in% avtags)) {
-    empar@suboptimalAlignmentTag <- soatag
-  }
-  param <- ScanBamParam(flag=sbflags, what="flag", tag=avtags)
-  
-  ## 'ov' is a 'Hits' object with the overlaps between reads and features
-  ov <- Hits(nLnode=0, nRnode=length(empar@features), sort.by.query=TRUE)
-  ## 'ovdiscard' is a 'Hits' object with the overlaps of discarded reads
-  ovdiscard <- Hits(nLnode=0, nRnode=length(empar@features[!iste]), 
-                    sort.by.query=TRUE)
-  ## 'salnmask' is a logical mask flagging whether an alignment is secondary
-  salnmask <- logical(0)
-  salnbestAS <- integer(0)
-  ## 'alnAS' stores the alignment score
-  alnAS <- integer(0)
-  ## 'alnNH' stores the NH tag
-  alnNH <- integer(0)
-  ## 'readids' stores the unique read identifiers only once, while 'alnreadidx'
-  ## stores for each read the index of the corresponding unique read identifier
-  readids <- character(0) 
-  alnreadidx <- integer(0) # index in 'readids' for alignments passing filters
-  readidx <- integer(0) # index in 'readids' for all alignments (passing & not)
-  thisalnAS <- integer(0)
-  alnreadids <- character(0)
-  n <- nfiltered <- 0
-  
-  strand_arg <- "strandMode" %in% formalArgs(readfun)
-  yieldSize(bf) <- yieldSize
-  cntvec <- .ervmapQuantExpress(bf, empar, mode, readfun, iste, param, avsoas,
+    iste <- as.vector(attributes(empar@features)$isTE[,1])
+    mode=match.fun(mode)
+    readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
+    
+    ## suboptimalAlignmentTag set to 'auto' implies following the original
+    ## ERVmap algorithm; when the read mapper is BWA, it is assumed that
+    ## the tag 'XS' stores the suboptimal alignment score.
+    soatag <- .getsoatag(empar@suboptimalAlignmentTag, empar@readMapper)
+    avtags <- .getavtags(empar, bf, soatag)
+    avgene <- !all(iste)
+    sbflags <- .setBamFlags(bf, empar, avtags, avgene)
+    avsoas <- .soasAvail(empar@suboptimalAlignmentCutoff, soatag, avtags, 
+                            bf, verbose)
+    if ((!is.na(empar@suboptimalAlignmentCutoff)) & 
+        isTRUE(soatag %in% avtags)) {
+            empar@suboptimalAlignmentTag <- soatag
+    }
+    param <- ScanBamParam(flag=sbflags, what="flag", tag=avtags)
+    
+    ## 'ov' is a 'Hits' object with the overlaps between reads and features
+    ov <- Hits(nLnode=0, nRnode=length(empar@features), sort.by.query=TRUE)
+    ## 'ovdiscard' is a 'Hits' object with the overlaps of discarded reads
+    ovdiscard <- Hits(nLnode=0, nRnode=length(empar@features[!iste]), 
+                        sort.by.query=TRUE)
+    ## 'salnmask' is a logical mask flagging whether an alignment is secondary
+    salnmask <- logical(0)
+    salnbestAS <- integer(0)
+    ## 'alnAS' stores the alignment score
+    alnAS <- integer(0)
+    ## 'alnNH' stores the NH tag
+    alnNH <- integer(0)
+    ## 'readids' stores unique read identifiers only once, while 'alnreadidx'
+    ## stores for each read index of the corresponding unique read identifier
+    readids <- character(0) 
+    alnreadidx <- integer(0) # index in 'readids' for alignm. passing filters
+    readidx <- integer(0) # index in 'readids' for all alignm. (passing & not)
+    thisalnAS <- integer(0)
+    alnreadids <- character(0)
+    n <- nfiltered <- 0
+    
+    strand_arg <- "strandMode" %in% formalArgs(readfun)
+    yieldSize(bf) <- yieldSize
+    cntvec <- .ervmapQuantExpress(bf, empar, mode, readfun, iste, param,avsoas,
                                 strand_arg, avgene, n, ov, ovdiscard, salnmask,
                                 salnbestAS, alnAS, alnNH, readids, alnreadidx,
                                 readidx, thisalnAS, alnreadids, nfiltered,
                                 verbose, avtags)
-  cntvec
+    cntvec
 }
 
 
@@ -266,8 +266,8 @@ setMethod("qtex", "ERVmapParam",
                                 salnbestAS, alnAS, alnNH, readids, alnreadidx,
                                 readidx, thisalnAS, alnreadids, nfiltered,
                                 verbose, avtags) {
-  open(bf)
-  while (length(alnreads <- do.call(readfun,
+open(bf)
+while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=empar@strandMode)[strand_arg],
                                 list(use.names=(!avsoas || avgene)))))) {
@@ -276,12 +276,13 @@ setMethod("qtex", "ERVmapParam",
     mask <- .pass2Filters(alnreads, empar) #which alignments pass filters 1 & 2
     
     if (!is.na(empar@suboptimalAlignmentCutoff)) {
-      thisalnAS <- .getAlignmentTagScore(alnreads, tag="AS")
-      mask <- .pass3Filter(mask, alnreads, empar,thisalnAS,thissalnmask,avsoas)
+        thisalnAS <- .getAlignmentTagScore(alnreads, tag="AS")
+        mask <- .pass3Filter(mask, alnreads, empar, thisalnAS, thissalnmask,
+                            avsoas)
     }
     
     if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
-      alnreadids <- .getAlnreadids(alnreads, empar@fragments)
+        alnreadids <- .getAlnreadids(alnreads, empar@fragments)
     }
     
     mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
@@ -291,10 +292,10 @@ setMethod("qtex", "ERVmapParam",
     ov <- .appendHits(ov, thisov)
     
     if (avgene && empar@geneCountMode == "all") {
-      ## calculate and store overlaps between the discarded reads and genes
-      thisovdiscard <- mode(alnreadsdiscard, empar@features[!iste], 
-                            ignoreStrand=empar@ignoreStrand)
-      ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
+        ## calculate and store overlaps between the discarded reads and genes
+        thisovdiscard <- mode(alnreadsdiscard, empar@features[!iste], 
+                                ignoreStrand=empar@ignoreStrand)
+        ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
     }
     
     ## Reading NH tag if secondary alignments are not available
@@ -302,33 +303,33 @@ setMethod("qtex", "ERVmapParam",
     salnmask <- c(salnmask, thissalnmask[mask]) # secondary alignment mask 
     
     if (!avsoas && !is.na(empar@suboptimalAlignmentCutoff)) {
-      ## store best secondary alignment score
-      salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, alnreadids, 
-                                          salnbestAS)
-      ## filter and store alignment scores 
-      alnAS <- c(alnAS, thisalnAS[mask])
+        ## store best secondary alignment score
+        salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, 
+                                            alnreadids, salnbestAS)
+        ## filter and store alignment scores 
+        alnAS <- c(alnAS, thisalnAS[mask])
     }
     
     ## filter now read identifiers
     listreadids <- .filterReadIDs(avgene, empar, avsoas, alnreadids,
-                                  readids, readidx, alnreadidx, mask)
+                                    readids, readidx, alnreadidx, mask)
     readids <- listreadids$readids
     readidx <- listreadids$readidx
     alnreadidx <- listreadids$alnreadidx
     
     if (verbose > 1) {
-      nfiltered <- nfiltered + sum(mask & !thissalnmask)
-      cat(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
-                  basename(path(bf)), n, nfiltered))
+        nfiltered <- nfiltered + sum(mask & !thissalnmask)
+        cat(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
+                    basename(path(bf)), n, nfiltered))
     }
-  }
-  close(bf)
-  
-  ## Expression quantification
-  cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
-                             alnAS, salnbestAS, readidx, mask, alnNH, readids,
-                             bf, ovdiscard, n, verbose, iste)
-  cntvec
+}
+close(bf)
+
+## Expression quantification
+cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
+                            alnAS, salnbestAS, readidx, mask, alnNH, readids,
+                            bf, ovdiscard, n, verbose, iste)
+cntvec
 }
 
 
@@ -340,36 +341,37 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
 #' @importFrom S4Vectors mcols
 .get_tags_in_BAM_singleend <- function(bf, soatag="XS") {
-  
-  yieldSize(bf) <- 1000
-  sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
-                         isDuplicate = FALSE,
-                         isNotPassingQualityControls = FALSE,
-                         isSupplementaryAlignment = FALSE,
-                         ## XS is only set by BWA for primary alignments
-                         isSecondaryAlignment=FALSE)
-  
-  param <- ScanBamParam(flag = sbflags,
-                        tag = c("nM", "NM", "AS", "NH", soatag))
-  
-  tags <- param@tag
-  tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
-  colnames(tags_df) <- tags
-  
-  open(bf)
-  r_test <- readGAlignments(bf, param = param)
-  close(bf)
-  
-  # Testing, for each sample, if the files contain the different tags
-  tags_df[, "NH"] <- ifelse(all(is.na(mcols(r_test)$NH)), FALSE, TRUE)
-  tags_df[, "NM"] <- ifelse(all(is.na(mcols(r_test)$NM)), FALSE, TRUE)
-  tags_df[, "nM"] <- ifelse(all(is.na(mcols(r_test)$nM)), FALSE, TRUE)
-  tags_df[, "AS"] <- ifelse(all(is.na(mcols(r_test)$AS)), FALSE, TRUE)
-  if (!is.null(soatag))
-    tags_df[, soatag] <- ifelse(all(grepl("\\d", (mcols(r_test)[[soatag]]))),
-                                TRUE, FALSE)
-  
-  return(tags_df)
+    
+    yieldSize(bf) <- 1000
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                            isDuplicate = FALSE,
+                            isNotPassingQualityControls = FALSE,
+                            isSupplementaryAlignment = FALSE,
+                            ## XS is only set by BWA for primary alignments
+                            isSecondaryAlignment=FALSE)
+    
+    param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", soatag))
+    
+    tags <- param@tag
+    tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
+    colnames(tags_df) <- tags
+    
+    open(bf)
+    r_test <- readGAlignments(bf, param = param)
+    close(bf)
+    
+    # Testing, for each sample, if the files contain the different tags
+    tags_df[, "NH"] <- ifelse(all(is.na(mcols(r_test)$NH)), FALSE, TRUE)
+    tags_df[, "NM"] <- ifelse(all(is.na(mcols(r_test)$NM)), FALSE, TRUE)
+    tags_df[, "nM"] <- ifelse(all(is.na(mcols(r_test)$nM)), FALSE, TRUE)
+    tags_df[, "AS"] <- ifelse(all(is.na(mcols(r_test)$AS)), FALSE, TRUE)
+    if (!is.null(soatag))
+        tags_df[, soatag] <- ifelse(all(grepl("\\d", 
+                                                (mcols(r_test)[[soatag]]))),
+                                    TRUE, FALSE)
+    
+    return(tags_df)
 }
 
 
@@ -382,39 +384,39 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<- asMates asMates<-
 #' @importFrom S4Vectors mcols
 .get_tags_in_BAM_pairedend <- function(bf, empar, soatag="XS") {
-  yieldSize(bf) <- 1000
-  asMates(bf) <- TRUE
-  sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
-                         isProperPair = TRUE,
-                         isDuplicate = FALSE,
-                         isNotPassingQualityControls = FALSE,
-                         isSupplementaryAlignment = FALSE,
-                         ## XS is only set by BWA for primary alignments
-                         isSecondaryAlignment=FALSE)
-  
-  param <- ScanBamParam(flag = sbflags,
-                        tag = c("nM", "NM", "AS", "NH", soatag))
-  
-  tags <- param@tag
-  tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
-  colnames(tags_df) <- tags
-  
-  open(bf)
-  r_test <- readGAlignmentPairs(bf, param = param, 
-                                strandMode = empar@strandMode)
-  close(bf)
-  
-  # Testing, for each sample, if the files contain the different tags
-  tags_df[, "NH"] <- ifelse(all(is.na(mcols(first(r_test))$NH)), FALSE, TRUE)
-  tags_df[, "NM"] <- ifelse(all(is.na(mcols(first(r_test))$NM)), FALSE, TRUE)
-  tags_df[, "nM"] <- ifelse(all(is.na(mcols(first(r_test))$nM)), FALSE, TRUE)
-  tags_df[, "AS"] <- ifelse(all(is.na(mcols(first(r_test))$AS)), FALSE, TRUE)
-  if (!is.null(soatag))
-    tags_df[, soatag] <- ifelse(all(grepl("\\d", 
-                                          (mcols(first(r_test))[[soatag]]))),
-                                TRUE, FALSE)
-  
-  return(tags_df)
+    yieldSize(bf) <- 1000
+    asMates(bf) <- TRUE
+    sbflags <- scanBamFlag(isUnmappedQuery = FALSE,
+                            isProperPair = TRUE,
+                            isDuplicate = FALSE,
+                            isNotPassingQualityControls = FALSE,
+                            isSupplementaryAlignment = FALSE,
+                            ## XS is only set by BWA for primary alignments
+                            isSecondaryAlignment=FALSE)
+    
+    param <- ScanBamParam(flag = sbflags,
+                            tag = c("nM", "NM", "AS", "NH", soatag))
+    
+    tags <- param@tag
+    tags_df <- data.frame(matrix(nrow = length(bf), ncol = length(tags)))
+    colnames(tags_df) <- tags
+    
+    open(bf)
+    r_test <- readGAlignmentPairs(bf, param = param, 
+                                    strandMode = empar@strandMode)
+    close(bf)
+    
+    # Testing, for each sample, if the files contain the different tags
+    tags_df[, "NH"] <- ifelse(all(is.na(mcols(first(r_test))$NH)), FALSE, TRUE)
+    tags_df[, "NM"] <- ifelse(all(is.na(mcols(first(r_test))$NM)), FALSE, TRUE)
+    tags_df[, "nM"] <- ifelse(all(is.na(mcols(first(r_test))$nM)), FALSE, TRUE)
+    tags_df[, "AS"] <- ifelse(all(is.na(mcols(first(r_test))$AS)), FALSE, TRUE)
+    if (!is.null(soatag))
+        tags_df[, soatag] <- ifelse(all(grepl("\\d", 
+                                            (mcols(first(r_test))[[soatag]]))),
+                                    TRUE, FALSE)
+    
+    return(tags_df)
 }
 
 
@@ -422,23 +424,24 @@ setMethod("qtex", "ERVmapParam",
 
 #' @importFrom Rsamtools scanBamFlag
 .setBamFlags <- function(bf, empar, avtags, avgene) {
-  sbflags <- scanBamFlag()
-  
-  ## if we use the 'XS' tag then do not read secondary alignments
-  if ("XS" %in% avtags && empar@readMapper == "bwa" &&
-      empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
-    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                           isDuplicate=FALSE,
-                           isNotPassingQualityControls=FALSE,
-                           isSupplementaryAlignment=FALSE,
-                           isSecondaryAlignment=FALSE)
-  else ## otherwise do not exclude secondary alignments
-    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                           isDuplicate=FALSE,
-                           isNotPassingQualityControls=FALSE,
-                           isSupplementaryAlignment=FALSE)
-  
-  sbflags
+    sbflags <- scanBamFlag()
+    
+    ## if we use the 'XS' tag then do not read secondary alignments
+    if ("XS" %in% avtags && empar@readMapper == "bwa" &&
+        empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
+        sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                isDuplicate=FALSE,
+                                isNotPassingQualityControls=FALSE,
+                                isSupplementaryAlignment=FALSE,
+                                isSecondaryAlignment=FALSE)
+    
+    else ## otherwise do not exclude secondary alignments
+        sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                isDuplicate=FALSE,
+                                isNotPassingQualityControls=FALSE,
+                                isSupplementaryAlignment=FALSE)
+    
+    sbflags
 }
 
 
@@ -449,217 +452,218 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom sparseMatrixStats rowMaxs
 .suboptimalAlignmentFilteringCounts <- function(empar, ov, alnreadidx, alnAS,
                                                 salnmask, salnbestAS) {
-  ## suboptimal alignment filtering using the available secondary
-  ## alignments. according to Tokuyama et al. (2018) pg. 12571.,
-  ## reads/fragments are kept if the difference between the alignment
-  ## score from BWA (AS) and the suboptimal alignment score from BWA
-  ## (field XS) >= 5. here we calculate the suboptimal alignment score
-  ## by searching for the secondary alignment with the highest score.
-  
-  ## fetch all different read identifiers from the overlapping alignments
-  rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
-  
-  ## fetch all different transcripts from the overlapping alignments
-  tx_idx <- sort(unique(subjectHits(ov)))
-  
-  ## build matrices with primary alignment flags, alignment scores (AS) 
-  ## and best secondary alignment AS
-  palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
-  asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
-  salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx,
-                                        rd_idx, tx_idx)
-  
-  ## AS from primary alignments
-  asprimaryaln <- rowMaxs(palnmat * asmat)
-  ## fetch maximum AS from secondary alignments
-  salnmaxas <- rowMaxs(salnbestasmat)
-  salnmaxas[salnmaxas == 0] <- -99
-  mask <- ((asprimaryaln - salnmaxas) >= empar@suboptimalAlignmentCutoff)
-  
-  palnmat <- palnmat[mask, ]
-  cntvec <- rep(0, length(empar@features))
-  cntvec[tx_idx] <- colSums(palnmat)
-  
-  cntvec
+    ## suboptimal alignment filtering using the available secondary
+    ## alignments. according to Tokuyama et al. (2018) pg. 12571.,
+    ## reads/fragments are kept if the difference between the alignment
+    ## score from BWA (AS) and the suboptimal alignment score from BWA
+    ## (field XS) >= 5. here we calculate the suboptimal alignment score
+    ## by searching for the secondary alignment with the highest score.
+    
+    ## fetch all different read identifiers from the overlapping alignments
+    rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
+    
+    ## fetch all different transcripts from the overlapping alignments
+    tx_idx <- sort(unique(subjectHits(ov)))
+    
+    ## build matrices with primary alignment flags, alignment scores (AS) 
+    ## and best secondary alignment AS
+    palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
+    asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
+    salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx,
+                                            rd_idx, tx_idx)
+    
+    ## AS from primary alignments
+    asprimaryaln <- rowMaxs(palnmat * asmat)
+    ## fetch maximum AS from secondary alignments
+    salnmaxas <- rowMaxs(salnbestasmat)
+    salnmaxas[salnmaxas == 0] <- -99
+    mask <- ((asprimaryaln - salnmaxas) >= empar@suboptimalAlignmentCutoff)
+    
+    palnmat <- palnmat[mask, ]
+    cntvec <- rep(0, length(empar@features))
+    cntvec[tx_idx] <- colSums(palnmat)
+    
+    cntvec
 }
 
 #' @importFrom S4Vectors mcols first second
 #' @importFrom Rsamtools bamFlagTest
 .secondaryAlignmentMask <- function(aln) {
-  mask <- NULL
-  if (is(aln, "GAlignments"))
-    mask <- bamFlagTest(mcols(aln)$flag, "isSecondaryAlignment")
-  else if (is(aln, "GAlignmentPairs")) {
-    mask <- bamFlagTest(mcols(first(aln))$flag, "isSecondaryAlignment") |
-      bamFlagTest(mcols(second(aln))$flag, "isSecondaryAlignment")
-  } else if (is(aln, "GAlignmentsList")) {
-    mask <- bamFlagTest(mcols(unlist(aln, use.names=FALSE))$flag,
-                        "isSecondaryAlignment")
-  } else
-    stop(sprintf(".secondaryAlignmentMask: wrong class %s\n", class(aln)))
-  
-  mask
+    mask <- NULL
+    if (is(aln, "GAlignments"))
+        mask <- bamFlagTest(mcols(aln)$flag, "isSecondaryAlignment")
+    else if (is(aln, "GAlignmentPairs")) {
+        mask <- bamFlagTest(mcols(first(aln))$flag, "isSecondaryAlignment") |
+            bamFlagTest(mcols(second(aln))$flag, "isSecondaryAlignment")
+    } else if (is(aln, "GAlignmentsList")) {
+        mask <- bamFlagTest(mcols(unlist(aln, use.names=FALSE))$flag,
+                            "isSecondaryAlignment")
+    } else
+        stop(sprintf(".secondaryAlignmentMask: wrong class %s\n", class(aln)))
+    
+    mask
 }
 
 #' @importFrom S4Vectors mcols first second
 .getAlignmentTagScore <- function(aln, tag, pairedsummaryfun=pmin.int) {
-  if (is(aln, "GAlignments"))
-    score <- as.integer(mcols(aln)[[tag]])
-  else if (is(aln, "GAlignmentPairs")) {
-    ## take the minimum score from both mates
-    score <- pairedsummaryfun(as.integer(mcols(first(aln))[[tag]]), 
-                              mcols(second(aln))[[tag]])
-  } else if (is(aln, "GAlignmentsList")) {
-    score <- as.integer(mcols(unlist(aln, use.names=FALSE))[[tag]])
-  } else
-    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
-  
-  as.integer(score)
+    if (is(aln, "GAlignments"))
+        score <- as.integer(mcols(aln)[[tag]])
+    else if (is(aln, "GAlignmentPairs")) {
+        ## take the minimum score from both mates
+        score <- pairedsummaryfun(as.integer(mcols(first(aln))[[tag]]), 
+                                    mcols(second(aln))[[tag]])
+    } else if (is(aln, "GAlignmentsList")) {
+        score <- as.integer(mcols(unlist(aln, use.names=FALSE))[[tag]])
+    } else
+        stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
+    
+    as.integer(score)
 }
 
 
 #' @importFrom S4Vectors mcols
 .fetchNMtag <- function(aln) {
-  nmtag <- "NM"
-  if (is(aln, "GAlignments")) {
-    if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]]))) {
-      nmtag <- "nM"
-      if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]])))
-        stop("no NM or nM tag in BAM file.")
-    }
-  } else if (is(aln, "GAlignmentPairs")) {
-    if (is.null(mcols(first(aln))[[nmtag]]) || 
-        all(is.na(mcols(first(aln))[[nmtag]]))) {
-      nmtag <- "nM"
-      if (is.null(mcols(first(aln))[[nmtag]]) || 
-          all(is.na(mcols(first(aln))[[nmtag]])))
-        stop("no NM or nM tag in BAM file.")
-    }
-  } else if (is(aln, "GAlignmentsList")) {
-    if (is.null(mcols(unlist(aln))[[nmtag]]) || 
-        all(is.na(mcols(unlist(aln))[[nmtag]]))) {
-      nmtag <- "nM"
-      if (is.null(mcols(unlist(aln))[[nmtag]]) || 
-          all(is.na(mcols(unlist(aln))[[nmtag]])))
-        stop("no NM or nM tag in BAM file.")
-    }
-  } else
-    stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
-  
-  nmtag
+    nmtag <- "NM"
+    if (is(aln, "GAlignments")) {
+        if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]]))) {
+            nmtag <- "nM"
+            if (is.null(mcols(aln)[[nmtag]]) || all(is.na(mcols(aln)[[nmtag]])))
+                stop("no NM or nM tag in BAM file.")
+        }
+    } else if (is(aln, "GAlignmentPairs")) {
+        if (is.null(mcols(first(aln))[[nmtag]]) || 
+            all(is.na(mcols(first(aln))[[nmtag]]))) {
+            nmtag <- "nM"
+            if (is.null(mcols(first(aln))[[nmtag]]) || 
+                all(is.na(mcols(first(aln))[[nmtag]])))
+                stop("no NM or nM tag in BAM file.")
+        }
+    } else if (is(aln, "GAlignmentsList")) {
+        if (is.null(mcols(unlist(aln))[[nmtag]]) || 
+            all(is.na(mcols(unlist(aln))[[nmtag]]))) {
+            nmtag <- "nM"
+            if (is.null(mcols(unlist(aln))[[nmtag]]) || 
+                all(is.na(mcols(unlist(aln))[[nmtag]])))
+                stop("no NM or nM tag in BAM file.")
+        }
+    } else
+        stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
+    
+    nmtag
 }
 
 #' @importFrom S4Vectors mcols first second
 #' @importFrom IRanges relist
 .getAlignmentMismatches <- function(aln) {
-  mm <- NULL
-  nmtag <- .fetchNMtag(aln)
-  
-  if (is(aln, "GAlignments"))
-    mm <- mcols(aln)[[nmtag]]
-  else if (is(aln, "GAlignmentPairs")) {
-    ## take the celing of the mean of mismatches from both mates
-    mm1 <- as.integer(mcols(first(aln))[[nmtag]])
-    mm2 <- as.integer(mcols(second(aln))[[nmtag]])
-    mm1[is.na(mm1)] <- mm2[is.na(mm1)]
-    mm2[is.na(mm2)] <- mm1[is.na(mm2)]
-    mm <- ceiling((mm1 + mm2) / 2)
-  } else if (is(aln, "GAlignmentsList")) {
-    mm <- mcols(unlist(aln, use.names=FALSE))[[nmtag]]
-  } else
-    stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
-  
-  as.integer(mm)
+    mm <- NULL
+    nmtag <- .fetchNMtag(aln)
+    
+    if (is(aln, "GAlignments"))
+        mm <- mcols(aln)[[nmtag]]
+    else if (is(aln, "GAlignmentPairs")) {
+        ## take the celing of the mean of mismatches from both mates
+        mm1 <- as.integer(mcols(first(aln))[[nmtag]])
+        mm2 <- as.integer(mcols(second(aln))[[nmtag]])
+        mm1[is.na(mm1)] <- mm2[is.na(mm1)]
+        mm2[is.na(mm2)] <- mm1[is.na(mm2)]
+        mm <- ceiling((mm1 + mm2) / 2)
+    } else if (is(aln, "GAlignmentsList")) {
+        mm <- mcols(unlist(aln, use.names=FALSE))[[nmtag]]
+    } else
+        stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
+    
+    as.integer(mm)
 }
 
 #' @importFrom S4Vectors mcols first second
 #' @importFrom IRanges relist
 #' @importFrom GenomicAlignments qwidth
 .getAlignmentQueryWidth <- function(aln) {
-  qw <- NULL
-  if (is(aln, "GAlignments"))
-    qw <- qwidth(aln)
-  else if (is(aln, "GAlignmentPairs")) {
-    ## take the ceiling of the mean of query widths from both mates
-    qw1 <- qwidth(first(aln))
-    qw2 <- qwidth(second(aln))
-    qw1[is.na(qw1)] <- qw2[is.na(qw1)]
-    qw2[is.na(qw2)] <- qw1[is.na(qw2)]
-    qw <- ceiling((qw1 + qw2) / 2)
-  } else if (is(aln, "GAlignmentsList")) {
-    qw <- qwidth(unlist(aln, use.names=FALSE))
-  } else
-    stop(sprintf(".getAlignmentQueryWidth: wrong class %s\n", class(aln)))
-  
-  as.integer(qw)
+    qw <- NULL
+    if (is(aln, "GAlignments"))
+        qw <- qwidth(aln)
+    else if (is(aln, "GAlignmentPairs")) {
+        ## take the ceiling of the mean of query widths from both mates
+        qw1 <- qwidth(first(aln))
+        qw2 <- qwidth(second(aln))
+        qw1[is.na(qw1)] <- qw2[is.na(qw1)]
+        qw2[is.na(qw2)] <- qw1[is.na(qw2)]
+        qw <- ceiling((qw1 + qw2) / 2)
+    } else if (is(aln, "GAlignmentsList")) {
+        qw <- qwidth(unlist(aln, use.names=FALSE))
+    } else
+        stop(sprintf(".getAlignmentQueryWidth: wrong class %s\n", class(aln)))
+    
+    as.integer(qw)
 }
 
 #' @importFrom S4Vectors mcols first second List
 #' @importFrom GenomicAlignments cigar explodeCigarOpLengths
 .getAlignmentSumClipping <- function(aln) {
-  sc <- NULL
-  if (is(aln, "GAlignments"))
-    sc <- vapply(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")), 
-                 FUN.VALUE = integer(1), FUN = sum)
-  else if (is(aln, "GAlignmentPairs")) {
-    ## take the ceiling of the mean of query widths from both mates
-    sc1 <- vapply(explodeCigarOpLengths(cigar(first(aln)), ops=c("H", "S")), 
-                  FUN.VALUE = integer(1), FUN = sum)
-    sc2 <- vapply(explodeCigarOpLengths(cigar(second(aln)), ops=c("H", "S")), 
-                  FUN.VALUE = integer(1), FUN = sum)
-    sc1[is.na(sc1)] <- sc2[is.na(sc1)]
-    sc2[is.na(sc2)] <- sc1[is.na(sc2)]
-    sc <- ceiling((sc1 + sc2) / 2)
-  } else if (is(aln, "GAlignmentsList")) {
-    sc <- vapply(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
-                                       ops=c("H", "S")),
-                 FUN.VALUE = integer(1), FUN = sum)
-  } else
-    stop(sprintf(".getAlignmentSumClipping: wrong class %s\n", class(aln)))
-  
-  as.integer(sc)
+    sc <- NULL
+    if (is(aln, "GAlignments"))
+        sc <- vapply(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")), 
+                    FUN.VALUE = integer(1), FUN = sum)
+    else if (is(aln, "GAlignmentPairs")) {
+        ## take the ceiling of the mean of query widths from both mates
+        sc1 <- vapply(explodeCigarOpLengths(cigar(first(aln)),ops=c("H", "S")), 
+                    FUN.VALUE = integer(1), FUN = sum)
+        sc2 <- vapply(explodeCigarOpLengths(cigar(second(aln)), 
+                                            ops=c("H", "S")), 
+                        FUN.VALUE = integer(1), FUN = sum)
+        sc1[is.na(sc1)] <- sc2[is.na(sc1)]
+        sc2[is.na(sc2)] <- sc1[is.na(sc2)]
+        sc <- ceiling((sc1 + sc2) / 2)
+    } else if (is(aln, "GAlignmentsList")) {
+        sc <- vapply(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
+                                            ops=c("H", "S")),
+                        FUN.VALUE = integer(1), FUN = sum)
+    } else
+        stop(sprintf(".getAlignmentSumClipping: wrong class %s\n", class(aln)))
+    
+    as.integer(sc)
 }
 
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix
 .buildOvValuesMatrix <- function(ov, values, aridx, ridx, fidx) {
-  stopifnot(class(values) %in% c("logical", "integer")) ## QC
-  ovmat <- Matrix(do.call(class(values), list(1)),
-                  nrow=length(ridx), ncol=length(fidx))
-  mt1 <- match(aridx[queryHits(ov)], ridx)
-  mt2 <- match(subjectHits(ov), fidx)
-  ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
-  
-  ovmat
+    stopifnot(class(values) %in% c("logical", "integer")) ## QC
+    ovmat <- Matrix(do.call(class(values), list(1)),
+                    nrow=length(ridx), ncol=length(fidx))
+    mt1 <- match(aridx[queryHits(ov)], ridx)
+    mt2 <- match(subjectHits(ov), fidx)
+    ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
+    
+    ovmat
 }
 
 ## Obtains the name of the tag containing the suboptimal alignment score, if
 ## present
 .getsoatag <- function(suboptimalAlignmentTag, readMapper) {
-  soatag <- NULL
-  if (suboptimalAlignmentTag == "auto" && readMapper == "bwa") {
-    soatag <- "XS"
-  } else if (nchar(suboptimalAlignmentTag) == 2) {
-    soatag <- suboptimalAlignmentTag
-  }
-  soatag
+    soatag <- NULL
+    if (suboptimalAlignmentTag == "auto" && readMapper == "bwa") {
+        soatag <- "XS"
+    } else if (nchar(suboptimalAlignmentTag) == 2) {
+        soatag <- suboptimalAlignmentTag
+    }
+    soatag
 }
 
 ## Calls internal functions to obtain the name of the available tags depending
 ## on whether the data is single- or paired-end
 #' @importFrom BiocGenerics basename path
 .getavtags <- function(empar, bf, soatag) {
-  avtags <- character(0)
-  if (empar@singleEnd)
-    avtags <- .get_tags_in_BAM_singleend(bf, soatag=soatag)
-  else
-    avtags <- .get_tags_in_BAM_pairedend(bf, empar=empar, soatag=soatag)
-  
-  avtags <- colnames(avtags)[unlist(avtags)]
-  if (!empar@suboptimalAlignmentTag %in% c("auto", "none", avtags))
-    stop(sprintf("suboptimal alignment tag '%s' not available in BAM file %s.",
-                 empar@suboptimalAlignmentTag, basename(path(bf))))
-  avtags
+    avtags <- character(0)
+    if (empar@singleEnd)
+        avtags <- .get_tags_in_BAM_singleend(bf, soatag=soatag)
+    else
+        avtags <- .get_tags_in_BAM_pairedend(bf, empar=empar, soatag=soatag)
+    
+    avtags <- colnames(avtags)[unlist(avtags)]
+    if (!empar@suboptimalAlignmentTag %in% c("auto", "none", avtags))
+        stop(sprintf("suboptimal alignment tag '%s' not available in BAM file %s.",
+                    empar@suboptimalAlignmentTag, basename(path(bf))))
+    avtags
 }
 
 
@@ -667,50 +671,50 @@ setMethod("qtex", "ERVmapParam",
 ## in the BAM file.
 #' @importFrom BiocGenerics basename path
 .soasAvail <- function(suboptimalAlignmentCutoff, soatag, avtags, bf,verbose) {
-  avsoas <- FALSE 
-  if (!is.na(suboptimalAlignmentCutoff)) {
-    if (isTRUE(soatag %in% avtags)) {
-      avsoas <- TRUE
-      if (verbose > 1)
-        cat(sprintf("%s: using suboptimal alignment scores from tag '%s'.\n",
-                    basename(path(bf)), soatag))
+    avsoas <- FALSE 
+    if (!is.na(suboptimalAlignmentCutoff)) {
+        if (isTRUE(soatag %in% avtags)) {
+            avsoas <- TRUE
+            if (verbose > 1)
+                cat(sprintf("%s: using suboptimal alignment scores from tag '%s'.\n",
+                            basename(path(bf)), soatag))
+        } else if (verbose > 1)
+            cat(sprintf("%s: suboptimal alignment filtering based on secondary alignments.\n",
+                    basename(path(bf))))
     } else if (verbose > 1)
-      cat(sprintf("%s: suboptimal alignment filtering based on secondary alignments.\n",
-                  basename(path(bf))))
-  } else if (verbose > 1)
-    cat("suboptimal alignment cutoff value is 'NA', skipping suboptimal alignment filtering.\n")
-  
-  avsoas
+        cat("suboptimal alignment cutoff value is 'NA', skipping suboptimal alignment filtering.\n")
+    
+    avsoas
 }
 
 
 ## Obtains the read identifier of the alignment and, when fragments = TRUE,
 ## sets a different name to each mate.
 .getAlnreadids <- function(alnreads, fragments) {
-  alnreadids <- character(0)
-  alnreadids <- names(alnreads)
-  if (fragments) ## with fragments each mate gets a different read identifier
-    alnreadids <- paste(rep(make.names(names(alnreads)), lengths(alnreads)),
-                        sequence(lengths(alnreads)), sep=".")
-  alnreadids
+    alnreadids <- character(0)
+    alnreadids <- names(alnreads)
+    if (fragments) ## with fragments each mate gets a different read identifier
+        alnreadids <- paste(rep(make.names(names(alnreads)),lengths(alnreads)),
+                            sequence(lengths(alnreads)), sep=".")
+    alnreadids
 }
 
 
 ## Find the suboptimal alignment score from the AS of the secondary alignments.
 .findSuboptAlignScore <- function(thisalnAS, thissalnmask, alnreadids,
-                                  salnbestAS) {
-  maxsaasbyreadid <- split(thisalnAS[thissalnmask], alnreadids[thissalnmask])
-  maxsaasbyreadid <- vapply(maxsaasbyreadid, FUN.VALUE = integer(1), FUN = max)
-  mt <- match(names(maxsaasbyreadid), names(salnbestAS))
-  if (any(is.na(mt))) {
-    tmpas <- rep(NA_integer_, sum(is.na(mt)))
-    names(tmpas) <- names(maxsaasbyreadid)[is.na(mt)]
-    salnbestAS <- c(salnbestAS, tmpas)
-  }
-  mt <- match(names(maxsaasbyreadid), names(salnbestAS))
-  stopifnot(all(!is.na(mt))) ## QC
-  salnbestAS[mt] <- pmax.int(salnbestAS[mt], maxsaasbyreadid, na.rm=TRUE)
-  salnbestAS
+                                    salnbestAS) {
+    maxsaasbyreadid <- split(thisalnAS[thissalnmask], alnreadids[thissalnmask])
+    maxsaasbyreadid <- vapply(maxsaasbyreadid, FUN.VALUE = integer(1), FUN=max)
+    mt <- match(names(maxsaasbyreadid), names(salnbestAS))
+    if (any(is.na(mt))) {
+        tmpas <- rep(NA_integer_, sum(is.na(mt)))
+        names(tmpas) <- names(maxsaasbyreadid)[is.na(mt)]
+        salnbestAS <- c(salnbestAS, tmpas)
+    }
+    mt <- match(names(maxsaasbyreadid), names(salnbestAS))
+    stopifnot(all(!is.na(mt))) ## QC
+    salnbestAS[mt] <- pmax.int(salnbestAS[mt], maxsaasbyreadid, na.rm=TRUE)
+    salnbestAS
 }
 
 
@@ -719,38 +723,38 @@ setMethod("qtex", "ERVmapParam",
 .adjustcommonTEgene <- function(palnmatfilt, readidx, mask, ov, maskthird, 
                                 empar, alnreadidx, rd_idx, tx_idx, alnNH,
                                 iste) {
-  
-  ## Identifying multi-mapping reads
-  if (length(alnNH) > 0) {
-    maskMulti <- alnNH > 2
-  } else {
-    maskMulti <- duplicated(readidx) | duplicated(readidx, fromLast = TRUE)
-    maskMulti <- maskMulti[mask]
-  }
-  
-  maskMultimat <- .buildOvValuesMatrix(ov, maskMulti, alnreadidx,rd_idx,tx_idx)
-  maskMultimat <- maskMultimat[maskthird, ]
-  maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx,rd_idx,tx_idx)
-  maskUniqmat <- maskUniqmat[maskthird, ]
-  
-  #istex <- as.vector(empar@features$isTE[tx_idx])
-  istex <- iste[tx_idx]
-  ## which reads overlap both genes and TEs?
-  idx <- (rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex])>0)
-  ## of these, keep only the overlap with the TE in case of a multimapping read
-  palnmatfilt[idx,istex] <- as(maskMultimat[idx,istex]*palnmatfilt[idx,istex],
-                               "lgCMatrix")
-  ## of these, keep only the overlap with the gene in case of a unique read
-  palnmatfilt[idx,!istex] <- as(maskUniqmat[idx,!istex]*palnmatfilt[idx,!istex],
+    
+    ## Identifying multi-mapping reads
+    if (length(alnNH) > 0) {
+        maskMulti <- alnNH > 2
+    } else {
+        maskMulti <- duplicated(readidx) | duplicated(readidx, fromLast = TRUE)
+        maskMulti <- maskMulti[mask]
+    }
+    
+    maskMultimat <- .buildOvValuesMatrix(ov, maskMulti, alnreadidx,rd_idx,tx_idx)
+    maskMultimat <- maskMultimat[maskthird, ]
+    maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx,rd_idx,tx_idx)
+    maskUniqmat <- maskUniqmat[maskthird, ]
+    
+    #istex <- as.vector(empar@features$isTE[tx_idx])
+    istex <- iste[tx_idx]
+    ## which reads overlap both genes and TEs?
+    idx <- (rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex])>0)
+    ## of these, keep only the overlap with the TE in case of a multimapping read
+    palnmatfilt[idx,istex] <- as(maskMultimat[idx,istex]*palnmatfilt[idx,istex],
                                 "lgCMatrix")
-  # sum((rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex]) > 0)) # [1] 0 (QC) 
-  
-  ## when multi-mapping / unique reads cannot be identified because there is
-  ## no NH and no secondary alignments in the BAM file, 'maskMulti' is FALSE
-  ## for all reads, which causes all reads aligned to overlapping genes and TEs 
-  ## to be assigned to genes.
-  
-  palnmatfilt
+    ## of these, keep only the overlap with the gene in case of a unique read
+    palnmatfilt[idx,!istex] <- as(
+        maskUniqmat[idx, !istex]*palnmatfilt[idx, !istex], "lgCMatrix")
+    # sum((rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex]) > 0)) # [1] 0 (QC) 
+    
+    ## when multi-mapping / unique reads cannot be identified because there is
+    ## no NH and no secondary alignments in the BAM file, 'maskMulti' is FALSE
+    ## for all reads, which causes all reads aligned to overlapping genes and
+    ## TEs to be assigned to genes.
+    
+    palnmatfilt
 }
 
 
@@ -758,211 +762,209 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom Matrix rowSums
 #' @importFrom sparseMatrixStats rowMaxs
 .countbymatrix <- function(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
-                           avgene, applysoasfilter, readidx, mask, alnNH, 
-                           iste) {
-  
-  ## fetch all different read identifiers from the overlapping alignments
-  rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
-  ## fetch all different transcripts from the overlapping alignments
-  tx_idx <- sort(unique(subjectHits(ov)))
-  ## build matrix with overlaps of primary alignments
-  palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
-  
-  maskthird <- rep(TRUE, nrow(palnmat))
-  
-  if (isTRUE(applysoasfilter)) {
-    ## build matrices with alignment scores (AS) and best secondary AS
-    asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
-    salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx, rd_idx, 
-                                          tx_idx)
-    ## AS from primary alignments
-    asprimaryaln <- rowMaxs(palnmat * asmat)
-    ## fetch maximum AS from secondary alignments
-    salnmaxas <- rowMaxs(salnbestasmat)
-    salnmaxas[salnmaxas == 0] <- -99
-    maskthird <- ((asprimaryaln - salnmaxas)>= empar@suboptimalAlignmentCutoff)
-  }
-  
-  cntvec <- rep(0, length(empar@features))
-  
-  if (isTRUE(avgene)) {
-    palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], 
-                                      readidx, mask, ov, maskthird, empar,
-                                      alnreadidx, rd_idx, tx_idx, alnNH, iste)
-    cntvec[tx_idx] <- colSums(palnmatadj)
-    ## counting counts of discarded reads mapping to genes
-    if (empar@geneCountMode == "all" && applysoasfilter) {
-      cntvecdisc <- rep(0, length(empar@features))
-      cntvecdisc[tx_idx] <- colSums(palnmat[!maskthird, ])
-      cntvec <- cntvec + cntvecdisc
+                            avgene, applysoasfilter, readidx, mask, alnNH, 
+                            iste) {
+    ## fetch all different read identifiers from the overlapping alignments
+    rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
+    ## fetch all different transcripts from the overlapping alignments
+    tx_idx <- sort(unique(subjectHits(ov)))
+    ## build matrix with overlaps of primary alignments
+    palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
+    
+    maskthird <- rep(TRUE, nrow(palnmat))
+    
+    if (isTRUE(applysoasfilter)) {
+        ## build matrices with alignment scores (AS) and best secondary AS
+        asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
+        salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx,
+                                                rd_idx, tx_idx)
+        ## AS from primary alignments
+        asprimaryaln <- rowMaxs(palnmat * asmat)
+        ## fetch maximum AS from secondary alignments
+        salnmaxas <- rowMaxs(salnbestasmat)
+        salnmaxas[salnmaxas == 0] <- -99
+        maskthird <- ((asprimaryaln - salnmaxas) >= 
+                        empar@suboptimalAlignmentCutoff)
     }
     
-  } else {
-    cntvec[tx_idx] <- colSums(palnmat[maskthird, ])
-  }
-  
-  
-  
-  cntvec
+    cntvec <- rep(0, length(empar@features))
+    
+    if (isTRUE(avgene)) {
+        palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], 
+                                        readidx, mask, ov, maskthird, empar,
+                                        alnreadidx, rd_idx, tx_idx, alnNH,iste)
+        cntvec[tx_idx] <- colSums(palnmatadj)
+        ## counting counts of discarded reads mapping to genes
+        if (empar@geneCountMode == "all" && applysoasfilter) {
+            cntvecdisc <- rep(0, length(empar@features))
+            cntvecdisc[tx_idx] <- colSums(palnmat[!maskthird, ])
+            cntvec <- cntvec + cntvecdisc
+        }
+        
+    } else {
+        cntvec[tx_idx] <- colSums(palnmat[maskthird, ])
+    }
+    
+    cntvec
 }
 
 
-.filteralnreads <- function (empar, alnreads, mask, thissalnmask,
-                             avsoas, avgene) {
-  
-  if (empar@fragments) {
-    if ((avsoas || is.na(empar@suboptimalAlignmentCutoff)) && !avgene) {
-      alnreads <- unlist(alnreads)[mask & !thissalnmask]
+.filteralnreads <- function(empar, alnreads, mask, thissalnmask,
+                                avsoas, avgene) {
+    
+    if (empar@fragments) {
+        if ((avsoas || is.na(empar@suboptimalAlignmentCutoff)) && !avgene) {
+            alnreads <- unlist(alnreads)[mask & !thissalnmask]
+        } else {
+            alnreads <- unlist(alnreads)[mask]
+        }
     } else {
-      alnreads <- unlist(alnreads)[mask]
+        if ((avsoas || is.na(empar@suboptimalAlignmentCutoff)) && !avgene) {
+            alnreads <- alnreads[mask & !thissalnmask]
+        } else {
+            alnreads <- alnreads[mask]
+        }
     }
-  } else {
-    if ((avsoas || is.na(empar@suboptimalAlignmentCutoff)) && !avgene) {
-      alnreads <- alnreads[mask & !thissalnmask]
-    } else {
-      alnreads <- alnreads[mask]
-    }
-  }
-  
+    alnreads
 }
 
 #' @importFrom BiocGenerics basename path
 .ervmapGetCounts <- function(avsoas, salnmask, empar, avgene, ov, alnreadidx,
-                           alnAS, salnbestAS, readidx, mask, alnNH, readids,
-                           bf, ovdiscard, n, verbose, iste) {
-  ## if suboptimal alignment scores are available or they are not but
-  ## we do not have secondary alignments either, then simply count filtered
-  ## reads. In the latter case, we issue a warning.
-  if (avsoas || !any(salnmask) || is.na(empar@suboptimalAlignmentCutoff)) {
+                            alnAS, salnbestAS, readidx, mask, alnNH, readids,
+                            bf, ovdiscard, n, verbose, iste) {
+    ## if suboptimal alignment scores are available or they are not but
+    ## we do not have secondary alignments either, then simply count filtered
+    ## reads. In the latter case, we issue a warning.
+    if (avsoas || !any(salnmask) || is.na(empar@suboptimalAlignmentCutoff)) {
     
-    if (avgene) {
-      cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS,
-                               salnbestAS, avgene, applysoasfilter = FALSE,
-                               readidx, mask, alnNH, iste)
+        if (avgene) {
+            cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS,
+                                salnbestAS, avgene, applysoasfilter = FALSE,
+                                readidx, mask, alnNH, iste)
+        } else {
+            cntvec <- countSubjectHits(ov)
+        }
+        if (!is.na(empar@suboptimalAlignmentCutoff) && !avsoas)
+            warning("suboptimal alignment scores and secondary alignments not available: skipping suboptimal alignment filtering.")
+    
     } else {
-      cntvec <- countSubjectHits(ov)
+        salnbestAS <- salnbestAS[match(readids[alnreadidx], names(salnbestAS))]
+        salnbestAS[is.na(salnbestAS)] <- -99L
+        rm(readids)
+        gc()
+        cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS,
+                                salnbestAS, avgene, applysoasfilter = TRUE,
+                                readidx, mask, alnNH, iste)
+        if (verbose > 1)
+            cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
+                    basename(path(bf)), n, sum(cntvec)))
     }
-    if (!is.na(empar@suboptimalAlignmentCutoff) && !avsoas)
-      warning("suboptimal alignment scores and secondary alignments not available: skipping suboptimal alignment filtering.")
+    names(cntvec) <- names(empar@features)
     
-  } else {
-    salnbestAS <- salnbestAS[match(readids[alnreadidx], names(salnbestAS))]
-    salnbestAS[is.na(salnbestAS)] <- -99L
-    rm(readids)
-    gc()
-    cntvec <- .countbymatrix(empar, ov, alnreadidx, salnmask, alnAS, 
-                             salnbestAS, avgene, applysoasfilter = TRUE, 
-                             readidx, mask, alnNH, iste)
-    if (verbose > 1)
-      cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
-                  basename(path(bf)), n, sum(cntvec)))
-  }
-  names(cntvec) <- names(empar@features)
-  
-  if (isTRUE(avgene) && empar@geneCountMode == "all") {
-    ## Adding counts of reads not passing ERVmap filters to genes 
-    cntvec[!iste] <- cntvec[!iste] + countSubjectHits(ovdiscard)
-  }
-  
-  if (length(empar@aggregateby) > 0) { # aggregate quantifications if necessary
-    if (avgene) {
-      f <- .factoraggregateby(empar@features[iste,], empar@aggregateby)
-      f <- c(f, names(empar@features)[!iste])
-    } else {
-      f <- .factoraggregateby(empar@features, empar@aggregateby)
+    if (isTRUE(avgene) && empar@geneCountMode == "all") {
+        ## Adding counts of reads not passing ERVmap filters to genes 
+        cntvec[!iste] <- cntvec[!iste] + countSubjectHits(ovdiscard)
     }
     
-    stopifnot(length(f) == length(cntvec)) ## QC
-    cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
-  }
-  cntvec
+    if (length(empar@aggregateby) > 0) {
+        if (avgene) {
+            f <- .factoraggregateby(empar@features[iste,], empar@aggregateby)
+            f <- c(f, names(empar@features)[!iste])
+        } else {
+            f <- .factoraggregateby(empar@features, empar@aggregateby)
+        }
+        
+        stopifnot(length(f) == length(cntvec)) ## QC
+        cntvec <- tapply(cntvec, f, sum, na.rm=TRUE)
+    }
+    cntvec
 }
 
 
 .getreadsdiscard <- function(empar, alnreads, mask, thissalnmask) {
-  
-  if (empar@fragments) {
-    alnreadsdiscard <- unlist(alnreads)[!mask & !thissalnmask] 
-  } else {
-    alnreadsdiscard <- alnreads[!mask & !thissalnmask]
-  }
-  alnreadsdiscard
+    
+    if (empar@fragments) {
+        alnreadsdiscard <- unlist(alnreads)[!mask & !thissalnmask] 
+    } else {
+        alnreadsdiscard <- alnreads[!mask & !thissalnmask]
+    }
+    alnreadsdiscard
 }
 
 
 .fetchNHtag <- function(thissalnmask, avgene, avtags, alnreads) {
-  
-  if (!any(thissalnmask) & avgene) {
-    if (isTRUE("NH" %in% avtags)) {
-      thisNH <- .getAlignmentTagScore(alnreads, tag="NH")
-      alnNH <- c(alnNH,thisNH)
-      alnNH
-    } else {
-      warning("secondary alignments and NH tag not available in BAM file. Unique reads cannot be differentiated from multi-mapping reads. All reads aligned to overlapping regions between genes and TEs will be considered as gene counts.")
+    
+    if (!any(thissalnmask) & avgene) {
+        if (isTRUE("NH" %in% avtags)) {
+            thisNH <- .getAlignmentTagScore(alnreads, tag="NH")
+            alnNH <- c(alnNH,thisNH)
+            return(alnNH)
+        } else {
+            warning("secondary alignments and NH tag not available in BAM file. Unique reads cannot be differentiated from multi-mapping reads. All reads aligned to overlapping regions between genes and TEs will be considered as gene counts.")
+        }
     }
-  }
 }
 
 
 .pass2Filters <- function(alnreads, empar) {
-  
-  aqw <- .getAlignmentQueryWidth(alnreads)
-  anm <- .getAlignmentMismatches(alnreads)
-  asc <- .getAlignmentSumClipping(alnreads)
-  ## Tokuyama et al. (2018) pg. 12571. reads/fragments are kept
-  ## if: (1) the ratio of sum of hard and soft clipping to the
-  ## sequence read length is < 0.02; (2) the ratio of the edit
-  ## distance to the sequence read length is < 0.02
-  mask <- ((asc / aqw) < empar@maxMismatchRate) & 
-    ((anm / aqw) < empar@maxMismatchRate)
-  
-  mask
+    
+    aqw <- .getAlignmentQueryWidth(alnreads)
+    anm <- .getAlignmentMismatches(alnreads)
+    asc <- .getAlignmentSumClipping(alnreads)
+    ## Tokuyama et al. (2018) pg. 12571. reads/fragments are kept
+    ## if: (1) the ratio of sum of hard and soft clipping to the
+    ## sequence read length is < 0.02; (2) the ratio of the edit
+    ## distance to the sequence read length is < 0.02
+    mask <- ((asc / aqw) < empar@maxMismatchRate) & 
+        ((anm / aqw) < empar@maxMismatchRate)
+    
+    mask
 }
 
 
 .pass3Filter <- function(mask, alnreads, empar, thisalnAS, thissalnmask, 
-                         avsoas) {
-  if (avsoas) {
-    sas <- .getAlignmentTagScore(alnreads, tag=empar@suboptimalAlignmentTag)
-    ## (3) the difference between the alignment score from BWA (AS)
-    ## and the suboptimal alignment score from BWA (field XS) >= 5,
-    mask <- mask & (thisalnAS - sas >= empar@suboptimalAlignmentCutoff)
-  } else if (!any(thissalnmask)) {
-    stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff = NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
-  }
-  
-  mask
+                            avsoas) {
+    if (avsoas) {
+        sas <- .getAlignmentTagScore(alnreads, tag=empar@suboptimalAlignmentTag)
+        ## (3) the difference between the alignment score from BWA (AS)
+        ## and the suboptimal alignment score from BWA (field XS) >= 5,
+        mask <- mask & (thisalnAS - sas >= empar@suboptimalAlignmentCutoff)
+    } else if (!any(thissalnmask)) {
+        stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff = NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
+    }
+    
+    mask
 }
 
 
 .filterReadIDs <- function(avgene, empar, avsoas, alnreadids,
-                           readids, readidx, alnreadidx, mask) {
-  
-  if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
+                            readids, readidx, alnreadidx, mask) {
     
-    ## store unique read identifiers and what alignment comes from what read
-    ## First multiple alignments from the same read in the same chunk are 
-    ## identified
-    alnreadids_uniq <- unique(alnreadids)
-    mt <- match(alnreadids, alnreadids_uniq) 
-    l <- length(alnreadids_uniq)
-    alnreadids_uniq <- c(alnreadids_uniq, alnreadids_uniq[is.na(mt)])
-    mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))
-    chunkidx <- mt
-    # Second, the index vectors are created
-    mt <- match(alnreadids_uniq, readids) 
-    l <- length(readids)
-    # readids contains just once every readID of all reads in the BAM file
-    readids <- c(readids, alnreadids_uniq[is.na(mt)]) 
-    mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))
-    # index for all alignments in the BAM file
-    readidx <- c(readidx, mt[chunkidx]) 
-    # index for all alignments with mask == TRUE.
-    alnreadidx <- c(alnreadidx, mt[chunkidx][mask]) 
-  
-  }
-  
-  list(readids = readids, readidx = readidx, alnreadidx = alnreadidx)
+    if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
+        
+        ## store unique read identifiers and what alignment comes from what read
+        ## First multiple alignments from the same read in the same chunk are 
+        ## identified
+        alnreadids_uniq <- unique(alnreadids)
+        mt <- match(alnreadids, alnreadids_uniq) 
+        l <- length(alnreadids_uniq)
+        alnreadids_uniq <- c(alnreadids_uniq, alnreadids_uniq[is.na(mt)])
+        mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))
+        chunkidx <- mt
+        # Second, the index vectors are created
+        mt <- match(alnreadids_uniq, readids) 
+        l <- length(readids)
+        # readids contains just once every readID of all reads in the BAM file
+        readids <- c(readids, alnreadids_uniq[is.na(mt)]) 
+        mt[is.na(mt)] <- (l+1):(l+sum(is.na(mt)))
+        # index for all alignments in the BAM file
+        readidx <- c(readidx, mt[chunkidx]) 
+        # index for all alignments with mask == TRUE.
+        alnreadidx <- c(alnreadidx, mt[chunkidx][mask]) 
+    
+    }
+    
+    list(readids = readids, readidx = readidx, alnreadidx = alnreadidx)
 }
 
 

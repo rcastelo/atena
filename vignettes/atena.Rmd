@@ -86,11 +86,11 @@ library(GenomicRanges)
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
+                                        package="atena"))
 empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
-                     ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
+                        ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
 empar
 ```
 
@@ -119,11 +119,11 @@ Here, the Telescope annotations will be used and TE quantifications will be aggr
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
+                                        package="atena"))
 gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
-                                         package="atena"))
+                                        package="atena"))
 tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
                         geneFeatures = gene_annot,
                         singleEnd = TRUE, ignoreStrand=TRUE)
@@ -143,9 +143,9 @@ Here, the Telescope annotations will be used and TE quantifications will be aggr
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
+                                        package="atena"))
 ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
                             ignoreStrand=TRUE, aggregateby = c("repName"))
 
@@ -161,10 +161,10 @@ Following the gene annotation processing present in the TEtranscripts algorithm,
 ```{r}
 # Creating an example of gene annotations
 annot_gen <- GRanges(seqnames = rep("2L",10),
-                     ranges = IRanges(start = c(1,20,45,80,110,130,150,170,200,220),
-                                      width = c(10,20,35,10,5,15,10,25,5,20)),
-                     strand = "*", 
-                     type = rep("exon",10))
+                    ranges = IRanges(start = c(1,20,45,80,110,130,150,170,200,220),
+                                    width = c(10,20,35,10,5,15,10,25,5,20)),
+                    strand = "*", 
+                    type = rep("exon",10))
 # Setting gene ids
 names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,3)))
 annot_gen

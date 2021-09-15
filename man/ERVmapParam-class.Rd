@@ -8,18 +8,18 @@
 \title{ERVmap parameter class}
 \usage{
 ERVmapParam(
-  bfl,
-  teFeatures,
-  aggregateby = character(0),
-  geneFeatures = NA,
-  singleEnd = TRUE,
-  ignoreStrand = TRUE,
-  strandMode = 1L,
-  fragments = !singleEnd,
-  maxMismatchRate = 0.02,
-  suboptimalAlignmentTag = "auto",
-  suboptimalAlignmentCutoff = 5,
-  geneCountMode = "all"
+    bfl,
+    teFeatures,
+    aggregateby = character(0),
+    geneFeatures = NA,
+    singleEnd = TRUE,
+    ignoreStrand = TRUE,
+    strandMode = 1L,
+    fragments = !singleEnd,
+    maxMismatchRate = 0.02,
+    suboptimalAlignmentTag = "auto",
+    suboptimalAlignmentCutoff = 5,
+    geneCountMode = "all"
 )
 
 \S4method{show}{ERVmapParam}(object)
@@ -193,11 +193,11 @@ primary alignments mapping to genes are counted.}
 
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
                     package="atena"))
 empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
-                     ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
+                    ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
 empar
 
 }

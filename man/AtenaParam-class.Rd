@@ -41,7 +41,7 @@ to be used to aggregate quantifications.}
 
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
                     package="atena"))
 ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot, singleEnd=TRUE,

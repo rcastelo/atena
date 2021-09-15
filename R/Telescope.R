@@ -102,26 +102,26 @@
 #' @export
 #' @rdname TelescopeParam-class
 TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
-                           geneFeatures=NA,
-                           singleEnd=TRUE, 
-                           strandMode=1L, 
-                           ignoreStrand=FALSE,
-                           fragments=FALSE, 
-                           pi_prior=0L, 
-                           theta_prior=0L, 
-                           em_epsilon=1e-7,
-                           maxIter=100L) {
-  bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
-  
-  features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                               geneFeatures, deparse(substitute(geneFeatures)),
-                               aggregateby, aggregateexons = TRUE)
-  
-  new("TelescopeParam", bfl=bfl, features=features,
-      aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
-      strandMode=as.integer(strandMode), fragments=fragments,
-      pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
-      maxIter=as.integer(maxIter))
+                            geneFeatures=NA,
+                            singleEnd=TRUE, 
+                            strandMode=1L, 
+                            ignoreStrand=FALSE,
+                            fragments=FALSE, 
+                            pi_prior=0L, 
+                            theta_prior=0L, 
+                            em_epsilon=1e-7,
+                            maxIter=100L) {
+    bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
+    
+    features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
+                                geneFeatures,deparse(substitute(geneFeatures)),
+                                aggregateby, aggregateexons = TRUE)
+    
+    new("TelescopeParam", bfl=bfl, features=features,
+        aggregateby=aggregateby, singleEnd=singleEnd,ignoreStrand=ignoreStrand,
+        strandMode=as.integer(strandMode), fragments=fragments,
+        pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
+        maxIter=as.integer(maxIter))
 }
 
 #' @param object A \linkS4class{TelescopeParam} object.
@@ -131,7 +131,7 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
 #' @aliases show,TelescopeParam-method
 #' @rdname TelescopeParam-class
 setMethod("show", "TelescopeParam",
-          function(object) {
+        function(object) {
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
@@ -139,24 +139,24 @@ setMethod("show", "TelescopeParam",
                         class(object@features),
                         length(object@features),
                         ifelse(is.null(names(object@features)),
-                               paste("on", 
-                                     .pprintnames(seqlevels(object@features))),
-                               .pprintnames(names(object@features)))))
+                                paste("on", 
+                                    .pprintnames(seqlevels(object@features))),
+                                .pprintnames(names(object@features)))))
             cat(sprintf("# aggregated by: %s\n", 
                         ifelse(length(object@aggregateby) > 0,
-                               paste(object@aggregateby, collapse=", "),
-                               paste(class(object@features), "names"))))
+                                paste(object@aggregateby, collapse=", "),
+                                paste(class(object@features), "names"))))
             cat(sprintf("# %s; %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))
             if (!object@ignoreStrand)
-              cat(sprintf(" (strandMode=%d)", object@strandMode))
+                cat(sprintf(" (strandMode=%d)", object@strandMode))
             if (!object@singleEnd)
-              cat(sprintf("; %s",
-                          ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
-                                 "counting properly paired reads")))
+                cat(sprintf("; %s",
+                        ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
+                                "counting properly paired reads")))
             cat("\n")
-          })
+        })
 
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom S4Vectors DataFrame
@@ -166,8 +166,8 @@ setMethod("show", "TelescopeParam",
 #' @aliases qtex,TelescopeParam-method
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
-          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
-                   BPPARAM=SerialParam(progressbar=TRUE)) {
+        function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
+                    BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
             
             cnt <- bplapply(x@bfl, .qtex_telescope, tspar=x, mode=mode,
@@ -179,9 +179,9 @@ setMethod("qtex", "TelescopeParam",
             features <- .consolidateFeatures(x, rownames(cnt))
             
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=features,
-                                 colData=colData)
-          })
+                                    rowRanges=features,
+                                    colData=colData)
+        })
 
 #' @importFrom stats setNames
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
@@ -192,54 +192,54 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
-  mode=match.fun(mode)
-  readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
-  sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                         isDuplicate=FALSE,
-                         isNotPassingQualityControls=FALSE)
-  param <- ScanBamParam(flag=sbflags, tag="AS")
-  
-  iste <- as.vector(attributes(tspar@features)$isTE[,1])
-  if (any(duplicated(names(tspar@features[iste])))) {
-    stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
-  }
-  ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
-  alnreadids <- character(0)
-  asvalues <- integer()
-  strand_arg <- "strandMode" %in% formalArgs(readfun)
-  yieldSize(bf) <- yieldSize
-  open(bf)
-  while (length(alnreads <- do.call(readfun,
+    mode=match.fun(mode)
+    readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
+    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                            isDuplicate=FALSE,
+                            isNotPassingQualityControls=FALSE)
+    param <- ScanBamParam(flag=sbflags, tag="AS")
+    iste <- as.vector(attributes(tspar@features)$isTE[,1])
+    if (any(duplicated(names(tspar@features[iste])))) {
+        stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
+    }
+    ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
+    alnreadids <- character(0)
+    asvalues <- integer()
+    strand_arg <- "strandMode" %in% formalArgs(readfun)
+    yieldSize(bf) <- yieldSize
+    open(bf)
+    while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=tspar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
-    alnreadids <- c(alnreadids, names(alnreads))
-    asvalues <- c(asvalues, mcols(alnreads)$AS)
-    thisov <- mode(alnreads, tspar@features, ignoreStrand=tspar@ignoreStrand)
-    ov <- .appendHits(ov, thisov)
-  }
-  close(bf)
-  
-  maskuniqaln <- !(duplicated(alnreadids) | 
-                     duplicated(alnreadids, fromLast = TRUE))
-  ## fetch all different read identifiers from the overlapping alignments
-  readids <- unique(alnreadids[queryHits(ov)])
-  ## fetch all different transcripts from the overlapping alignments
-  tx_idx <- sort(unique(subjectHits(ov)))
-  istex <- as.vector(iste[tx_idx])
-  ## build a matrix representation of the overlapping alignments
-  ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
-  mt <- match(readids, alnreadids)
-  maskmulti <- !maskuniqaln[mt] # multimapping reads present in the ov matrix
-  if (!all(iste)) {
-    ## Correcting for preference of unique/multimapping reads to genes/TEs
-    ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
-    stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 &
-                     rowSums(ovalnmat[,!istex]) > 0))
-  }
-  cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx,
-                      maskmulti, iste)
-  setNames(as.integer(cntvec), names(cntvec))
+        alnreadids <- c(alnreadids, names(alnreads))
+        asvalues <- c(asvalues, mcols(alnreads)$AS)
+        thisov <- mode(alnreads, tspar@features, 
+                        ignoreStrand=tspar@ignoreStrand)
+        ov <- .appendHits(ov, thisov)
+    }
+    close(bf)
+    
+    maskuniqaln <- !(duplicated(alnreadids) | 
+                        duplicated(alnreadids, fromLast = TRUE))
+    ## fetch all different read identifiers from the overlapping alignments
+    readids <- unique(alnreadids[queryHits(ov)])
+    ## fetch all different transcripts from the overlapping alignments
+    tx_idx <- sort(unique(subjectHits(ov)))
+    istex <- as.vector(iste[tx_idx])
+    ## build a matrix representation of the overlapping alignments
+    ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
+    mt <- match(readids, alnreadids)
+    maskmulti <- !maskuniqaln[mt] # multimapping reads present in the ov matrix
+    if (!all(iste)) {
+        ## Correcting for preference of unique/multimapping reads to genes/TEs
+        ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
+        stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 &
+                        rowSums(ovalnmat[,!istex]) > 0))
+    }
+    cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx,
+                        maskmulti, iste)
+    setNames(as.integer(cntvec), names(cntvec))
 }
 
 
@@ -247,124 +247,125 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM 
 .tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx,
-                      maskmulti, iste) {
-  ## initialize vector of counts derived from multi-mapping reads
-  cntvec <- rep(0L, length(tspar@features))
-  
-  # Getting counts from reads overlapping only one feature (this excludes
-  # unique reads mapping to two or more overlapping features)
-  # ovunique <- rowSums(ovalnmat) == 1
-  # cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
-  
-  # --- EM-step --- 
-  alnreadidx <- match(alnreadids, readids)
-  rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
-  asvalues <- (asvalues - min(asvalues) +1) / (max(asvalues) - min(asvalues))
-  QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
-  QmatTS <- QmatTS / rowSums(QmatTS)
-  # Telescope [Bendall et al. (2019)) defines the initial π estimate uniformly.
-  PiTS <- rep(1 / length(tx_idx), length(tx_idx))
-  
-  # Telescope also defines an additional reassignment parameter (θ) as uniform
-  Theta <- rep(1 / length(tx_idx), length(tx_idx))
-  
-  ## The SQUAREM algorithm to run the EM procedure
-  a <- tspar@pi_prior # 0
-  b <- tspar@theta_prior # 0
-  Thetaenv <- new.env()
-  tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatTS, maskmulti=maskmulti,
-                   a=a, b=b, fixptfn=.tsFixedPointFun,
-                   control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
-  PiTS <- tsres$par
-  PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
-  # --- end EM-step ---
-  
-  # Implementation for reassign_mode=exclude
-  Theta <- get("Theta", envir=Thetaenv)
-  X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
-  maxbyrow <- rowMaxs(X)
-  # Xind <- X == maxbyrow
-  # Quicker version of the previous line
-  Xind <- (X / maxbyrow) == 1
-  nmaxbyrow <- rowSums(Xind)
-  
-  # Do not differenciate between TEs and genes with istex because in Telescope
-  # genes are also included in the EMstep.
-  cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
-  
-  names(cntvec) <- names(tspar@features)
-  cntvec <- .tssummarizeCounts(cntvec, iste, tspar)
-  cntvec
+                        maskmulti, iste) {
+    ## initialize vector of counts derived from multi-mapping reads
+    cntvec <- rep(0L, length(tspar@features))
+    
+    # Getting counts from reads overlapping only one feature (this excludes
+    # unique reads mapping to two or more overlapping features)
+    # ovunique <- rowSums(ovalnmat) == 1
+    # cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
+    
+    # --- EM-step --- 
+    alnreadidx <- match(alnreadids, readids)
+    rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
+    asvalues <- (asvalues - min(asvalues) +1) / (max(asvalues) - min(asvalues))
+    QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
+    QmatTS <- QmatTS / rowSums(QmatTS)
+    # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
+    PiTS <- rep(1 / length(tx_idx), length(tx_idx))
+    
+    # Telescope defines an additional reassignment parameter (θ) as uniform
+    Theta <- rep(1 / length(tx_idx), length(tx_idx))
+    
+    ## The SQUAREM algorithm to run the EM procedure
+    a <- tspar@pi_prior # 0
+    b <- tspar@theta_prior # 0
+    Thetaenv <- new.env()
+    tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatTS,maskmulti=maskmulti,
+                    a=a, b=b, fixptfn=.tsFixedPointFun,
+                    control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
+    PiTS <- tsres$par
+    PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+    # --- end EM-step ---
+    
+    # Implementation for reassign_mode=exclude
+    Theta <- get("Theta", envir=Thetaenv)
+    X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
+    maxbyrow <- rowMaxs(X)
+    # Xind <- X == maxbyrow
+    # Quicker version of the previous line
+    Xind <- (X / maxbyrow) == 1
+    nmaxbyrow <- rowSums(Xind)
+    
+    # Do not differenciate between TE and genes with istex because in Telescope
+    # genes are also included in the EMstep.
+    cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
+    
+    names(cntvec) <- names(tspar@features)
+    cntvec <- .tssummarizeCounts(cntvec, iste, tspar)
+    cntvec
 }
 
 
 .tssummarizeCounts <- function(cntvec, iste, tspar) {
-  cntvec_t <- cntvec[iste]
-  ## aggregate TE quantifications if necessary
-  if (length(tspar@aggregateby) > 0) {
-    f <- .factoraggregateby(tspar@features[iste], tspar@aggregateby)
-    stopifnot(length(f) == length(cntvec_t)) ## QC
-    cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
-  }
-  
-  ## aggregating exon counts to genes
-  if (!all(iste)) {
-    cntvec <- c(cntvec_t, cntvec[!iste])
-  } else {
-    cntvec <- cntvec_t
-  }
-  
-  cntvec
+    cntvec_t <- cntvec[iste]
+    ## aggregate TE quantifications if necessary
+    if (length(tspar@aggregateby) > 0) {
+        f <- .factoraggregateby(tspar@features[iste], tspar@aggregateby)
+        stopifnot(length(f) == length(cntvec_t)) ## QC
+        cntvec_t <- tapply(cntvec_t, f, sum, na.rm=TRUE)
+    }
+    
+    ## aggregating exon counts to genes
+    if (!all(iste)) {
+        cntvec <- c(cntvec_t, cntvec[!iste])
+    } else {
+        cntvec <- cntvec_t
+    }
+    
+    cntvec
 }
 
 ## private function .tsEstep()
 ## E-step of the EM algorithm of Telescope
 .tsEstep <- function(Q, Theta, maskmulti, Pi) {
-  X <- t(t(Q) * Pi)
-  # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
-  # quicker computation of previous line
-  wh <- which(X*maskmulti > 0, arr.ind = TRUE)
-  X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
-  X <- X[rowSums(X)>0,, drop=FALSE]
-  X <- X / rowSums(X)
-  X
+    X <- t(t(Q) * Pi)
+    # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+    # quicker computation of previous line
+    wh <- which(X*maskmulti > 0, arr.ind = TRUE)
+    X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
+    X <- X[rowSums(X)>0,, drop=FALSE]
+    X <- X / rowSums(X)
+    X
 }
 
 ## private function .tsMstepPi()
 ## M-step of the EM algorithm of Telescope
 .tsMstepPi <- function(X, a) {
-  Pi <- (colSums(X) + a) / (sum(X)+a*ncol(X))
-  Pi
+    Pi <- (colSums(X) + a) / (sum(X)+a*ncol(X))
+    Pi
 }
 
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-  Theta <- (colSums(X[maskmulti, , drop=FALSE])+b) / (sum(maskmulti)+b*ncol(X))
+    Theta <- ((colSums(X[maskmulti, , drop=FALSE])+b) / 
+        (sum(maskmulti)+b*ncol(X)))
 }
 
 ## private function .tsFixedPointFun()
 ## fixed point function of the EM algorithm of Telescope
 .tsFixedPointFun <- function(Pi, Thetaenv, Q, maskmulti, a, b) {
-  Theta <- get("Theta", envir=Thetaenv)
-  X <- .tsEstep(Q, Theta, maskmulti, Pi)
-  Pi2 <- .tsMstepPi(X, a)
-  Theta2 <- .tsMstepTheta (X, maskmulti, b)
-  assign("Theta", Theta2, envir=Thetaenv)
-  
-  Pi2
+    Theta <- get("Theta", envir=Thetaenv)
+    X <- .tsEstep(Q, Theta, maskmulti, Pi)
+    Pi2 <- .tsMstepPi(X, a)
+    Theta2 <- .tsMstepTheta (X, maskmulti, b)
+    assign("Theta", Theta2, envir=Thetaenv)
+    
+    Pi2
 }
 
 ## private function .buildOvValuesMatrixTS()
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix
 .buildOvValuesMatrixTS <- function(ov, values, aridx, ridx, fidx) {
-  ovmat <- Matrix(do.call(class(values), list(1)),
-                  nrow=length(ridx), ncol=length(fidx))
-  mt1 <- match(aridx[queryHits(ov)], ridx)
-  mt2 <- match(subjectHits(ov), fidx)
-  ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
-  ovmat
+    ovmat <- Matrix(do.call(class(values), list(1)),
+                        nrow=length(ridx), ncol=length(fidx))
+    mt1 <- match(aridx[queryHits(ov)], ridx)
+    mt2 <- match(subjectHits(ov), fidx)
+    ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
+    ovmat
 }
 
 

@@ -8,18 +8,18 @@
 \title{Telescope parameter class}
 \usage{
 TelescopeParam(
-  bfl,
-  teFeatures,
-  aggregateby = character(0),
-  geneFeatures = NA,
-  singleEnd = TRUE,
-  strandMode = 1L,
-  ignoreStrand = FALSE,
-  fragments = FALSE,
-  pi_prior = 0L,
-  theta_prior = 0L,
-  em_epsilon = 1e-07,
-  maxIter = 100L
+    bfl,
+    teFeatures,
+    aggregateby = character(0),
+    geneFeatures = NA,
+    singleEnd = TRUE,
+    strandMode = 1L,
+    ignoreStrand = FALSE,
+    fragments = FALSE,
+    pi_prior = 0L,
+    theta_prior = 0L,
+    em_epsilon = 1e-07,
+    maxIter = 100L
 )
 
 \S4method{show}{TelescopeParam}(object)
@@ -153,11 +153,11 @@ is 100 and this value is passed to the \code{maxiter} parameter of the
 
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
                     package="atena"))
 gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
-                                         package="atena"))
+                                        package="atena"))
 tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
                         geneFeatures = gene_annot,
                         singleEnd = TRUE, ignoreStrand=TRUE)

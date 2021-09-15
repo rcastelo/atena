@@ -32,7 +32,7 @@
 #' @rdname AtenaParam-class
 #' @exportClass AtenaParam
 setClass("AtenaParam",
-         representation(bfl="BamFileList",
+        representation(bfl="BamFileList",
                         features="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character"))
 
@@ -47,9 +47,9 @@ setClass("AtenaParam",
 #' @aliases path,AtenaParam-method
 #' @rdname AtenaParam-class
 setMethod("path", "AtenaParam",
-          function(object) {
+        function(object) {
             path(object@bfl)
-          })
+        })
 
 setGeneric("features", function(object) standardGeneric("features"))
 
@@ -64,9 +64,9 @@ setGeneric("features", function(object) standardGeneric("features"))
 #' @aliases features,AtenaParam-method
 #' @rdname AtenaParam-class
 setMethod("features", "AtenaParam",
-          function(object) {
+        function(object) {
             object@features
-          })
+        })
 
 #' ERVmap parameter class
 #'
@@ -142,7 +142,7 @@ setMethod("features", "AtenaParam",
 #' @rdname ERVmapParam-class
 #' @exportClass ERVmapParam
 setClass("ERVmapParam", contains="AtenaParam",
-         representation(singleEnd="logical",
+        representation(singleEnd="logical",
                         ignoreStrand="logical",
                         strandMode="integer",
                         fragments="logical",
@@ -206,7 +206,7 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @rdname TelescopeParam-class
 #' @exportClass TelescopeParam
 setClass("TelescopeParam", contains="AtenaParam",
-         representation(singleEnd="logical",
+        representation(singleEnd="logical",
                         strandMode="integer",
                         ignoreStrand="logical",
                         fragments="logical",
@@ -264,7 +264,7 @@ setClass("TelescopeParam", contains="AtenaParam",
 #' @rdname TEtranscriptsParam-class
 #' @exportClass TEtranscriptsParam
 setClass("TEtranscriptsParam", contains="AtenaParam",
-         representation(singleEnd="logical",
+        representation(singleEnd="logical",
                         ignoreStrand="logical",
                         strandMode="integer",
                         fragments="logical",

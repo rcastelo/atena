@@ -55,8 +55,8 @@
 #' @export
 #' @rdname ovFunctions
 ovUnion <- function(reads, features, ignoreStrand) {
-  ov <- findOverlaps(reads, features, ignore.strand=ignoreStrand)
-  ov
+    ov <- findOverlaps(reads, features, ignore.strand=ignoreStrand)
+    ov
 }
 
 #' @importFrom GenomicAlignments findOverlaps
@@ -64,9 +64,9 @@ ovUnion <- function(reads, features, ignoreStrand) {
 #' @export
 #' @rdname ovFunctions
 ovIntersectionStrict <- function(reads, features, ignoreStrand) {
-  ov <- findOverlaps(reads, features, type="within",
-                     ignore.strand=ignoreStrand)
-  ov
+    ov <- findOverlaps(reads, features, type="within",
+                        ignore.strand=ignoreStrand)
+    ov
 }
 
 #' @importFrom methods as
@@ -82,7 +82,7 @@ ovIntersectionStrict <- function(reads, features, ignoreStrand) {
         stop("internal fail")  # should never happen
     }
     ov <- findOverlaps(features, regions,
-                       ignore.strand=ignore.strand)
+                        ignore.strand=ignore.strand)
     regions_to_keep <- which(countSubjectHits(ov) == 1L)
     ov <- ov[subjectHits(ov) %in% regions_to_keep]
     unlisted_ans <- regions[subjectHits(ov)]

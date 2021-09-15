@@ -8,16 +8,16 @@
 \title{TEtranscripts parameter class}
 \usage{
 TEtranscriptsParam(
-  bfl,
-  teFeatures,
-  aggregateby = character(0),
-  geneFeatures = NA,
-  singleEnd = TRUE,
-  ignoreStrand = FALSE,
-  strandMode = 1L,
-  fragments = FALSE,
-  tolerance = 1e-04,
-  maxIter = 100L
+    bfl,
+    teFeatures,
+    aggregateby = character(0),
+    geneFeatures = NA,
+    singleEnd = TRUE,
+    ignoreStrand = FALSE,
+    strandMode = 1L,
+    fragments = FALSE,
+    tolerance = 1e-04,
+    maxIter = 100L
 )
 
 \S4method{show}{TEtranscriptsParam}(object)
@@ -140,7 +140,7 @@ is 100 and this value is passed to the \code{maxiter} parameter of the
 
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
-                       pattern="*.bam", full.names=TRUE)
+                        pattern="*.bam", full.names=TRUE)
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
                     package="atena"))
 ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 

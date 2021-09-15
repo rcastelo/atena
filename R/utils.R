@@ -2,23 +2,23 @@
 
 #' @importFrom S4Vectors nrow rownames
 .checkPhenodata <- function(pdata, nr) {
-  if (!is.null(pdata)) {
-    if (nrow(pdata) != nr)
-      stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
-    if (is.null(rownames(pdata)))
-      stop("'phenodata' has no row names.")
-  }
+    if (!is.null(pdata)) {
+        if (nrow(pdata) != nr)
+            stop("number of rows in 'phenodata' is different than the number of input BAM files in the input parameter object 'x'.")
+        if (is.null(rownames(pdata)))
+            stop("'phenodata' has no row names.")
+    }
 }
 
 ## private function .createColumnData()
 
 #' @importFrom S4Vectors DataFrame
 .createColumnData <- function(m, pdata) {
-  colData <- DataFrame(row.names=gsub(".bam$", "", colnames(m)))
-  if (!is.null(pdata))
-    colData <- pdata
-
-  colData
+    colData <- DataFrame(row.names=gsub(".bam$", "", colnames(m)))
+    if (!is.null(pdata))
+        colData <- pdata
+    
+    colData
 }
 
 ## private function .checkBamFileListArgs()
@@ -26,28 +26,28 @@
 
 #' @importFrom Rsamtools BamFileList asMates asMates<-
 .checkBamFileListArgs <- function(bfl, singleEnd, fragments) {
-  if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
-    stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
-
-  if (is.character(bfl)) {
-    mask <- vapply(bfl, FUN = file.exists, FUN.VALUE = logical(1))
-    if (any(!mask))
-      stop(sprintf("The following input BAM files cannot be found:\n%s",
-                   paste(paste("  ", bfl[!mask]), collapse="\n")))
-  }
-
-  if (!is(bfl, "BamFileList"))
-    bfl <- BamFileList(bfl, asMates=!singleEnd)
-
-  if (singleEnd) {
-    if (all(isTRUE(asMates(bfl))))
-      stop("cannot specify both 'singleEnd=TRUE' and 'asMates=TRUE'")
-    if (fragments)
-      stop("when 'fragments=TRUE', 'singleEnd' should be FALSE")
-  } else
-    asMates(bfl) <- TRUE
-
-  bfl
+    if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
+        stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
+    
+    if (is.character(bfl)) {
+        mask <- vapply(bfl, FUN = file.exists, FUN.VALUE = logical(1))
+        if (any(!mask))
+            stop(sprintf("The following input BAM files cannot be found:\n%s",
+                        paste(paste("  ", bfl[!mask]), collapse="\n")))
+    }
+    
+    if (!is(bfl, "BamFileList"))
+        bfl <- BamFileList(bfl, asMates=!singleEnd)
+    
+    if (singleEnd) {
+        if (all(isTRUE(asMates(bfl))))
+            stop("cannot specify both 'singleEnd=TRUE' and 'asMates=TRUE'")
+        if (fragments)
+            stop("when 'fragments=TRUE', 'singleEnd' should be FALSE")
+    } else
+        asMates(bfl) <- TRUE
+    
+    bfl
 }
 
 ## private function .checkBamReadMapper()
@@ -56,37 +56,37 @@
 
 #' @importFrom Rsamtools scanBamHeader
 .checkBamReadMapper <- function(bamfiles) {
-  if (missing(bamfiles) || !"character" %in% class(bamfiles))
-    stop("argument 'bamfiles' should be a string character vector of BAM file names")
-
-  mask <- vapply(bamfiles, FUN = file.exists, FUN.VALUE = logical(1L))
-  if (any(!mask))
-    stop(sprintf("The following input BAM files cannot be found:\n%s",
-                 paste(paste("  ", bamfiles[!mask]), collapse="\n")))
-
-  hdr <- scanBamHeader(bamfiles)
-  readaligner <- vapply(hdr, FUN = function(x) {
-                          ra <- NA_character_
-                          if (!is.null(x$text[["@PG"]])) {
-                            pgstr <- x$text[["@PG"]]
-                            mt <- gregexpr("^PN:", pgstr)
-                            wh <- which(vapply(mt, FUN = function(x) x!=-1,
-                                          FUN.VALUE = logical(1L)))
-                            ra <- substr(pgstr[[wh]],
-                                          attr(mt[[wh]], "match.length")+1,
-                                          100000L)
-                          }
-                          tolower(ra)
-                 }, FUN.VALUE = character(1))
-  readaligner <- readaligner[!duplicated(readaligner)]
-  readaligner <- as.vector(readaligner[!is.na(readaligner)])
-  if (length(readaligner) == 0)
-    warning("no read aligner software information in BAM files.")
-  if (any(readaligner[1] != readaligner))
-    warning(sprintf("different read aligner information in BAM files. Assuming %s",
-                    readaligner[1]))
-
-  readaligner[1]
+    if (missing(bamfiles) || !"character" %in% class(bamfiles))
+        stop("argument 'bamfiles' should be a string character vector of BAM file names")
+    
+    mask <- vapply(bamfiles, FUN = file.exists, FUN.VALUE = logical(1L))
+    if (any(!mask))
+        stop(sprintf("The following input BAM files cannot be found:\n%s",
+                    paste(paste("  ", bamfiles[!mask]), collapse="\n")))
+    
+    hdr <- scanBamHeader(bamfiles)
+    readaligner <- vapply(hdr, FUN = function(x) {
+                            ra <- NA_character_
+                            if (!is.null(x$text[["@PG"]])) {
+                                pgstr <- x$text[["@PG"]]
+                                mt <- gregexpr("^PN:", pgstr)
+                                wh <- which(vapply(mt, FUN = function(x) x!=-1,
+                                            FUN.VALUE = logical(1L)))
+                                ra <- substr(pgstr[[wh]],
+                                            attr(mt[[wh]], "match.length") + 1,
+                                            100000L)
+                            }
+                            tolower(ra)
+                    }, FUN.VALUE = character(1))
+    readaligner <- readaligner[!duplicated(readaligner)]
+    readaligner <- as.vector(readaligner[!is.na(readaligner)])
+    if (length(readaligner) == 0)
+        warning("no read aligner software information in BAM files.")
+    if (any(readaligner[1] != readaligner))
+        warning(sprintf("different read aligner information in BAM files. Assuming %s",
+                        readaligner[1]))
+    
+    readaligner[1]
 }
 
 ## private function .processFeatures()
@@ -104,65 +104,65 @@
 #' @importFrom S4Vectors mcols Rle DataFrame
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
-                             geneFeaturesobjname, aggregateby,
-                             aggregateexons) {
-
-  if (missing(teFeatures)) 
-    stop("missing 'teFeatures' argument.")
-
-  if (!exists(teFeaturesobjname))
-    stop(sprintf("input TE features object '%s' is not defined.",
-                 teFeaturesobjname))
-
-  if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
-    stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                 teFeaturesobjname))
-
-  if (length(aggregateby) > 0)
-    if (any(!aggregateby %in% colnames(mcols(teFeatures))))
-           stop(sprintf("%s not in metadata columns of the TE features object.",
-               aggregateby[!aggregateby %in% colnames(mcols(teFeatures))]))
-
-  if (is.null(names(teFeatures)) && length(aggregateby) == 0)
-    stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
-                 teFeaturesobjname))
-
-  features <- teFeatures
-  if (is(teFeatures, "GRangesList")) 
-    features <- unlist(teFeatures)
-
-  if (!all(is.na(geneFeatures))) {
-    if (is(geneFeatures, "GRangesList")) 
-      geneFeatures <- unlist(geneFeatures)
+                                geneFeaturesobjname, aggregateby,
+                                aggregateexons) {
     
-    features <- .joinTEsGenes(teFeatures, geneFeatures)
-  } else {
-    features$isTE <- rep(TRUE, length(features))
-  }
-  
-  iste <- as.vector(features$isTE)
-  if (!all(is.na(geneFeatures))) {
-    if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
-        iste <- aggregate(iste, by = list(names(features)), unique)
-        features <- .groupGeneExons(features)
-        mtname <- match(names(features), iste$Group.1)
-        iste <- iste[mtname,"x"]
+    if (missing(teFeatures)) 
+        stop("missing 'teFeatures' argument.")
+    
+    if (!exists(teFeaturesobjname))
+        stop(sprintf("input TE features object '%s' is not defined.",
+                    teFeaturesobjname))
+    
+    if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
+        stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+                    teFeaturesobjname))
+    
+    if (length(aggregateby) > 0)
+        if (any(!aggregateby %in% colnames(mcols(teFeatures))))
+            stop(sprintf("%s not in metadata columns of the TE features object.",
+                aggregateby[!aggregateby %in% colnames(mcols(teFeatures))]))
+    
+    if (is.null(names(teFeatures)) && length(aggregateby) == 0)
+        stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
+                    teFeaturesobjname))
+    
+    features <- teFeatures
+    if (is(teFeatures, "GRangesList")) 
+        features <- unlist(teFeatures)
+    
+    if (!all(is.na(geneFeatures))) {
+        if (is(geneFeatures, "GRangesList")) 
+            geneFeatures <- unlist(geneFeatures)
+        
+        features <- .joinTEsGenes(teFeatures, geneFeatures)
+    } else {
+        features$isTE <- rep(TRUE, length(features))
     }
-  }
-  
-  attr(features, "isTE") <- DataFrame("isTE" = iste)
-  features
+    
+    iste <- as.vector(features$isTE)
+    if (!all(is.na(geneFeatures))) {
+        if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
+            iste <- aggregate(iste, by = list(names(features)), unique)
+            features <- .groupGeneExons(features)
+            mtname <- match(names(features), iste$Group.1)
+            iste <- iste[mtname,"x"]
+        }
+    }
+    
+    attr(features, "isTE") <- DataFrame("isTE" = iste)
+    features
 }
 
 
 ## private function .groupGeneExons()
 ## groups exons from the same gene creating a 'GRangesList' object
 .groupGeneExons <- function(features) {
-  if (!any(mcols(features)$type == "exon")) {
-    stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
-  }
-  featuressplit <- split(x = features, f = names(features))
-  featuressplit
+    if (!any(mcols(features)$type == "exon")) {
+        stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+    }
+    featuressplit <- split(x = features, f = names(features))
+    featuressplit
 }
 
 
@@ -178,60 +178,34 @@
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList
 .consolidateFeatures <- function(x, fnames) {
-  
-  iste <- as.vector(attributes(x@features)$isTE[,1])
-  teFeatures <- x@features
-  if (!is.null(iste) && any(iste)) {
-    teFeatures <- x@features[iste]
-  }
-
-  if (length(x@aggregateby) > 0) {
-    f <- .factoraggregateby(teFeatures, x@aggregateby)
-    if (is(teFeatures, "GRangesList"))
-      teFeatures <- unlist(teFeatures)
-    teFeatures <- split(teFeatures, f)
-  }
-
-  features <- teFeatures
-  if (!is.null(iste) && any(!iste)) {
-    geneFeatures <- x@features[!iste]
-    # if (is(features, "GRangesList")) ## otherwise is a GRanges object
-    #   geneFeatures <- split(geneFeatures, names(geneFeatures))
-    features <- c(features, geneFeatures)
-  }
-
-  stopifnot(length(features) == length(fnames)) ## QC
-  features <- features[match(fnames, names(features))]
-
-  features
+    
+    iste <- as.vector(attributes(x@features)$isTE[,1])
+    teFeatures <- x@features
+    if (!is.null(iste) && any(iste)) {
+        teFeatures <- x@features[iste]
+    }
+    
+    if (length(x@aggregateby) > 0) {
+        f <- .factoraggregateby(teFeatures, x@aggregateby)
+        if (is(teFeatures, "GRangesList"))
+            teFeatures <- unlist(teFeatures)
+        teFeatures <- split(teFeatures, f)
+    }
+    
+    features <- teFeatures
+    if (!is.null(iste) && any(!iste)) {
+        geneFeatures <- x@features[!iste]
+        # if (is(features, "GRangesList")) ## otherwise is a GRanges object
+        #   geneFeatures <- split(geneFeatures, names(geneFeatures))
+        features <- c(features, geneFeatures)
+    }
+    
+    stopifnot(length(features) == length(fnames)) ## QC
+    features <- features[match(fnames, names(features))]
+    
+    features
 }
 
-
-# .consolidateFeatures <- function(x, fnames) {
-# 
-#   teFeatures <- x@features
-#   if (!is.null(x@features$isTE) && any(x@features$isTE)) {
-#     teFeatures <- x@features[x@features$isTE]
-#   }
-#   
-#   if (length(x@aggregateby) > 0) {
-#     f <- .factoraggregateby(teFeatures, x@aggregateby)
-#     teFeatures <- split(teFeatures, f)
-#   }
-#   
-#   features <- teFeatures
-#   if (!is.null(x@features$isTE) && any(!x@features$isTE)) {
-#     geneFeatures <- x@features[!x@features$isTE]
-#     if (is(features, "GRangesList")) ## otherwise is a GRanges object
-#       geneFeatures <- split(geneFeatures, names(geneFeatures))
-#     features <- c(features, geneFeatures)
-#   }
-#   
-#   stopifnot(length(features) == length(fnames)) ## QC
-#   features <- features[match(fnames, names(features))]
-#   
-#   features
-# }
 
 ## private function .factoraggregateby()
 ## builds a factor with as many values as the
@@ -244,32 +218,32 @@
 
 #' @importFrom GenomicRanges mcols
 f <- .factoraggregateby <- function(ann, aggby) {
-  if (is(ann,"GRangesList")) {
-    ann <- unlist(ann)
-  }
-  stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
-  if (length(aggby) == 1) {
-    f <- mcols(ann)[, aggby]
-  } else {
-    spfstr <- paste(rep("%s", length(aggby)), collapse=":")
-    f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
-  }
-  f
+    if (is(ann,"GRangesList")) {
+        ann <- unlist(ann)
+    }
+    stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
+    if (length(aggby) == 1) {
+        f <- mcols(ann)[, aggby]
+    } else {
+        spfstr <- paste(rep("%s", length(aggby)), collapse=":")
+        f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
+    }
+    f
 }
 
 ## private function .getReadFunction()
 ## borrowed from GenomicAlignments/R/summarizeOverlaps-methods.R
 .getReadFunction <- function(singleEnd, fragments) {
-  if (singleEnd) {
-    FUN <- readGAlignments
-  } else {
-    if (fragments)
-      FUN <- readGAlignmentsList
-    else
-      FUN <- readGAlignmentPairs
-  }
-  
-  FUN
+    if (singleEnd) {
+        FUN <- readGAlignments
+    } else {
+        if (fragments)
+            FUN <- readGAlignmentsList
+        else
+            FUN <- readGAlignmentPairs
+    }
+    
+    FUN
 }
 
 ## private function .appendHits()
@@ -278,37 +252,37 @@ f <- .factoraggregateby <- function(ann, aggby) {
 
 #' @importFrom S4Vectors nLnode nRnode isSorted from to Hits
 .appendHits <- function(hits1, hits2) {
-  stopifnot(nRnode(hits1) == nRnode(hits2))
-  stopifnot(isSorted(from(hits1)) == isSorted(from(hits2)))
-  hits <- c(Hits(from=from(hits1), to=to(hits1),
-                 nLnode=nLnode(hits1)+nLnode(hits2),
-                 nRnode=nRnode(hits1), sort.by.query=isSorted(from(hits1))),
+    stopifnot(nRnode(hits1) == nRnode(hits2))
+    stopifnot(isSorted(from(hits1)) == isSorted(from(hits2)))
+    hits <- c(Hits(from=from(hits1), to=to(hits1),
+                    nLnode=nLnode(hits1)+nLnode(hits2),
+                    nRnode=nRnode(hits1), sort.by.query=isSorted(from(hits1))),
             Hits(from=from(hits2)+nLnode(hits1), to=to(hits2),
-                 nLnode=nLnode(hits1)+nLnode(hits2),
-                 nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
-  hits
+                    nLnode=nLnode(hits1)+nLnode(hits2),
+                    nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
+    hits
 }
 
 
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
 .joinTEsGenes <- function(teFeatures, geneFeatures) {
-  
-  geneFeaturesobjname <- deparse(substitute(geneFeatures))
-  if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
-    stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                 geneFeaturesobjname))
-  if (any(names(geneFeatures) %in% names(teFeatures)))
-    stop("gene features have some common identifiers with the TE features.")
-  
-  if (length(geneFeatures) == 0)
-    stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
-  
-  slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
-  seqlevels(teFeatures) <- slev
-  seqlevels(geneFeatures) <- slev
-  features <- c(teFeatures, geneFeatures)
-  temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
-  temask[seq_along(teFeatures)] <- TRUE
-  features$isTE <- temask
-  features
+    
+    geneFeaturesobjname <- deparse(substitute(geneFeatures))
+    if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
+        stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
+                    geneFeaturesobjname))
+    if (any(names(geneFeatures) %in% names(teFeatures)))
+        stop("gene features have some common identifiers with the TE features.")
+    
+    if (length(geneFeatures) == 0)
+        stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
+    
+    slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
+    seqlevels(teFeatures) <- slev
+    seqlevels(geneFeatures) <- slev
+    features <- c(teFeatures, geneFeatures)
+    temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
+    temask[seq_along(teFeatures)] <- TRUE
+    features$isTE <- temask
+    features
 }
