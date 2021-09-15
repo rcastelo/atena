@@ -31,9 +31,12 @@ Imports:
     SQUAREM,
     sparseMatrixStats
 Suggests:
+    covr,
     BiocStyle,
     knitr,
-    rmarkdown,
+    rmarkdown
 biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage
 VignetteBuilder: knitr
+URL: https://github.com/functionalgenomics/atena
+BugReports: https://github.com/functionalgenomics/atena/issues
 RoxygenNote: 7.1.1
