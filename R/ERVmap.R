@@ -319,7 +319,7 @@ while (length(alnreads <- do.call(readfun,
     
     if (verbose > 1) {
         nfiltered <- nfiltered + sum(mask & !thissalnmask)
-        cat(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
+        message(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
                     basename(path(bf)), n, nfiltered))
     }
 }
@@ -676,13 +676,13 @@ cntvec
         if (isTRUE(soatag %in% avtags)) {
             avsoas <- TRUE
             if (verbose > 1)
-                cat(sprintf("%s: using suboptimal alignment scores from tag '%s'.\n",
+                message(sprintf("%s: using suboptimal alignment scores from tag '%s'.\n",
                             basename(path(bf)), soatag))
         } else if (verbose > 1)
-            cat(sprintf("%s: suboptimal alignment filtering based on secondary alignments.\n",
+            message(sprintf("%s: suboptimal alignment filtering based on secondary alignments.\n",
                     basename(path(bf))))
     } else if (verbose > 1)
-        cat("suboptimal alignment cutoff value is 'NA', skipping suboptimal alignment filtering.\n")
+        message("suboptimal alignment cutoff value is 'NA', skipping suboptimal alignment filtering.\n")
     
     avsoas
 }
@@ -856,7 +856,7 @@ cntvec
                                 salnbestAS, avgene, applysoasfilter = TRUE,
                                 readidx, mask, alnNH, iste)
         if (verbose > 1)
-            cat(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
+            message(sprintf("%s: %d alignments processed (%d are primary and pass subptimal alignment filtering).\n",
                     basename(path(bf)), n, sum(cntvec)))
     }
     names(cntvec) <- names(empar@features)
