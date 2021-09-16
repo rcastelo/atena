@@ -68,37 +68,3 @@ ovIntersectionStrict <- function(reads, features, ignoreStrand) {
                         ignore.strand=ignoreStrand)
     ov
 }
-
-#' @importFrom methods as
-#' @importFrom GenomicAlignments findOverlaps
-#' @importFrom S4Vectors countSubjectHits
-#' @importFrom GenomicRanges disjoin
-.removeSharedRegions <- function(features, ignore.strand=FALSE) {
-    if (is(features, "GRanges")) {
-        regions <- disjoin(features, ignore.strand=ignore.strand)
-    } else if (is(features, "GRangesList")) {
-        regions <- disjoin(features@unlistData, ignore.strand=ignore.strand)
-    } else {
-        stop("internal fail")  # should never happen
-    }
-    ov <- findOverlaps(features, regions,
-                        ignore.strand=ignore.strand)
-    regions_to_keep <- which(countSubjectHits(ov) == 1L)
-    ov <- ov[subjectHits(ov) %in% regions_to_keep]
-    unlisted_ans <- regions[subjectHits(ov)]
-    ans_partitioning <- as(ov, "PartitioningByEnd")
-    relist(unlisted_ans, ans_partitioning)
-}
-
-## this implementation of th IntersectionNotEmpty strategy returns a
-## Hits object with overlaps with respect to an altered feature set.
-## it needs to be modified to return overlaps with respect to the
-## original features set.
-## #' @importFrom GenomicAlignments findOverlaps
-## #' @importFrom S4Vectors countQueryHits
-## #' @export
-## #' @rdname ovFunctions
-## ovIntersectionNonEmpty <- function(reads, features, ignoreStrand) {
-##   features <- .removeSharedRegions(features, ignore.strand=ignoreStrand)
-##   ovUnion(reads, features, ignoreStrand=ignoreStrand)
-## }
