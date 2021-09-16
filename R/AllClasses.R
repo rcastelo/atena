@@ -51,7 +51,6 @@ setMethod("path", "AtenaParam",
             path(object@bfl)
         })
 
-setGeneric("features", function(object) standardGeneric("features"))
 
 #' @param object A \linkS4class{AtenaParam} object.
 #'
@@ -63,6 +62,7 @@ setGeneric("features", function(object) standardGeneric("features"))
 #' @aliases features
 #' @aliases features,AtenaParam-method
 #' @rdname AtenaParam-class
+#' @include AllGenerics.R
 setMethod("features", "AtenaParam",
         function(object) {
             object@features

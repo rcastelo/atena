@@ -40,3 +40,15 @@ VignetteBuilder: knitr
 URL: https://github.com/functionalgenomics/atena
 BugReports: https://github.com/functionalgenomics/atena/issues
 RoxygenNote: 7.1.2
+Collate: 
+    'AllGenerics.R'
+    'AllClasses.R'
+    'AllUtilities.R'
+    'ERVmap.R'
+    'TEtranscripts.R'
+    'Telescope.R'
+    'atena.R'
+    'globals.R'
+    'overlappingModes.R'
+    'qtex.R'
+    'utils.R'
