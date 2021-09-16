@@ -226,7 +226,7 @@
 ##                     to be pasted together
 
 #' @importFrom GenomicRanges mcols
-f <- .factoraggregateby <- function(ann, aggby) {
+.factoraggregateby <- function(ann, aggby) {
     if (is(ann,"GRangesList")) {
         ann <- unlist(ann)
     }
