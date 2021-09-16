@@ -1,0 +1,434 @@
+---
+title: "Creating data for the atena package"
+author:
+- name: Beatriz Calvo-Serra
+  affiliation:
+  - &id Dept. of Experimental and Health Sciences, Universitat Pompeu Fabra, Barcelona, Spain
+  email: beatriz.calvo@upf.edu
+- name: Robert Castelo
+  affiliation: *id
+  email: robert.castelo@upf.edu
+vignette: >
+  %\VignetteIndexEntry{Creating data for examples in the atena package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Downloading the data
+
+The data used as example in the `atena` vignette and help pages is publicly
+available at the National Center for Biotechnology Information (NCBI) 
+Gene Expression Omnibus (accession no. GSE47006, 
+https://www.ncbi.nlm.nih.gov/geo).
+This dataset was analysed in
+[Ohtani H et al., 2013](https://doi.org/10.1101/gad.221515.113). 
+The two selected samples are: piwi knockdown and control samples (GSM1142845 
+and GSM1142844). The raw data files (`.fastq`) were downloaded from Sequence
+Read Archive (SRA, https://www.ncbi.nlm.nih.gov/sra) (samples SRX278536 and 
+SRX278535, respectively)
+
+
+## Alignment with BWA
+
+The data was aligned with `BWA mem` using the `-a` option to output all found 
+alignments for single-end, thus, including secondary alignments.
+
+The resulting sorted BAM files (control_KD.sorted.bam and piwi_KD.sorted.bam) 
+contain secondary alignments.
+
+**Control KD**
+
+```{bash}
+## fetch FASTQ file
+FASTQFILE=/projects_fg/TEs/OhtaniSaito13_DmGTSF1/control_KD.fastq.gz
+
+## define where the BWA genome index is
+wget http://ftp.ensembl.org/pub/release-104/fasta/drosophila_melanogaster/dna/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa.gz
+GENOMEINDEX=/projects_fg/genomes/drosophila/Drosophila_melanogaster.BDGP6.32.dna.toplevel.fa.gz
+
+## define number of threads to be used by BWA
+NTHREADS=4
+
+f=${FASTQFILE##*/}
+PREFIX=${f%%.fastq.gz}
+
+if [ ! -e BAM ] ; then mkdir -p BAM ; fi
+
+module load BWA/0.7.17
+module load SAMtools/1.7
+
+echo $PREFIX
+bwa mem -t $NTHREADS $GENOMEINDEX $FASTQFILE | \
+  samtools view -b -o BAM/$PREFIX.unsorted.bam -
+
+samtools sort BAM/$PREFIX.unsorted.bam \
+  --threads 5 \
+  -o BAM/$PREFIX.sorted.bam
+
+samtools index BAM/$PREFIX.sorted.bam BAM/$PREFIX.sorted.bai
+```
+
+
+
+**Piwi KD**
+
+```{bash}
+## fetch FASTQ file
+FASTQFILE=/projects_fg/TEs/OhtaniSaito13_DmGTSF1/piwi_KD.fastq.gz
+
+f=${FASTQFILE##*/}
+PREFIX=${f%%.fastq.gz}
+
+if [ ! -e BAM ] ; then mkdir -p BAM ; fi
+
+echo $PREFIX
+bwa mem -t $NTHREADS $GENOMEINDEX $FASTQFILE | \
+  samtools view -b -o BAM/$PREFIX.unsorted.bam -
+
+samtools sort BAM/$PREFIX.unsorted.bam \
+  --threads 5 \
+  -o BAM/$PREFIX.sorted.bam
+
+samtools index BAM/$PREFIX.sorted.bam BAM/$PREFIX.sorted.bai
+
+```
+
+
+## Getting TE and gene annotations
+
+**Gene annotations**
+```{bash}
+# Gene annotations
+wget http://ftp.ensembl.org/pub/release-103/gtf/drosophila_melanogaster/Drosophila_melanogaster.BDGP6.32.103.gtf.gz
+```
+
+**TE annotations**
+```{bash}
+# TE annotations: obtained from the RepeatMasker track in UCSC genome browser
+# downloaded from https://genome.ucsc.edu/cgi-bin/hgTables (BDGP Release 6 +
+# ISO1 MT/dm6; group: Variation and Repeats; track: RepeatMasker; table: rmsk)
+## Obtaining RepeatMasker annotations in GTF and BED format
+wget https://github.com/dpryan79/ChromosomeMappings/blob/master/BDGP6_UCSC2ensembl.txt?raw=true
+mv /genomics/users/bea/HERVs/drosophila_atena/BDGP6_UCSC2ensembl.txt\?raw\=true \
+/genomics/users/bea/HERVs/drosophila_atena/BDGP6_UCSC2ensembl.txt
+
+```
+
+```{r}
+# Adding the Ensembl nomenclature to RepeatMasker annotations
+ann <- read.table("
+        /genomics/users/bea/HERVs/drosophila_atena/Dmelanogaster_rmsk_dm6.txt",
+        header = TRUE)
+chr <- read.table(
+        "/genomics/users/bea/HERVs/drosophila_atena/BDGP6_UCSC2ensembl.txt")
+colnames(chr) <- c("UCSC","Ensembl")
+ann <- merge(ann, chr, by.y = "UCSC", by.x = "genoName")
+# rRNA, simple repeat regions, low complexity regions, satellite repeats and
+# artefacts will be filtered out from RepeatMasker annotations since they are
+# not TEs
+repClass <- c("RC", "LINE", "LTR", "DNA", "Unknown", "Other", "RNA")
+ann <- ann[ann$repClass %in% repClass,]
+# Creating a GRanges object with the annotations
+suppressPackageStartupMessages(library(GenomicRanges))
+ann_gr <- GRanges(seqnames = Rle(ann$Ensembl), 
+                ranges = IRanges(start = ann$genoStart, end = ann$genoEnd),
+                strand = Rle(ann$strand),
+                mcols = DataFrame(ann[,11:13], 
+                            name = paste(ann$repName, 1:nrow(ann), sep = "_")))
+names(ann_gr) <- mcols(ann_gr)$mcols.name
+colnames(mcols(ann_gr)) <- gsub(colnames(mcols(ann_gr)), 
+                                pattern = "mcols.", replacement = "")
+rtracklayer::export.gff2(ann_gr, con = "/genomics/users/bea/HERVs/drosophila_atena/Dmelanogaster_rmsk_dm6.gtf")
+
+```
+
+
+
+## Subsampling `.bam` files
+
+The resulting `.bam` files were subsampled to smaller files containing just a 
+few alignments.
+
+First `.bam` files were sorted by name in order to group alignments coming
+from the same read (the primary alignment + secondary alignments in case of
+multimapping reads).
+
+```{bash}
+samtools sort -n -@ 4 /projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/piwi_KD.sorted.bam -o piwi_KD.sortedbyname.bam -O bam
+samtools sort -n -@ 4 /projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/control_KD.sorted.bam -o control_KD.sortedbyname.bam -O bam
+
+```
+
+Finding which TEs are the 20 most expressed. Also finding which reads from
+piwi map to tese 20 most expressed TEs:
+
+```{r}
+library(Matrix)
+library(Rsamtools)
+library(GenomicAlignments)
+library(rtracklayer)
+
+#' @importFrom S4Vectors nLnode nRnode isSorted from to Hits
+.appendHits <- function(hits1, hits2) {
+    stopifnot(nRnode(hits1) == nRnode(hits2))
+    stopifnot(isSorted(from(hits1)) == isSorted(from(hits2)))
+    hits <- c(Hits(from=from(hits1), to=to(hits1),
+                    nLnode=nLnode(hits1)+nLnode(hits2),
+                    nRnode=nRnode(hits1), sort.by.query=isSorted(from(hits1))),
+            Hits(from=from(hits2)+nLnode(hits1), to=to(hits2),
+                    nLnode=nLnode(hits1)+nLnode(hits2),
+                    nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
+    hits
+}
+
+
+te_dros <- import(
+    "/genomics/users/bea/HERVs/drosophila_atena/Dmelanogaster_rmsk_dm6.gtf")
+names(te_dros) <- mcols(te_dros)$ID
+
+bampath <- "/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM"
+bamfiles <- c("/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/piwi_KD.sorted.bam",
+            "/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/control_KD.sorted.bam")
+
+bfl <- BamFileList(bamfiles, yieldSize = 10000000, asMates = FALSE)
+sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                        isDuplicate=FALSE,
+                        isNotPassingQualityControls=FALSE)
+param <- ScanBamParam(flag=sbflags)
+
+i <- 2
+bf <- bfl[[i]]
+ov <- Hits(nLnode=0, nRnode=length(te_dros), sort.by.query=TRUE)
+alnreadids <- character(0)
+l <- 0
+open(bf)
+while (length(alnreads <- do.call("readGAlignments", c(list(file = bf), 
+                                            list(param=param), 
+                                            list(use.names=TRUE))))) {
+    alnreadids <- c(alnreadids, names(alnreads))
+    l <- l+1
+    print(l)
+    thisov <- findOverlaps(alnreads, te_dros, ignore.strand=FALSE)
+    ov <- .appendHits(ov, thisov)
+}
+close(bf)
+
+.buildOvAlignmentsMatrix <- function(ov, arids, rids, fidx) {
+    oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx))
+    mt1 <- match(arids[queryHits(ov)], rids)
+    mt2 <- match(subjectHits(ov), fidx)
+    oamat[cbind(mt1, mt2)] <- TRUE
+  
+    oamat
+}
+
+saveRDS(ov, file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_ovAllTEs.rds")
+readids <- unique(alnreadids[queryHits(ov)])
+tx_idx <- sort(unique(subjectHits(ov)))
+ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
+topreads <- readids[order(rowSums(ovalnmat),decreasing = TRUE)[1:175]]
+topreads2 <- paste(topreads,"\t",sep="")
+write.table(topreads2, 
+            file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_topreads_piwi.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+ovalnmat_topreads <- ovalnmat[order(rowSums(ovalnmat), decreasing = TRUE)[1:175],]
+
+te_dros_top20 <- te_dros[tx_idx[order(colSums(ovalnmat_topreads), decreasing = TRUE)[1:20]]]
+saveRDS(te_dros_top20, 
+        file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_GRangesTop20TEs_piwi.rds")
+```
+
+
+Finding which genes are the 50 most expressed:
+```{r}
+suppressPackageStartupMessages(library(GenomicAlignments))
+suppressPackageStartupMessages(library(rtracklayer))
+
+# BAM files
+bamfiles <- c("/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/piwi_KD.sorted.bam",
+            "/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/control_KD.sorted.bam")
+bfl <- BamFileList(bamfiles, yieldSize = 100000, asMates = FALSE)
+sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                        isDuplicate=FALSE,
+                        isNotPassingQualityControls=FALSE)
+param <- ScanBamParam(flag=sbflags)
+
+# Annotations
+gene_dros <- import(
+    "/projects_fg/genomes/drosophila/Drosophila_melanogaster.BDGP6.32.103.gtf")
+gene_dros <- gene_dros[!(gene_dros$gene_biotype == "transposable_element")]
+gene_dros <- gene_dros[gene_dros$type == "gene"]
+names(gene_dros) <- gene_dros$gene_id
+
+# Counting
+overlap_all <- summarizeOverlaps(gene_dros, bfl, singleEnd=TRUE, 
+                                param = param, ignore.strand = FALSE)
+saveRDS(overlap_all, file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13gene_counts.rds")
+
+top50_gene <- rownames(assay(overlap_all)[order(rowSums(assay(overlap_all)), 
+                                                decreasing = TRUE),])[1:50]
+write.table(top50_gene, 
+            file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13gene_counts_top50.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+gene_dros_top50 <- gene_dros[top50_gene]
+saveRDS(gene_dros_top50, 
+        file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_GRangesTop50genes.rds")
+```
+
+Finding which reads from control map to the 20 most expressed TEs:
+```{r}
+suppressPackageStartupMessages(library(GenomicAlignments))
+suppressPackageStartupMessages(library(rtracklayer))
+
+# BAM files
+bamfiles <- c("/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/piwi_KD.sorted.bam",
+              "/projects_fg/TEs/OhtaniSaito13_DmGTSF1/BAM/control_KD.sorted.bam")
+bfl <- BamFileList(bamfiles, yieldSize = 1000000, asMates = FALSE)
+sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                       isDuplicate=FALSE,
+                       isNotPassingQualityControls=FALSE)
+param <- ScanBamParam(flag=sbflags)
+
+## --- Looking now for overlapping reads ---
+library(Matrix)
+
+.appendHits <- function(hits1, hits2) {
+  stopifnot(nRnode(hits1) == nRnode(hits2))
+  stopifnot(isSorted(from(hits1)) == isSorted(from(hits2)))
+  hits <- c(Hits(from=from(hits1), to=to(hits1),
+                 nLnode=nLnode(hits1)+nLnode(hits2),
+                 nRnode=nRnode(hits1), sort.by.query=isSorted(from(hits1))),
+            Hits(from=from(hits2)+nLnode(hits1), to=to(hits2),
+                 nLnode=nLnode(hits1)+nLnode(hits2),
+                 nRnode=nRnode(hits2), sort.by.query=isSorted(from(hits2))))
+  hits
+}
+
+te_dros_top20 <- readRDS("/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_GRangesTop20TEs_piwi.rds")
+i <- 2
+bf <- bfl[[i]]
+ov <- Hits(nLnode=0, nRnode=length(te_dros_top20), sort.by.query=TRUE)
+alnreadids <- character(0)
+l <- 1
+open(bf)
+while (length(alnreads <- readGAlignments(bf, param = param, use.names = TRUE))) {
+  alnreadids <- c(alnreadids, names(alnreads))
+  thisov <- findOverlaps(alnreads, te_dros_top20, ignore.strand=FALSE)
+  ov <- .appendHits(ov, thisov)
+  l <- l+1
+  print(l)
+}
+close(bf)
+
+readhits <- table(alnreadids[queryHits(ov)])
+saveRDS(ov, 
+        file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_ovTopTEs_control.rds")
+
+topreads<- names(readhits)[order(readhits, decreasing = TRUE)][1:175]
+topreads2 <- paste(topreads,"\t",sep="")
+
+write.table(topreads2, 
+            file = "/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_topreads_control.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+```
+
+
+
+Subsampling BAM files by selecting reads based on reads ids which have been 
+previously identified to map to the most expressed TEs.
+
+```{bash}
+# 175 reads correspond to a high number of alignments, which causes bam files 
+# to be too large
+# Reducing to 150 reads:
+head -n 150 OhtaniSaito13_topreads_piwi.txt > OhtaniSaito13_topreads_piwi2.txt
+mv OhtaniSaito13_topreads_piwi2.txt OhtaniSaito13_topreads_piwi.txt
+
+head -n 150 OhtaniSaito13_topreads_control.txt > OhtaniSaito13_topreads_control2.txt
+mv OhtaniSaito13_topreads_control2.txt OhtaniSaito13_topreads_control.txt
+
+
+module load SAMtools
+
+# piwi
+samtools view /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD.sortedbyname.bam | grep -f /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_topreads_piwi.txt > /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled_wtheader.sort.sam
+
+samtools view /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD.sortedbyname.bam -H > header_piwi_KD_subsampled.txt
+cat header_piwi_KD_subsampled.txt /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled_wtheader.sort.sam > /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.sam
+
+samtools sort /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.sam -o /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.bam
+samtools index /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.bam /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.bai
+
+# control
+samtools view /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD.sortedbyname.bam | grep -f /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_topreads_control.txt > /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled_wtheader.sort.sam
+
+samtools view /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD.sortedbyname.bam -H > header_control_KD_subsampled.txt
+cat header_control_KD_subsampled.txt /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled_wtheader.sort.sam > /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.sam
+
+samtools sort /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.sam -o /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.bam
+samtools index /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.bam /genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.bai
+
+
+```
+
+
+Final files included in `atena` package:
+```
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.bam
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/piwi_KD_subsampled.sort.bai
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.bam
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/control_KD_subsampled.sort.bai
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_GRangesTop20TEs_piwi.rds
+/genomics/users/bea/HERVs/drosophila_OhtaniSaito13_DmGTSF1/OhtaniSaito13_GRangesTop50genes.rds
+```
+Which have been renamed to:
+```
+piwi_KD.bam
+piwi_KD.bai
+control_KD.bam
+control_KD.bai
+Top20TEs.rds
+Top50genes.rds
+```
+
+**Adding 10 top expressed TEs according to the ERVmap method**
+ERVmap did not provide any overlap for `Top20TEs.rds`. This is due to the fact
+that the alignments which caused these 20 TEs to be the most expressed are
+mainly secondary alignments of multi-mapping reads. Since ERVmap does not
+count secondary alignments, 0 overlaps are found for these 20 TEs in ERVmap.
+For this reason, the following approach was carried out in order to include 10
+more TEs in the annotations. These 10 TEs were selected by looking where the
+primary alignments of the subsampled BAM files mapped to. 
+
+```{r}
+tefile <- "Dmelanogaster_rmsk_dm6.gtf"
+te_dros <- import(tefile)
+
+alnreads <- do.call(readfun, c(list(file = bf),
+                                list(param=param), 
+                                list(strandMode=empar@strandMode)[strand_arg],
+                                list(use.names=(!avsoas || avgene))))
+ovall <- findOverlaps(te_dros, alnreads)
+tes <- countQueryHits(ovall)
+te_dros[order(tes, decreasing = TRUE)][1:10]
+teall <- c(TE_annot, te_dros[order(tes, decreasing = TRUE)][1:10])
+saveRDS(teall, 
+    file = "bioc-devel/ERVs/OhtaniSaito13_subsampled_for_atena/Top30TEs.rds")
+
+# Finally, 2 duplicated TEs were removed.
+
+```
+
+
