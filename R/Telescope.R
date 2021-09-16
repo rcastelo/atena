@@ -260,7 +260,7 @@ setMethod("qtex", "TelescopeParam",
     alnreadidx <- match(alnreadids, readids)
     rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
     asvalues <- (asvalues - min(asvalues) +1) / (max(asvalues) - min(asvalues))
-    QmatTS <- .buildOvValuesMatrixTS(ov, asvalues, alnreadidx, rd_idx, tx_idx)
+    QmatTS <- .buildOvValuesMatrix(ov, asvalues, alnreadidx, rd_idx, tx_idx)
     QmatTS <- QmatTS / rowSums(QmatTS)
     # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
     PiTS <- rep(1 / length(tx_idx), length(tx_idx))
@@ -355,20 +355,4 @@ setMethod("qtex", "TelescopeParam",
     
     Pi2
 }
-
-## private function .buildOvValuesMatrixTS()
-#' @importFrom S4Vectors queryHits subjectHits
-#' @importFrom Matrix Matrix
-.buildOvValuesMatrixTS <- function(ov, values, aridx, ridx, fidx) {
-    ovmat <- Matrix(do.call(class(values), list(1)),
-                        nrow=length(ridx), ncol=length(fidx))
-    mt1 <- match(aridx[queryHits(ov)], ridx)
-    mt2 <- match(subjectHits(ov), fidx)
-    ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
-    ovmat
-}
-
-
-
-
 

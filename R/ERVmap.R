@@ -627,7 +627,7 @@ cntvec
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix
 .buildOvValuesMatrix <- function(ov, values, aridx, ridx, fidx) {
-    stopifnot(class(values) %in% c("logical", "integer")) ## QC
+    stopifnot(class(values) %in% c("logical", "integer", "numeric")) ## QC
     ovmat <- Matrix(do.call(class(values), list(1)),
                     nrow=length(ridx), ncol=length(fidx))
     mt1 <- match(aridx[queryHits(ov)], ridx)
@@ -732,17 +732,20 @@ cntvec
         maskMulti <- maskMulti[mask]
     }
     
-    maskMultimat <- .buildOvValuesMatrix(ov, maskMulti, alnreadidx,rd_idx,tx_idx)
+    maskMultimat <- .buildOvValuesMatrix(ov, maskMulti, alnreadidx,
+                                         rd_idx, tx_idx)
     maskMultimat <- maskMultimat[maskthird, ]
-    maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx,rd_idx,tx_idx)
+    maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx,
+                                        rd_idx, tx_idx)
     maskUniqmat <- maskUniqmat[maskthird, ]
     
     #istex <- as.vector(empar@features$isTE[tx_idx])
     istex <- iste[tx_idx]
     ## which reads overlap both genes and TEs?
-    idx <- (rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex])>0)
-    ## of these, keep only the overlap with the TE in case of a multimapping read
-    palnmatfilt[idx,istex] <- as(maskMultimat[idx,istex]*palnmatfilt[idx,istex],
+    idx <- (rowSums(palnmatfilt[,istex]) > 0) &
+        (rowSums(palnmatfilt[,!istex])>0)
+    ## of these, keep only the overlap with the TE in case of multimapping read
+    palnmatfilt[idx,istex] <-as(maskMultimat[idx,istex]*palnmatfilt[idx,istex],
                                 "lgCMatrix")
     ## of these, keep only the overlap with the gene in case of a unique read
     palnmatfilt[idx,!istex] <- as(
