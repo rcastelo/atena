@@ -47,7 +47,6 @@ Collate:
     'TEtranscripts.R'
     'Telescope.R'
     'atena.R'
-    'globals.R'
     'overlappingModes.R'
     'qtex.R'
     'utils.R'
