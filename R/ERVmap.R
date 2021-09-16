@@ -267,6 +267,7 @@ setMethod("qtex", "ERVmapParam",
                                 readidx, thisalnAS, alnreadids, nfiltered,
                                 verbose, avtags) {
 open(bf)
+on.exit(close(bf))
 while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=empar@strandMode)[strand_arg],

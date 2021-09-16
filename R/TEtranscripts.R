@@ -195,6 +195,7 @@ setMethod("qtex", "TEtranscriptsParam",
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
+    on.exit(close(bf))
     while (length(alnreads <- do.call(readfun, 
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=ttpar@strandMode)[strand_arg],
@@ -217,7 +218,6 @@ setMethod("qtex", "TEtranscriptsParam",
         # only unique reads are considered
         avgreadlen <- median(avgreadlen[maskuniqaln]) 
     }
-    
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
     ## fetch all different transcripts from the overlapping alignments
@@ -225,7 +225,6 @@ setMethod("qtex", "TEtranscriptsParam",
     
     cntvec <- .ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
                                 maskuniqaln, avgreadlen)
-    
     ## Original TEtranscripts coerces fractional counts to integer
     setNames(as.integer(cntvec), names(cntvec))
 }

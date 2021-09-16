@@ -208,6 +208,7 @@ setMethod("qtex", "TelescopeParam",
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
+    on.exit(close(bf))
     while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=tspar@strandMode)[strand_arg],
@@ -219,7 +220,6 @@ setMethod("qtex", "TelescopeParam",
         ov <- .appendHits(ov, thisov)
     }
     close(bf)
-    
     maskuniqaln <- !(duplicated(alnreadids) | 
                         duplicated(alnreadids, fromLast = TRUE))
     ## fetch all different read identifiers from the overlapping alignments
