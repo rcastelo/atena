@@ -258,16 +258,17 @@ setMethod("qtex", "ERVmapParam",
 }
 
 
-#' @importFrom methods formalArgs
+#' @importFrom methods formalArgs as
 #' @importFrom IRanges findOverlapPairs
 #' @importFrom GenomicRanges pintersect
+#' @importFrom GenomicAlignments findOverlaps
+#' @importFrom S4Vectors countQueryHits countSubjectHits
 .ervmapQuantExpress <- function(bf, empar, mode, readfun, iste, param, avsoas,
                                 strand_arg, avgene, n, ov, ovdiscard, salnmask,
                                 salnbestAS, alnAS, alnNH, readids, alnreadidx,
                                 readidx, thisalnAS, alnreadids, nfiltered,
                                 verbose, avtags) {
 open(bf)
-on.exit(close(bf))
 while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=empar@strandMode)[strand_arg],
@@ -324,8 +325,8 @@ while (length(alnreads <- do.call(readfun,
                     basename(path(bf)), n, nfiltered))
     }
 }
-close(bf)
-
+#close(bf)
+on.exit(close(bf))
 ## Expression quantification
 cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
                             alnAS, salnbestAS, readidx, mask, alnNH, readids,

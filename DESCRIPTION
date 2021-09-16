@@ -43,7 +43,6 @@ RoxygenNote: 7.1.2
 Collate: 
     'AllGenerics.R'
     'AllClasses.R'
-    'AllUtilities.R'
     'ERVmap.R'
     'TEtranscripts.R'
     'Telescope.R'

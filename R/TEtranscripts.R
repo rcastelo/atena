@@ -195,7 +195,6 @@ setMethod("qtex", "TEtranscriptsParam",
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
-    on.exit(close(bf))
     while (length(alnreads <- do.call(readfun, 
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=ttpar@strandMode)[strand_arg],
@@ -206,7 +205,8 @@ setMethod("qtex", "TEtranscriptsParam",
                         ignoreStrand=ttpar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
     }
-    close(bf)
+    # close(bf)
+    on.exit(close(bf))
 
     ## get uniquely aligned-reads
     maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, 
