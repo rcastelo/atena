@@ -119,9 +119,9 @@
     if (missing(teFeatures)) 
         stop("missing 'teFeatures' argument.")
     
-    if (!exists(teFeaturesobjname))
-        stop(sprintf("input TE features object '%s' is not defined.",
-                    teFeaturesobjname))
+    # if (!exists(teFeaturesobjname))
+    #     stop(sprintf("input TE features object '%s' is not defined.",
+    #                 teFeaturesobjname))
     
     if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
         stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",

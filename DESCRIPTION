@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 0.99.40
+Version: 0.99.41
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
@@ -34,8 +34,9 @@ Suggests:
     covr,
     BiocStyle,
     knitr,
-    rmarkdown
-biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage
+    rmarkdown,
+    RUnit
+biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage, DifferentialExpression, FunctionalGenomics
 VignetteBuilder: knitr
 URL: https://github.com/functionalgenomics/atena
 BugReports: https://github.com/functionalgenomics/atena/issues
