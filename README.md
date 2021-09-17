@@ -4,7 +4,7 @@
 
 [![Support posts](https://bioconductor.org/shields/posts/atena.svg)](https://support.bioconductor.org/t/atena/ "Support site activity on atena, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
 
-[![Codecov test coverage](https://codecov.io/gh/functionalgenomics/atena/branch/master/graph/badge.svg)](https://codecov.io/gh/functionalgenomics/atena?branch=master)
+[![Codecov test coverage](https://codecov.io/gh/functionalgenomics/atena/branch/master/graph/badge.svg?token=kJ4Hww6UHl)](https://codecov.io/gh/functionalgenomics/atena)
 
 This `atena` package provides access from R/Bioconductor to the following
 methods for the quantification of transposable element (TE) expression:
