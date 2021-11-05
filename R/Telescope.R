@@ -46,11 +46,12 @@
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #' 
-#' @param fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
-#' are also counted. For further details see
+#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE}, the read-counting method only counts
+#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
+#' (default), same-strand pairs, singletons, reads with unmapped pairs and
+#' other fragments are also counted. \code{fragments=TRUE} is equivalent to
+#' the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
 #' @param pi_prior (Default 0) A positive integer scalar indicating the prior

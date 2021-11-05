@@ -10,7 +10,7 @@ test_TEtranscripts <- function() {
     
     checkEqualsNumeric(dim(ttSE), c(1, 2))
     checkEqualsNumeric(head(sort(assay(ttSE), decreasing=TRUE)), 
-                            c(149, 123))
+                            c(149, 122))
 }
 
 
