@@ -51,8 +51,8 @@
     if (singleEnd) {
         if (all(isTRUE(asMates(bfl))))
             stop("cannot specify both 'singleEnd=TRUE' and 'asMates=TRUE'")
-        if (fragments)
-            stop("when 'fragments=TRUE', 'singleEnd' should be FALSE")
+        # if (fragments)
+        #     stop("when 'fragments=TRUE', 'singleEnd' should be FALSE")
     } else
         asMates(bfl) <- TRUE
     
@@ -170,6 +170,7 @@
     if (!any(mcols(features)$type == "exon")) {
         stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
     }
+    features <- features[features$isTE | features$type == "exon"]
     featuressplit <- split(x = features, f = names(features))
     featuressplit
 }

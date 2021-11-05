@@ -43,11 +43,12 @@
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
-#' @param fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
-#' are also counted. For further details see
+#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE}, the read-counting method only counts
+#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
+#' (default), same-strand pairs, singletons, reads with unmapped pairs and
+#' other fragments are also counted. \code{fragments=TRUE} is equivalent to
+#' the behavior of the TEtranscripts algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
 #' @param tolerance A positive numeric scalar storing the minimum tolerance
@@ -96,7 +97,7 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
                                 singleEnd=TRUE,
                                 ignoreStrand=FALSE,
                                 strandMode=1L,
-                                fragments=FALSE,
+                                fragments=TRUE,
                                 tolerance=0.0001,
                                 maxIter=100L) {
 
@@ -191,7 +192,8 @@ setMethod("qtex", "TEtranscriptsParam",
     }
     ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
-    avgreadlen <- integer()
+    avgreadlen <- integer(0)
+    d <- numeric(0)
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
@@ -199,7 +201,10 @@ setMethod("qtex", "TEtranscriptsParam",
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=ttpar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
-        avgreadlen <- c(avgreadlen, width(ranges(alnreads)))
+        avgreadlen <- c(avgreadlen, .getAveLen(ttpar, alnreads))
+        if (ttpar@singleEnd == FALSE) {
+            d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
+        }
         alnreadids <- c(alnreadids, names(alnreads))
         thisov <- mode(alnreads, ttpar@features,
                         ignoreStrand=ttpar@ignoreStrand)
@@ -213,10 +218,10 @@ setMethod("qtex", "TEtranscriptsParam",
                                                         fromLast = TRUE))
     if (ttpar@singleEnd == TRUE) {
         # unique + multi-mapping reads (only once) are considered
-        avgreadlen <- median(avgreadlen[!duplicated(alnreadids)]) 
+        avgreadlen <- mean(avgreadlen[!duplicated(alnreadids)])
     } else {
         # only unique reads are considered
-        avgreadlen <- median(avgreadlen[maskuniqaln]) 
+        avgreadlen <- mean(avgreadlen[(d <= 500) & maskuniqaln])
     }
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
@@ -229,6 +234,22 @@ setMethod("qtex", "TEtranscriptsParam",
     setNames(as.integer(cntvec), names(cntvec))
 }
 
+#' @importFrom GenomicAlignments extractAlignmentRangesOnReference cigar start
+.getAveLen <- function(ttpar, alnreads) {
+    if (ttpar@singleEnd == TRUE) {
+        cig <- cigar(alnreads)
+        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
+                                                        drop.D.ranges=TRUE))
+        avgreadlenaln <- sum(rcig)
+    } else {
+        d <- abs(start(first(alnreads)) - start(second(alnreads)))
+        cig <- cigar(second(alnreads))
+        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
+                                                        drop.D.ranges=TRUE))
+        avgreadlenaln <- d + sum(rcig)
+    }
+    avgreadlenaln
+}
 
 .ttQuantExpress <- function(ov, alnreadids, readids, tx_idx, ttpar, iste,
                             maskuniqaln, avgreadlen) {
@@ -430,6 +451,10 @@ cntvec
                                     uniqcnt) {
     ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
     yesg <- rowSums(ovalnmat_multig)>0
+    
+    ## Computing counts for reads with multiple alignments mapping to different
+    ## reads and also for multimapping reads with only 1 alignment mapping to
+    ## a gene
     ovalnmat_multig <- ovalnmat_multig[yesg,,drop=FALSE]
     
     # Getting the num of different alignments mapping to a gene for each read
@@ -445,7 +470,7 @@ cntvec
     rsum <- rowSums(matmultiguniqc)
     rsum0 <- rsum == 0
     
-    # Reads for which the genes to which the read aligns have more than counts
+    # Reads for which the genes to which the read aligns have > counts
     matmultiguniqc[!rsum0,] <- matmultiguniqc[!rsum0,]/rsum[!rsum0]
     
     # Reads for which the genes to which the read aligns have 0 counts
@@ -489,7 +514,7 @@ cntvec
         # Counting reads overlapping more than 1 element
         mte <- t(t(
             ovalnmatuniq_te[ovmultite,,drop=FALSE])*uniqcnt[tx_idx][istex])
-        nocounts <- rowSums(mte) == 0
+        nocounts <- which(rowSums(mte) == 0)
         mte[nocounts,,drop=FALSE] <- ovalnmatuniq_te[
             ovmultite,,drop=FALSE][nocounts,]
         mte <- mte/rowSums(mte)

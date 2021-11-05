@@ -15,7 +15,7 @@ TEtranscriptsParam(
   singleEnd = TRUE,
   ignoreStrand = FALSE,
   strandMode = 1L,
-  fragments = FALSE,
+  fragments = TRUE,
   tolerance = 1e-04,
   maxIter = 100L
 )
@@ -64,11 +64,12 @@ objects that controls the behavior of the strand getter. See
 class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 is ignored.}
 
-\item{fragments}{(Default FALSE) A logical; applied to paired-end data only.
-When \code{fragments=FALSE} (default), the read-counting method only counts
-‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-same-strand pairs, singletons, reads with unmapped pairs and other fragments
-are also counted. For further details see
+\item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
+When \code{fragments=FALSE}, the read-counting method only counts
+‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
+(default), same-strand pairs, singletons, reads with unmapped pairs and
+other fragments are also counted. \code{fragments=TRUE} is equivalent to
+the behavior of the TEtranscripts algorithm. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
 \item{tolerance}{A positive numeric scalar storing the minimum tolerance
