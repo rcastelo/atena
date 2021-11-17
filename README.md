@@ -1,9 +1,7 @@
 # atena: analysis of transposable elements in R and Bioconductor
 
 [![R-CMD-check-bioc](https://github.com/functionalgenomics/atena/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/functionalgenomics/atena/actions?query=workflow%3AR-CMD-check-bioc)
-
 [![Support posts](https://bioconductor.org/shields/posts/atena.svg)](https://support.bioconductor.org/t/atena/ "Support site activity on atena, last 6 months: tagged questions/avg. answers per question/avg. comments per question/accepted answers, or 0 if no tagged posts.")
-
 [![Codecov test coverage](https://codecov.io/gh/functionalgenomics/atena/branch/master/graph/badge.svg?token=kJ4Hww6UHl)](https://codecov.io/gh/functionalgenomics/atena)
 
 This `atena` package provides access from R/Bioconductor to the following
