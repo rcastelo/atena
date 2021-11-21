@@ -213,6 +213,15 @@
     stopifnot(length(features) == length(fnames)) ## QC
     features <- features[match(fnames, names(features))]
     
+    if (is(x, "TelescopeParam")) {
+        nofeat_gr <- GRanges(seqnames = "chrNofeature", 
+                             ranges = IRanges(start = 1, end = 1))
+        names(nofeat_gr) <- "no_feature"
+        seqlev <- unique(c(seqlevels(features),seqlevels(nofeat_gr)))
+        seqlevels(features) <- seqlev
+        seqlevels(nofeat_gr) <- seqlev
+        features <- c(features, nofeat_gr)
+    }
     features
 }
 

@@ -177,12 +177,12 @@ setMethod("qtex", "TelescopeParam",
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
             
-            features <- .consolidateFeatures(x, rownames(cnt))
-            
+            features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
             SummarizedExperiment(assays=list(counts=cnt),
-                                    rowRanges=features,
+                                    rowRanges=c(features),
                                     colData=colData)
         })
+
 
 #' @importFrom stats setNames
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
@@ -215,7 +215,7 @@ setMethod("qtex", "TelescopeParam",
                                 list(use.names=TRUE))))) {
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, mcols(alnreads)$AS)
-        thisov <- mode(alnreads, tspar@features, 
+        thisov <- mode(alnreads, tspar@features,
                         ignoreStrand=tspar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
     }
@@ -225,43 +225,82 @@ setMethod("qtex", "TelescopeParam",
                         duplicated(alnreadids, fromLast = TRUE))
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
-    ## fetch all different transcripts from the overlapping alignments
-    tx_idx <- sort(unique(subjectHits(ov)))
-    istex <- as.vector(iste[tx_idx])
+    
     ## build a matrix representation of the overlapping alignments
-    ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
+    # ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx) --> SOBRA
+    ## Adding "no_feature" overlaps to 'ov'
+    ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
     mt <- match(readids, alnreadids)
     maskmulti <- !maskuniqaln[mt] # multimapping reads present in the ov matrix
-    if (!all(iste)) {
-        ## Correcting for preference of unique/multimapping reads to genes/TEs
-        ovalnmat <- .correctPreference(ovalnmat, maskuniqaln, mt, istex)
-        stopifnot(!any(rowSums(ovalnmat[,istex]) > 0 &
-                        rowSums(ovalnmat[,!istex]) > 0))
-    }
-    cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, tx_idx,
-                        maskmulti, iste)
+    readids <- unique(alnreadids[queryHits(ov)]) # updating 'readids'
+    cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, maskmulti,
+                        iste, maskuniqaln, mt)
     setNames(as.integer(cntvec), names(cntvec))
 }
 
+## private function .getNoFeatureOv(), obtains the overlaps to "no_feature"
+#' @importFrom S4Vectors Hits queryHits subjectHits nRnode nLnode from to
+.getNoFeatureOv <- function(maskuniqaln, ov, alnreadids) {
+    maskmultialn_ov <- !(maskuniqaln[queryHits(ov)])
+    alnreadidx_all <- match(alnreadids, unique(alnreadids))
+    ovid <- unique(alnreadidx_all[unique(queryHits(ov)[maskmultialn_ov])])
+    alnall <- which(alnreadidx_all %in% ovid)
+    nofeat <- setdiff(alnall, queryHits(ov)[maskmultialn_ov])
+    from <- nofeat
+    to <- rep(nRnode(ov) + 1, length(nofeat))
+    nofeat_hits <- Hits(from = from, to = to, nLnode = nLnode(ov), 
+                        nRnode = max(to), sort.by.query = TRUE)
+    
+    # Adding overlaps to "no_feature" to 'ov'
+    hits1 <- ov
+    hits2 <- nofeat_hits
+    
+    hits <- c(Hits(from=from(hits1), to=to(hits1),
+                    nLnode=nLnode(hits1),
+                    nRnode=nRnode(hits2), sort.by.query=FALSE),
+                Hits(from=from(hits2), to=to(hits2),
+                    nLnode=nLnode(hits2),
+                    nRnode=nRnode(hits2), sort.by.query=FALSE))
+    
+    ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
+                    nRnode = nRnode(hits), sort.by.query=TRUE)
+    return(ovnofeat)
+}
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
-.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, tx_idx,
-                        maskmulti, iste) {
+.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, maskmulti,
+                      iste, maskuniqaln, mt) {
     ## initialize vector of counts derived from multi-mapping reads
-    cntvec <- rep(0L, length(tspar@features))
+    cntvec <- rep(0L, length(tspar@features) + 1)
     
-    # Getting counts from reads overlapping only one feature (this excludes
+    # Getting counts from reads overlapping only one feature (this excludes --> SOBRA
     # unique reads mapping to two or more overlapping features)
     # ovunique <- rowSums(ovalnmat) == 1
     # cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
     
-    # --- EM-step --- 
     alnreadidx <- match(alnreadids, readids)
     rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
-    asvalues <- (asvalues - min(asvalues) +1) / (max(asvalues) - min(asvalues))
+    
+    ## fetch all different transcripts from the overlapping alignments
+    tx_idx <- sort(unique(subjectHits(ov)))
+    istex <- as.vector(iste[tx_idx])[-length(tx_idx)]  # removing "no_feature"
+    
+    asvalues <- (asvalues-min(asvalues)+1) / (max(asvalues)+1 - min(asvalues))
     QmatTS <- .buildOvValuesMatrix(ov, asvalues, alnreadidx, rd_idx, tx_idx)
+    
+    if (!all(iste)) {
+        ## Correcting for preference of unique/multimapping reads to genes/TEs
+        QmatTS_nofeat <- QmatTS[,ncol(QmatTS), drop = FALSE]
+        QmatTS <- .correctPreferenceTS(QmatTS[,-ncol(QmatTS)], maskuniqaln,
+                                       mt, istex)
+        stopifnot(!any(rowSums(QmatTS[,istex]) > 0 &
+                           rowSums(QmatTS[,!istex]) > 0))
+        QmatTS <- cbind(QmatTS, QmatTS_nofeat)
+    }
+    
+    # --- EM-step --- 
     QmatTS <- QmatTS / rowSums(QmatTS)
     # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
     PiTS <- rep(1 / length(tx_idx), length(tx_idx))
@@ -273,6 +312,7 @@ setMethod("qtex", "TelescopeParam",
     a <- tspar@pi_prior # 0
     b <- tspar@theta_prior # 0
     Thetaenv <- new.env()
+    assign("Theta", Theta, envir=Thetaenv)
     tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatTS,maskmulti=maskmulti,
                     a=a, b=b, fixptfn=.tsFixedPointFun,
                     control=list(tol=tspar@em_epsilon, maxiter=tspar@maxIter))
@@ -293,11 +333,41 @@ setMethod("qtex", "TelescopeParam",
     # genes are also included in the EMstep.
     cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
     
-    names(cntvec) <- names(tspar@features)
-    cntvec <- .tssummarizeCounts(cntvec, iste, tspar)
+    names(cntvec) <- c(names(tspar@features), "no_feature")
+    nofeat <- cntvec["no_feature"]
+    cntvec <- .tssummarizeCounts(cntvec[-length(cntvec)], iste, tspar)
+    cntvec <- c(cntvec, nofeat)
     cntvec
 }
 
+## private function .correctPreferenceTS()
+## Corrects QmatTS for preference of unique/multi-mapping reads to
+## genes/TEs, respectively, in Telescope
+.correctPreferenceTS <- function(QmatTS, maskuniqaln, mt, istex) {
+    indx <- (rowSums(QmatTS[,istex]) > 0) & (rowSums(QmatTS[,!istex]) > 0)
+    
+    ## Assigning unique reads mapping to both a TE and a gene as gene counts
+    # Which unique reads overlap to both genes and TEs?
+    idxu <- indx & maskuniqaln[mt]
+    if (any(idxu)) {
+        # QmatTS[idxu,istex] <- FALSE
+        whu <- which(QmatTS[idxu,istex] > 0, arr.ind = TRUE)
+        whudf <- cbind(which(idxu)[whu[,"row"]], which(istex)[whu[,"col"]])
+        QmatTS[whudf] <- FALSE
+    }
+    
+    ## Removing overlaps of multi-mapping reads to genes if at least one
+    ## alignment of the read overlaps a TE
+    idxm <- indx & !maskuniqaln[mt]
+    if (any(idxm)) {
+        # QmatTS[idxm,!istex] <- FALSE
+        whm <- which(QmatTS[idxm,!istex] > 0, arr.ind = TRUE)
+        whmdf <- cbind(which(idxm)[whm[,"row"]], which(!istex)[whm[,"col"]])
+        QmatTS[whmdf] <- FALSE
+    }
+    
+    QmatTS
+}
 
 .tssummarizeCounts <- function(cntvec, iste, tspar) {
     cntvec_t <- cntvec[iste]
@@ -318,6 +388,9 @@ setMethod("qtex", "TelescopeParam",
     cntvec
 }
 
+
+
+
 ## private function .tsEstep()
 ## E-step of the EM algorithm of Telescope
 .tsEstep <- function(Q, Theta, maskmulti, Pi) {
@@ -326,6 +399,26 @@ setMethod("qtex", "TelescopeParam",
     # quicker computation of previous line
     wh <- which(X*maskmulti > 0, arr.ind = TRUE)
     X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
+    X <- X[rowSums(X)>0,, drop=FALSE]
+    X <- X / rowSums(X)
+    X
+}
+
+.tsEstep <- function(Q, Theta, maskmulti, Pi) { # same result as previous one
+    X <- t(t(Q) * Pi)
+    # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+    # quicker computation of previous line
+    wh <- which(X > 0, arr.ind = TRUE)
+    wh <- wh[wh[, "row"] %in% which(maskmulti),]
+    X[wh] <- X[wh] * Theta[wh[, "col"]]
+    X <- X[rowSums(X)>0,, drop=FALSE]
+    X <- X / rowSums(X)
+    X
+}
+
+.tsEstep <- function(Q, Theta, maskmulti, Pi) { # version of atenatheory
+    X <- t(t(Q) * Pi)
+    X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
     X <- X[rowSums(X)>0,, drop=FALSE]
     X <- X / rowSums(X)
     X
@@ -341,8 +434,8 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-    Theta <- ((colSums(X[maskmulti, , drop=FALSE])+b) / 
-        (sum(maskmulti)+b*ncol(X)))
+    Theta <- ((colSums(X[maskmulti, , drop=FALSE]) + b) / 
+        (sum(maskmulti) + b*ncol(X)))
 }
 
 ## private function .tsFixedPointFun()
