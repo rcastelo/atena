@@ -470,9 +470,11 @@ cntvec
     
     ## build matrices with primary alignment flags, alignment scores (AS) 
     ## and best secondary alignment AS
-    palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
-    asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
-    salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx,
+    palnmat <- .buildOvValuesMatrix(empar, ov, !salnmask, alnreadidx,
+                                    rd_idx, tx_idx)
+    asmat <- .buildOvValuesMatrix(empar, ov, alnAS, alnreadidx,
+                                    rd_idx, tx_idx)
+    salnbestasmat <- .buildOvValuesMatrix(empar, ov, salnbestAS, alnreadidx,
                                             rd_idx, tx_idx)
     
     ## AS from primary alignments
@@ -629,16 +631,16 @@ cntvec
 
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix Matrix
-.buildOvValuesMatrix <- function(ov, values, aridx, ridx, fidx) {
-    stopifnot(class(values) %in% c("logical", "integer", "numeric")) ## QC
-    ovmat <- Matrix(do.call(class(values), list(1)),
-                    nrow=length(ridx), ncol=length(fidx))
-    mt1 <- match(aridx[queryHits(ov)], ridx)
-    mt2 <- match(subjectHits(ov), fidx)
-    ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
-    
-    ovmat
-}
+# .buildOvValuesMatrix <- function(ov, values, aridx, ridx, fidx) {
+#     stopifnot(class(values) %in% c("logical", "integer", "numeric")) ## QC
+#     ovmat <- Matrix(do.call(class(values), list(1)),
+#                     nrow=length(ridx), ncol=length(fidx))
+#     mt1 <- match(aridx[queryHits(ov)], ridx)
+#     mt2 <- match(subjectHits(ov), fidx)
+#     ovmat[cbind(mt1, mt2)] <- values[queryHits(ov)]
+#     
+#     ovmat
+# }
 
 ## Obtains the name of the tag containing the suboptimal alignment score, if
 ## present
@@ -735,10 +737,10 @@ cntvec
         maskMulti <- maskMulti[mask]
     }
     
-    maskMultimat <- .buildOvValuesMatrix(ov, maskMulti, alnreadidx,
+    maskMultimat <- .buildOvValuesMatrix(empar, ov, maskMulti, alnreadidx,
                                          rd_idx, tx_idx)
     maskMultimat <- maskMultimat[maskthird, ]
-    maskUniqmat <- .buildOvValuesMatrix(ov, !maskMulti, alnreadidx,
+    maskUniqmat <- .buildOvValuesMatrix(empar, ov, !maskMulti, alnreadidx,
                                         rd_idx, tx_idx)
     maskUniqmat <- maskUniqmat[maskthird, ]
     
@@ -775,15 +777,17 @@ cntvec
     ## fetch all different transcripts from the overlapping alignments
     tx_idx <- sort(unique(subjectHits(ov)))
     ## build matrix with overlaps of primary alignments
-    palnmat <- .buildOvValuesMatrix(ov, !salnmask, alnreadidx, rd_idx, tx_idx)
+    palnmat <- .buildOvValuesMatrix(empar, ov, !salnmask, alnreadidx,
+                                    rd_idx, tx_idx)
     
     maskthird <- rep(TRUE, nrow(palnmat))
     
     if (isTRUE(applysoasfilter)) {
         ## build matrices with alignment scores (AS) and best secondary AS
-        asmat <- .buildOvValuesMatrix(ov, alnAS, alnreadidx, rd_idx, tx_idx)
-        salnbestasmat <- .buildOvValuesMatrix(ov, salnbestAS, alnreadidx,
-                                                rd_idx, tx_idx)
+        asmat <- .buildOvValuesMatrix(empar, ov, alnAS, alnreadidx, rd_idx,
+                                        tx_idx)
+        salnbestasmat <- .buildOvValuesMatrix(empar, ov, salnbestAS,
+                                                alnreadidx, rd_idx, tx_idx)
         ## AS from primary alignments
         asprimaryaln <- rowMaxs(palnmat * asmat)
         ## fetch maximum AS from secondary alignments
