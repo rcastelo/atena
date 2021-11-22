@@ -206,7 +206,7 @@ setMethod("qtex", "TEtranscriptsParam",
             d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
         }
         alnreadids <- c(alnreadids, names(alnreads))
-        thisov <- mode(alnreads, ttpar@features,
+        thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
                         ignoreStrand=ttpar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
     }

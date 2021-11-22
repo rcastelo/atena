@@ -290,7 +290,8 @@ while (length(alnreads <- do.call(readfun,
     mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
     alnreadsdiscard <- .getreadsdiscard(empar, alnreads, mask, thissalnmask)
     alnreads <- .filteralnreads(empar,alnreads,mask,thissalnmask,avsoas,avgene)
-    thisov <- mode(alnreads, empar@features, ignoreStrand=empar@ignoreStrand)
+    thisov <- mode(alnreads, empar@features, minOverlFract=0L,
+                    ignoreStrand=empar@ignoreStrand)
     ov <- .appendHits(ov, thisov)
     
     if (avgene && empar@geneCountMode == "all") {
