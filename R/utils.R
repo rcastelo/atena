@@ -305,3 +305,28 @@
     features$isTE <- temask
     features
 }
+
+#' @importFrom S4Vectors queryHits subjectHits
+#' @importFrom Matrix Matrix
+.buildOvValuesMatrix <- function(x, ov, values, aridx, ridx, fidx) {
+    stopifnot(class(values) %in% c("logical", "integer", "numeric")) ## QC
+    ovmat <- Matrix(do.call(class(values), list(1)),
+                    nrow=length(ridx), ncol=length(fidx))
+    mt1 <- match(aridx[queryHits(ov)], ridx)
+    mt2 <- match(subjectHits(ov), fidx)
+    
+    if (is(x, "TelescopeParam")) {
+        mtov <- cbind(mt1, mt2)
+        mtalign <- match(paste(mtov[,1],mtov[,2],sep = ":"),
+                         unique(paste(mtov[,1],mtov[,2], sep = ":")))
+        s <- split(x = values[queryHits(ov)], f = mtalign)
+        smax <- unlist(lapply(s, max), use.names = FALSE)
+        values <- smax[mtalign]
+    } else {
+        values <- values[queryHits(ov)]
+    }
+    
+    ovmat[cbind(mt1, mt2)] <- values
+    
+    ovmat
+}

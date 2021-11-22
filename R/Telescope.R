@@ -297,7 +297,8 @@ setMethod("qtex", "TelescopeParam",
     istex <- as.vector(iste[tx_idx])[-length(tx_idx)]  # removing "no_feature"
     
     asvalues <- (asvalues-min(asvalues)+1) / (max(asvalues)+1 - min(asvalues))
-    QmatTS <- .buildOvValuesMatrix(ov, asvalues, alnreadidx, rd_idx, tx_idx)
+    QmatTS <- .buildOvValuesMatrix(tspar, ov, asvalues, alnreadidx,
+                                    rd_idx, tx_idx)
     
     if (!all(iste)) {
         ## Correcting for preference of unique/multimapping reads to genes/TEs
