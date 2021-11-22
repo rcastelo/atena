@@ -5,9 +5,9 @@
 \alias{ovIntersectionStrict}
 \title{Pre-defined overlapping mode functions}
 \usage{
-ovUnion(reads, features, ignoreStrand)
+ovUnion(reads, features, ignoreStrand, minOverlFract)
 
-ovIntersectionStrict(reads, features, ignoreStrand)
+ovIntersectionStrict(reads, features, ignoreStrand, minOverlFract)
 }
 \arguments{
 \item{reads}{A \code{GAlignments}, \code{GAlignmentList} or a
@@ -21,6 +21,13 @@ and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
 will be considered to be overlapping an annotated feature as long as they
 have a non-empty intersecting genomic ranges on the same strand, while when
 \code{ignoreStrand = TRUE} the strand will not be considered.}
+
+\item{minOverlFract}{(Default 0.2) A numeric scalar. \code{minOverlFract}
+is multiplied by the median read length and the resulting value is used to
+specify the \code{minoverlap} argument from
+\code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
+\pkg{IRanges} package. When no minimum overlap is required, set
+\code{minOverlFract = 0}.}
 }
 \value{
 A \code{Hits} object; see the \code{\link[S4Vectors]{Hits-class}}
