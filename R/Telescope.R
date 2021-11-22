@@ -240,9 +240,8 @@ setMethod("qtex", "TelescopeParam",
     ## Adding "no_feature" overlaps to 'ov'
     ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
     mt <- match(readids, alnreadids)
-    maskmulti <- !maskuniqaln[mt] # multimapping reads present in the ov matrix
     readids <- unique(alnreadids[queryHits(ov)]) # updating 'readids'
-    cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues, maskmulti,
+    cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues,
                         iste, maskuniqaln, mt)
     setNames(as.integer(cntvec), names(cntvec))
 }
@@ -279,7 +278,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
-.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues, maskmulti,
+.tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues,
                       iste, maskuniqaln, mt) {
     ## initialize vector of counts derived from multi-mapping reads
     cntvec <- rep(0L, length(tspar@features) + 1)
@@ -312,6 +311,10 @@ setMethod("qtex", "TelescopeParam",
     
     # --- EM-step --- 
     QmatTS <- QmatTS / rowSums(QmatTS)
+    
+    # Getting 'y' indicator of unique and multi-mapping status from QmatTS 
+    maskmulti <- ifelse(rowSums(QmatTS > 0) == 1, 0, 1)
+    
     # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
     PiTS <- rep(1 / length(tx_idx), length(tx_idx))
     
