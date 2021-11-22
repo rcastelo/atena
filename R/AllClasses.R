@@ -181,6 +181,13 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' same-strand pairs, singletons, reads with unmapped pairs and other fragments
 #' are also counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @slot minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
+#' is multiplied by the median read length and the resulting value is used to
+#' specify the \code{minoverlap} argument from
+#' \code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
+#' \pkg{IRanges} package. When no minimum overlap is required, set
+#' \code{minOverlFract = 0}.
 #'
 #' @slot pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
@@ -210,6 +217,7 @@ setClass("TelescopeParam", contains="AtenaParam",
                         strandMode="integer",
                         ignoreStrand="logical",
                         fragments="logical",
+                        minOverlFract="numeric",
                         pi_prior="integer",
                         theta_prior="integer",
                         em_epsilon="numeric",

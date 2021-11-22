@@ -54,6 +54,13 @@
 #' the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
+#' @param minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
+#' is multiplied by the median read length and the resulting value is used to
+#' specify the \code{minoverlap} argument from
+#' \code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
+#' \pkg{IRanges} package. When no minimum overlap is required, set
+#' \code{minOverlFract = 0}.
+#' 
 #' @param pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
 #'
@@ -107,7 +114,8 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             singleEnd=TRUE, 
                             strandMode=1L, 
                             ignoreStrand=FALSE,
-                            fragments=FALSE, 
+                            fragments=FALSE,
+                            minOverlFract=0.2,
                             pi_prior=0L, 
                             theta_prior=0L, 
                             em_epsilon=1e-7,
@@ -121,7 +129,8 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
     new("TelescopeParam", bfl=bfl, features=features,
         aggregateby=aggregateby, singleEnd=singleEnd,ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
-        pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
+        minOverlFract=minOverlFract, pi_prior=pi_prior,
+        theta_prior=theta_prior, em_epsilon=em_epsilon,
         maxIter=as.integer(maxIter))
 }
 
@@ -206,6 +215,7 @@ setMethod("qtex", "TelescopeParam",
     ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     asvalues <- integer()
+    mreadlen <- numeric(0)
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
@@ -215,7 +225,9 @@ setMethod("qtex", "TelescopeParam",
                                 list(use.names=TRUE))))) {
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, mcols(alnreads)$AS)
+        mreadlen <- median(width(ranges(alnreads)))
         thisov <- mode(alnreads, tspar@features,
+                        minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
                         ignoreStrand=tspar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
     }
@@ -225,9 +237,6 @@ setMethod("qtex", "TelescopeParam",
                         duplicated(alnreadids, fromLast = TRUE))
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
-    
-    ## build a matrix representation of the overlapping alignments
-    # ovalnmat <- .buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx) --> SOBRA
     ## Adding "no_feature" overlaps to 'ov'
     ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
     mt <- match(readids, alnreadids)
