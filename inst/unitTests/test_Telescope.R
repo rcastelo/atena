@@ -10,9 +10,9 @@ test_Telescope <- function() {
                                 singleEnd = TRUE, ignoreStrand=TRUE)
     tsSE <- qtex(tspar)
     
-    checkEqualsNumeric(dim(tsSE), c(78, 2))
+    checkEqualsNumeric(dim(tsSE), c(79, 2))
     checkEqualsNumeric(head(sort(assay(tsSE), decreasing=TRUE)), 
-                            as.integer(c(150, 149, 1, 0, 0, 0)))
+                            as.integer(c(150, 150, 0, 0, 0, 0)))
 }
 
 

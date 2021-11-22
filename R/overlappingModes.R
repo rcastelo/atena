@@ -54,7 +54,8 @@
 #' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
 #'                     package="atena"))
 #' tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
-#'                         singleEnd = TRUE, ignoreStrand=TRUE)
+#'                         singleEnd = TRUE, ignoreStrand=TRUE,
+#'                         minOverlFract=0L)
 #' tsSE <- qtex(tspar, mode=ovIntersectionStrict)
 #'
 #' @importFrom GenomicAlignments findOverlaps
@@ -73,6 +74,6 @@ ovUnion <- function(reads, features, ignoreStrand, minOverlFract) {
 #' @rdname ovFunctions
 ovIntersectionStrict <- function(reads, features, ignoreStrand, minOverlFract) {
     ov <- findOverlaps(reads, features, type="within",
-                        minoverlap=minOverlFract, ignore.strand=ignoreStrand)
+                        minoverlap=0L, ignore.strand=ignoreStrand)
     ov
 }
