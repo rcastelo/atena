@@ -417,25 +417,6 @@ setMethod("qtex", "TelescopeParam",
     X
 }
 
-.tsEstep <- function(Q, Theta, maskmulti, Pi) { # same result as previous one
-    X <- t(t(Q) * Pi)
-    # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
-    # quicker computation of previous line
-    wh <- which(X > 0, arr.ind = TRUE)
-    wh <- wh[wh[, "row"] %in% which(maskmulti),]
-    X[wh] <- X[wh] * Theta[wh[, "col"]]
-    X <- X[rowSums(X)>0,, drop=FALSE]
-    X <- X / rowSums(X)
-    X
-}
-
-.tsEstep <- function(Q, Theta, maskmulti, Pi) { # version of atenatheory
-    X <- t(t(Q) * Pi)
-    X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
-    X <- X[rowSums(X)>0,, drop=FALSE]
-    X <- X / rowSums(X)
-    X
-}
 
 ## private function .tsMstepPi()
 ## M-step of the EM algorithm of Telescope
