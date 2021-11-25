@@ -93,20 +93,20 @@
 #' @export
 #' @rdname TEtranscriptsParam-class
 TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
-                                geneFeatures=NA,
-                                singleEnd=TRUE,
-                                ignoreStrand=FALSE,
-                                strandMode=1L,
-                                fragments=TRUE,
-                                tolerance=0.0001,
-                                maxIter=100L) {
-
+                               geneFeatures=NA,
+                               singleEnd=TRUE,
+                               ignoreStrand=FALSE,
+                               strandMode=1L,
+                               fragments=TRUE,
+                               tolerance=0.0001,
+                               maxIter=100L) {
+    
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
-
+    
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                                geneFeatures, deparse(substitute(geneFeatures)),
-                                aggregateby, aggregateexons = TRUE)
-
+                                 geneFeatures, deparse(substitute(geneFeatures)),
+                                 aggregateby, aggregateexons = TRUE)
+    
     new("TEtranscriptsParam", bfl=bfl, features=features,
         aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
@@ -120,32 +120,32 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
 #' @aliases show,TEtranscriptsParam-method
 #' @rdname TEtranscriptsParam-class
 setMethod("show", "TEtranscriptsParam",
-        function(object) {
-            cat(class(object), "object\n")
-            cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
-                        .pprintnames(names(object@bfl))))
-            cat(sprintf("# features (%s length %d): %s\n",
-                        class(object@features),
-                        length(object@features),
-                        ifelse(is.null(names(object@features)),
-                                paste("on",
-                                    .pprintnames(seqlevels(object@features))),
-                                .pprintnames(names(object@features)))))
-            cat(sprintf("# aggregated by: %s\n",
-                        ifelse(length(object@aggregateby) > 0,
-                                paste(object@aggregateby, collapse=", "),
-                                paste(class(object@features), "names"))))
-            cat(sprintf("# %s; %s",
-                        ifelse(object@singleEnd, "single-end", "paired-end"),
-                        ifelse(object@ignoreStrand, "unstranded", "stranded")))
-            if (!object@ignoreStrand)
-                cat(sprintf(" (strandMode=%d)", object@strandMode))
-            if (!object@singleEnd)
-                cat(sprintf("; %s",
-                        ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
-                                "counting properly paired reads")))
-            cat("\n")
-        })
+          function(object) {
+              cat(class(object), "object\n")
+              cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
+                          .pprintnames(names(object@bfl))))
+              cat(sprintf("# features (%s length %d): %s\n",
+                          class(object@features),
+                          length(object@features),
+                          ifelse(is.null(names(object@features)),
+                                 paste("on",
+                                       .pprintnames(seqlevels(object@features))),
+                                 .pprintnames(names(object@features)))))
+              cat(sprintf("# aggregated by: %s\n",
+                          ifelse(length(object@aggregateby) > 0,
+                                 paste(object@aggregateby, collapse=", "),
+                                 paste(class(object@features), "names"))))
+              cat(sprintf("# %s; %s",
+                          ifelse(object@singleEnd, "single-end", "paired-end"),
+                          ifelse(object@ignoreStrand, "unstranded", "stranded")))
+              if (!object@ignoreStrand)
+                  cat(sprintf(" (strandMode=%d)", object@strandMode))
+              if (!object@singleEnd)
+                  cat(sprintf("; %s",
+                              ifelse(object@fragments, "counting properly paired, same-strand pairs, singletons, reads with unmapped pairs and other fragments",
+                                     "counting properly paired reads")))
+              cat("\n")
+          })
 
 #' @importFrom BiocParallel SerialParam bplapply
 #' @importFrom SummarizedExperiment SummarizedExperiment
@@ -154,22 +154,22 @@ setMethod("show", "TEtranscriptsParam",
 #' @aliases qtex,TEtranscriptsParam-method
 #' @rdname qtex
 setMethod("qtex", "TEtranscriptsParam",
-        function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
-                    BPPARAM=SerialParam(progressbar=TRUE)) {
-            .checkPhenodata(phenodata, length(x@bfl))
-
-            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
-                            yieldSize=yieldSize, BPPARAM=BPPARAM)
-            cnt <- do.call("cbind", cnt)
-            colData <- .createColumnData(cnt, phenodata)
-            colnames(cnt) <- rownames(colData)
-
-            features <- .consolidateFeatures(x, rownames(cnt))
-
-            SummarizedExperiment(assays=list(counts=cnt),
-                                rowRanges=features,
-                                colData=colData)
-        })
+          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
+                   BPPARAM=SerialParam(progressbar=TRUE)) {
+              .checkPhenodata(phenodata, length(x@bfl))
+              
+              cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
+                              yieldSize=yieldSize, BPPARAM=BPPARAM)
+              cnt <- do.call("cbind", cnt)
+              colData <- .createColumnData(cnt, phenodata)
+              colnames(cnt) <- rownames(colData)
+              
+              features <- .consolidateFeatures(x, rownames(cnt))
+              
+              SummarizedExperiment(assays=list(counts=cnt),
+                                   rowRanges=features,
+                                   colData=colData)
+          })
 
 #' @importFrom stats setNames aggregate median
 #' @importFrom Rsamtools scanBamFlag ScanBamParam yieldSize yieldSize<-
@@ -177,13 +177,14 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
 #' @importFrom GenomicAlignments readGAlignmentPairs
 #' @importFrom S4Vectors Hits queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom Matrix Matrix t which
+#' @importFrom sparseMatrixStats colSums2 rowSums2
 #' @importFrom IRanges ranges
 .qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
     mode=match.fun(mode)
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
-                            isNotPassingQualityControls=FALSE)
+                           isNotPassingQualityControls=FALSE)
     param <- ScanBamParam(flag=sbflags, tag="AS")
     
     iste <- as.vector(attributes(ttpar@features)$isTE[,1])
@@ -198,24 +199,24 @@ setMethod("qtex", "TEtranscriptsParam",
     yieldSize(bf) <- yieldSize
     open(bf)
     while (length(alnreads <- do.call(readfun, 
-                                c(list(file = bf), list(param=param),
-                                list(strandMode=ttpar@strandMode)[strand_arg],
-                                list(use.names=TRUE))))) {
+                                      c(list(file = bf), list(param=param),
+                                        list(strandMode=ttpar@strandMode)[strand_arg],
+                                        list(use.names=TRUE))))) {
         avgreadlen <- c(avgreadlen, .getAveLen(ttpar, alnreads))
         if (ttpar@singleEnd == FALSE) {
             d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
         }
         alnreadids <- c(alnreadids, names(alnreads))
         thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
-                        ignoreStrand=ttpar@ignoreStrand)
+                       ignoreStrand=ttpar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)
     on.exit(close(bf))
-
+    
     ## get uniquely aligned-reads
     maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, 
-                                                        fromLast = TRUE))
+                                                         fromLast = TRUE))
     if (ttpar@singleEnd == TRUE) {
         # unique + multi-mapping reads (only once) are considered
         avgreadlen <- mean(avgreadlen[!duplicated(alnreadids)])
@@ -229,7 +230,7 @@ setMethod("qtex", "TEtranscriptsParam",
     tx_idx <- sort(unique(subjectHits(ov)))
     
     cntvec <- .ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
-                                maskuniqaln, avgreadlen)
+                              maskuniqaln, avgreadlen)
     ## Original TEtranscripts coerces fractional counts to integer
     setNames(as.integer(cntvec), names(cntvec))
 }
@@ -272,8 +273,8 @@ setMethod("qtex", "TEtranscriptsParam",
     if (!all(iste) & any(!maskuniqaln)) {
         ## Getting gene counts where a multimapping read maps to > 1 gene
         multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt,
-                                        iste, istex, tx_idx, readids, 
-                                        alnreadids, ov, uniqcnt)
+                                           iste, istex, tx_idx, readids, 
+                                           alnreadids, ov, uniqcnt)
     }
     cntvec <- rep(0L, length(ttpar@features))
     cntvec <- .ttEMstep(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
@@ -284,58 +285,63 @@ setMethod("qtex", "TEtranscriptsParam",
 }
 
 
-#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom Matrix Matrix t which sparseMatrix
+#' @importFrom sparseMatrixStats rowSums2 colSums2
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
-                        avgreadlen, cntvec) {
-if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
-    ## TEtranscripts doesn't use uniquely-aligned reads to inform the
-    ## procedure of distributing multiple-mapping reads, as explained in
-    ## Jin et al. (2015) pg. 3594, "to reduce potential bias to certain TEs."
-    ## Hence, once counted, we discard unique alignments
-    ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
-    yesov <- rowSums(ovalnmat)>0
-    ovalnmat <- ovalnmat[yesov,]
-    readids <- readids[!maskuniqaln[mt]][yesov]
-    ## the Qmat matrix stores row-wise the probability that read i maps to
-    ## a transcript j, assume uniform probabilities by now
-    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
-                    dimnames=list(readids, NULL))
-    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
-    Qmat <- Qmat / rowSums(ovalnmat)
-    
-    ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
-    ## (2015) stores probabilities of expression for each transcript, corrected
-    ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
-    Pi <- colSums(Qmat)
-    if (is(ttpar@features,"GRangesList")) {
-        elen <- as.numeric(width(ttpar@features[tx_idx][istex])) - avgreadlen+1
-    } else {
-        elen <- width(ttpar@features[tx_idx][istex]) - avgreadlen + 1
+                      avgreadlen, cntvec) {
+    if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
+        ## TEtranscripts doesn't use uniquely-aligned reads to inform the
+        ## procedure of distributing multiple-mapping reads, as explained in
+        ## Jin et al. (2015) pg. 3594, "to reduce potential bias to certain TEs."
+        ## Hence, once counted, we discard unique alignments
+        ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
+        yesov <- rowSums2(ovalnmat)>0
+        ovalnmat <- ovalnmat[yesov,]
+        readids <- readids[!maskuniqaln[mt]][yesov]
+        ## the Qmat matrix stores row-wise the probability that read i maps to
+        ## a transcript j, assume uniform probabilities by now
+        x <- as.integer(ovalnmat@x)
+        Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=x, index1 = FALSE,
+                             dimnames =  list(readids, NULL))
+        
+        rowSumoval <- rowSums2(ovalnmat)
+        i <- Qmat@i +1
+        Qmat@x <- Qmat@x / rowSumoval[i]
+        
+        ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
+        ## (2015) stores probabilities of expression for each transcript, corrected
+        ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
+        Pi <- colSums2(Qmat)
+        if (is(ttpar@features,"GRangesList")) {
+            elen <- as.numeric(width(ttpar@features[tx_idx][istex])) - avgreadlen+1
+        } else {
+            elen <- width(ttpar@features[tx_idx][istex]) - avgreadlen + 1
+        }
+        Pi <- .correctForTxEffectiveLength(Pi, elen)
+        
+        ## use the SQUAREM algorithm to achieve faster EM convergence
+        emres <- squarem(par=Pi, Q=Qmat, elen=elen,
+                         fixptfn=.ttFixedPointFun,
+                         control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
+        Pi <- emres$par
+        Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+        Pi <- Pi / sum(Pi)
+        ## use the estimated transcript expression probabilities
+        ## to finally distribute ambiguously mapping reads
+        probmassbyread <- as.vector(ovalnmat %*% Pi) 
+        # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
+        # sparce version of the previous commented line, improves memory usage
+        ovalnmat2 <- as(ovalnmat, "dgCMatrix")
+        i <- ovalnmat2@i + 1
+        ovalnmat2@x <- ovalnmat2@x / probmassbyread[i]
+        j <- rep(1:ncol(ovalnmat2), diff(ovalnmat2@p))
+        ovalnmat2@x <- ovalnmat2@x * Pi[j]
+        cntvecovtx <- sparseMatrixStats::colSums2(ovalnmat2, na.rm=TRUE)
+        cntvec[tx_idx][istex] <- cntvecovtx
     }
-    Pi <- .correctForTxEffectiveLength(Pi, elen)
-    
-    ## use the SQUAREM algorithm to achieve faster EM convergence
-    emres <- squarem(par=Pi, Q=Qmat, elen=elen,
-                    fixptfn=.ttFixedPointFun,
-                    control=list(tol=ttpar@tolerance, maxiter=ttpar@maxIter))
-    Pi <- emres$par
-    Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
-    Pi <- Pi / sum(Pi)
-    ## use the estimated transcript expression probabilities
-    ## to finally distribute ambiguously mapping reads
-    probmassbyread <- as.vector(ovalnmat %*% Pi) 
-    # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
-    # sparce version of the previous commented line, improves memory usage
-    wh <- which(ovalnmat, arr.ind=TRUE)
-    cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
-    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
-                FUN=sum, na.rm=TRUE)
-    cntvecovtx[as.integer(names(x))] <- x
-    cntvec[tx_idx][istex] <- cntvecovtx
-}
-cntvec
+    cntvec
 }
 
 
@@ -351,14 +357,13 @@ cntvec
 ##             rids - unique read identifiers
 ##             fidx - features index
 
-#' @importFrom Matrix Matrix
+#' @importFrom Matrix sparseMatrix
 #' @importFrom S4Vectors queryHits subjectHits
 .buildOvAlignmentsMatrix <- function(ov, arids, rids, fidx) {
-    oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx))
     mt1 <- match(arids[queryHits(ov)], rids)
     mt2 <- match(subjectHits(ov), fidx)
-    oamat[cbind(mt1, mt2)] <- TRUE
-    
+    positions <- cbind(mt1, mt2)
+    oamat <- sparseMatrix(positions[,1], positions[,2], x=TRUE)
     oamat
 }
 
@@ -380,16 +385,21 @@ cntvec
 ## private function .ttEstep()
 ## E-step of the EM algorithm of TEtranscripts
 .ttEstep <- function(Q, Pi) {
-    X <- t(t(Q) * Pi)
-    X <- X[rowSums(X)>0,, drop=FALSE]
-    X <- X / rowSums(X)
+    # this first part is a sparse optimization of doing
+    ## X <- t(t(Q) * Pi)
+    X <- Q
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x <- X@x * Pi[j]
+    ##
+    X <- X[rowSums2(X)>0,, drop=FALSE]
+    X <- X / rowSums2(X)
     X
 }
 
 ## private function .ttEstep()
 ## M-step of the EM algorithm of TEtranscripts
 .ttMstep <- function(X) {
-    Pi <- colSums(X) / sum(X)
+    Pi <- colSums2(X) / sum(X@x)
     Pi
 }
 
@@ -417,7 +427,7 @@ cntvec
 ## Corrects ovalnmat for preference of unique/multi-mapping reads to
 ## genes/TEs, respectively
 .correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
-    indx <- (rowSums(ovalnmat[,istex]) > 0) & (rowSums(ovalnmat[,!istex]) > 0)
+    indx <- (rowSums2(ovalnmat[,istex]) > 0) & (rowSums2(ovalnmat[,!istex]) > 0)
     
     ## Assigning unique reads mapping to both a TE and a gene as gene counts
     # Which unique reads overlap to both genes and TEs?
@@ -447,10 +457,10 @@ cntvec
 ## Counts multi-mapping reads mapping to multiple genes by counting fraction
 ## counts
 .countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste,
-                                    istex, tx_idx, readids, alnreadids, ov,
-                                    uniqcnt) {
+                                  istex, tx_idx, readids, alnreadids, ov,
+                                  uniqcnt) {
     ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
-    yesg <- rowSums(ovalnmat_multig)>0
+    yesg <- rowSums2(ovalnmat_multig)>0
     
     ## Computing counts for reads with multiple alignments mapping to different
     ## reads and also for multimapping reads with only 1 alignment mapping to
@@ -459,7 +469,7 @@ cntvec
     
     # Getting the num of different alignments mapping to a gene for each read
     alnreadids_multig <-alnreadids[unique(queryHits(
-                                            ov[!iste[subjectHits(ov)]]))]
+        ov[!iste[subjectHits(ov)]]))]
     nalnperread <- table(alnreadids_multig) # getting only overlaps from TEs
     readids_multig <- readids[!maskuniqaln[mt]][yesg]
     mt_multig <- match(readids_multig, names(nalnperread))
@@ -467,7 +477,7 @@ cntvec
     # Counts provided by unique reads for genes to which multimapping 
     # reads map to
     matmultiguniqc <- t(t(ovalnmat_multig)*uniqcnt[tx_idx][!istex])
-    rsum <- rowSums(matmultiguniqc)
+    rsum <- rowSums2(matmultiguniqc)
     rsum0 <- rsum == 0
     
     # Reads for which the genes to which the read aligns have > counts
@@ -475,13 +485,13 @@ cntvec
     
     # Reads for which the genes to which the read aligns have 0 counts
     matmultiguniqc[rsum0,] <- (ovalnmat_multig[rsum0,] /
-        rowSums(ovalnmat_multig[rsum0,]))
+                                   rowSums2(ovalnmat_multig[rsum0,]))
     
     # Adjusting for number of alignments
     matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
     
     multigcnt <- rep(0L, length(ttpar@features))
-    multigcnt[tx_idx][!istex] <- colSums(matmultiguniqc)
+    multigcnt[tx_idx][!istex] <- colSums2(matmultiguniqc)
     multigcnt
 }
 
@@ -491,37 +501,37 @@ cntvec
     uniqcnt <- rep(0L, length(ttpar@features))
     ovalnmatuniq_g <- ovalnmat[maskuniqaln[mt], !istex, drop=FALSE]
     ovalnmatuniq_te <- ovalnmat[maskuniqaln[mt], istex, drop=FALSE]
-    ovmultig <- rowSums(ovalnmatuniq_g) > 1
-    ovmultite <- rowSums(ovalnmatuniq_te) > 1
+    ovmultig <- rowSums2(ovalnmatuniq_g) > 1
+    ovmultite <- rowSums2(ovalnmatuniq_te) > 1
     
     # Addressing gene counts: count divided by the number of different genes
     if (any(ovmultig)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g[!ovmultig,])
+        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g[!ovmultig,])
         # Counting reads overlapping more than 1 element
-        mg <- ovalnmatuniq_g[ovmultig,]/rowSums(ovalnmatuniq_g[ovmultig,])
-        uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums(mg)
-    
+        mg <- ovalnmatuniq_g[ovmultig,]/rowSums2(ovalnmatuniq_g[ovmultig,])
+        uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums2(mg)
+        
     } else {
-        uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g)
+        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g)
     }
     
     # Addressing TE counts: count divided by the number of different TEs
     # proportionally to the expression level of each TE provided by unique counts
     if (any(ovmultite)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te[!ovmultite,])
+        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te[!ovmultite,])
         # Counting reads overlapping more than 1 element
         mte <- t(t(
             ovalnmatuniq_te[ovmultite,,drop=FALSE])*uniqcnt[tx_idx][istex])
-        nocounts <- which(rowSums(mte) == 0)
+        nocounts <- which(rowSums2(mte) == 0)
         mte[nocounts,,drop=FALSE] <- ovalnmatuniq_te[
             ovmultite,,drop=FALSE][nocounts,]
-        mte <- mte/rowSums(mte)
-        uniqcnt[tx_idx][istex] <- uniqcnt[tx_idx][istex] + colSums(mte)
-    
+        mte <- mte/rowSums2(mte)
+        uniqcnt[tx_idx][istex] <- uniqcnt[tx_idx][istex] + colSums2(mte)
+        
     } else {
-        uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te)
+        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te)
     }
     
     uniqcnt
@@ -557,4 +567,3 @@ cntvec
     
     cntvec
 }
-
