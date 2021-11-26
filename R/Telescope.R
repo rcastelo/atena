@@ -276,7 +276,8 @@ setMethod("qtex", "TelescopeParam",
 }
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom Matrix Matrix t which
+#' @importFrom sparseMatrixStats rowSums2 colSums2 rowMaxs
 #' @importFrom SQUAREM squarem
 .tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues,
                       iste, maskuniqaln, mt) {
@@ -304,16 +305,17 @@ setMethod("qtex", "TelescopeParam",
         QmatTS_nofeat <- QmatTS[,ncol(QmatTS), drop = FALSE]
         QmatTS <- .correctPreferenceTS(QmatTS[,-ncol(QmatTS)], maskuniqaln,
                                        mt, istex)
-        stopifnot(!any(rowSums(QmatTS[,istex]) > 0 &
-                           rowSums(QmatTS[,!istex]) > 0))
+        stopifnot(!any(rowSums2(QmatTS[,istex]) > 0 &
+                           rowSums2(QmatTS[,!istex]) > 0))
         QmatTS <- cbind(QmatTS, QmatTS_nofeat)
     }
     
     # --- EM-step --- 
-    QmatTS <- QmatTS / rowSums(QmatTS)
+    # QmatTS <- QmatTS / rowSums2(QmatTS)
+    QmatTS@x <- QmatTS@x / rowSums2(QmatTS)[QmatTS@i +1]
     
     # Getting 'y' indicator of unique and multi-mapping status from QmatTS 
-    maskmulti <- ifelse(rowSums(QmatTS > 0) == 1, 0, 1)
+    maskmulti <- ifelse(rowSums2(QmatTS > 0) == 1, 0, 1)
     
     # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
     PiTS <- rep(1 / length(tx_idx), length(tx_idx))
@@ -337,14 +339,18 @@ setMethod("qtex", "TelescopeParam",
     Theta <- get("Theta", envir=Thetaenv)
     X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
     maxbyrow <- rowMaxs(X)
+    # Version 1
     # Xind <- X == maxbyrow
-    # Quicker version of the previous line
-    Xind <- (X / maxbyrow) == 1
-    nmaxbyrow <- rowSums(Xind)
+    # Version 2
+    # Xind <- (X / maxbyrow) == 1
+    
+    Xind <- as(X, "lgCMatrix")
+    Xind@x <- (X@x /maxbyrow[X@i+1]) == 1
+    nmaxbyrow <- rowSums2(Xind)
     
     # Do not differenciate between TE and genes with istex because in Telescope
     # genes are also included in the EMstep.
-    cntvec[tx_idx] <- colSums(Xind[nmaxbyrow == 1, ])
+    cntvec[tx_idx] <- colSums2(Xind[nmaxbyrow == 1, ])
     
     names(cntvec) <- c(names(tspar@features), "no_feature")
     nofeat <- cntvec["no_feature"]
@@ -357,7 +363,7 @@ setMethod("qtex", "TelescopeParam",
 ## Corrects QmatTS for preference of unique/multi-mapping reads to
 ## genes/TEs, respectively, in Telescope
 .correctPreferenceTS <- function(QmatTS, maskuniqaln, mt, istex) {
-    indx <- (rowSums(QmatTS[,istex]) > 0) & (rowSums(QmatTS[,!istex]) > 0)
+    indx <- (rowSums2(QmatTS[,istex]) > 0) & (rowSums2(QmatTS[,!istex]) > 0)
     
     ## Assigning unique reads mapping to both a TE and a gene as gene counts
     # Which unique reads overlap to both genes and TEs?
@@ -407,13 +413,14 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsEstep()
 ## E-step of the EM algorithm of Telescope
 .tsEstep <- function(Q, Theta, maskmulti, Pi) {
-    X <- t(t(Q) * Pi)
-    # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
-    # quicker computation of previous line
-    wh <- which(X*maskmulti > 0, arr.ind = TRUE)
-    X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
-    X <- X[rowSums(X)>0,, drop=FALSE]
-    X <- X / rowSums(X)
+    X <- Q
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x <- X@x * Pi[j]
+    wh <- which(X@x * maskmulti[X@i + 1] > 0)
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x[wh] <- X@x[wh] * Theta[j][wh]
+    X <- X[rowSums2(X) > 0, , drop = FALSE]
+    X <- X/rowSums2(X)
     X
 }
 
@@ -421,14 +428,14 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepPi()
 ## M-step of the EM algorithm of Telescope
 .tsMstepPi <- function(X, a) {
-    Pi <- (colSums(X) + a) / (sum(X)+a*ncol(X))
+    Pi <- (colSums2(X) + a)/(sum(X@x) + a * ncol(X))
     Pi
 }
 
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-    Theta <- ((colSums(X[maskmulti, , drop=FALSE]) + b) / 
+    Theta <- ((colSums2(X[maskmulti, , drop=FALSE]) + b) / 
         (sum(maskmulti) + b*ncol(X)))
 }
 
@@ -443,4 +450,21 @@ setMethod("qtex", "TelescopeParam",
     
     Pi2
 }
+
+## Older versions
+# .tsEstep <- function(Q, Theta, maskmulti, Pi) {
+#     X <- t(t(Q) * Pi)
+#     # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+#     # quicker computation of previous line
+#     wh <- which(X*maskmulti > 0, arr.ind = TRUE)
+#     X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
+#     X <- X[rowSums(X)>0,, drop=FALSE]
+#     X <- X / rowSums(X)
+#     X
+# }
+# 
+# .tsMstepPi <- function(X, a) {
+#     Pi <- (colSums(X) + a) / (sum(X)+a*ncol(X))
+#     Pi
+# }
 
