@@ -67,7 +67,8 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
 TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
                     package="atena"))
 tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
-                        singleEnd = TRUE, ignoreStrand=TRUE)
+                        singleEnd = TRUE, ignoreStrand=TRUE,
+                        minOverlFract=0L)
 tsSE <- qtex(tspar, mode=ovIntersectionStrict)
 
 }
