@@ -306,9 +306,8 @@ setMethod("qtex", "TEtranscriptsParam",
         Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=x, index1 = FALSE,
                              dimnames =  list(readids, NULL))
         
-        rowSumoval <- rowSums2(ovalnmat)
-        i <- Qmat@i +1
-        Qmat@x <- Qmat@x / rowSumoval[i]
+        ## Qmat <-  Qmat / rowSums2(ovalnmat)
+        Qmat@x <- Qmat@x / rowSums2(ovalnmat)[Qmat@i +1]
         
         ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
         ## (2015) stores probabilities of expression for each transcript, corrected
