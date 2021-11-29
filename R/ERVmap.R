@@ -296,7 +296,8 @@ while (length(alnreads <- do.call(readfun,
     
     if (avgene && empar@geneCountMode == "all") {
         ## calculate and store overlaps between the discarded reads and genes
-        thisovdiscard <- mode(alnreadsdiscard, empar@features[!iste], 
+        thisovdiscard <- mode(alnreadsdiscard, empar@features[!iste],
+                                minOverlFract=0L,
                                 ignoreStrand=empar@ignoreStrand)
         ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
     }
