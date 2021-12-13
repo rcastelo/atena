@@ -199,7 +199,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
 #' @importFrom GenomicAlignments readGAlignmentPairs
 #' @importFrom S4Vectors Hits queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums colSums t which
+# @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
     mode=match.fun(mode)
@@ -406,8 +406,6 @@ setMethod("qtex", "TelescopeParam",
     
     cntvec
 }
-
-
 
 
 ## private function .tsEstep()

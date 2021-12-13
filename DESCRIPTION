@@ -51,4 +51,3 @@ Collate:
     'overlappingModes.R'
     'qtex.R'
     'utils.R'
-Config/testthat/edition: 3
