@@ -277,8 +277,9 @@ setMethod("qtex", "TelescopeParam",
 }
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
-#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom Matrix Matrix t which
 #' @importFrom SQUAREM squarem
+#' @importClassesFrom Matrix lgCMatrix
 .tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues,
                       iste, maskuniqaln, mt) {
     ## initialize vector of counts derived from multi-mapping reads
@@ -311,7 +312,8 @@ setMethod("qtex", "TelescopeParam",
     }
     
     # --- EM-step --- 
-    QmatTS <- QmatTS / rowSums2(QmatTS)
+    # QmatTS <- QmatTS / rowSums2(QmatTS)
+    QmatTS@x <- QmatTS@x / rowSums2(QmatTS)[QmatTS@i +1]
     
     # Getting 'y' indicator of unique and multi-mapping status from QmatTS 
     maskmulti <- ifelse(rowSums2(QmatTS > 0) == 1, 0, 1)
@@ -338,9 +340,13 @@ setMethod("qtex", "TelescopeParam",
     Theta <- get("Theta", envir=Thetaenv)
     X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
     maxbyrow <- rowMaxs(X)
+    # Version 1
     # Xind <- X == maxbyrow
-    # Quicker version of the previous line
-    Xind <- (X / maxbyrow) == 1
+    # Version 2
+    # Xind <- (X / maxbyrow) == 1
+    
+    Xind <- as(X, "lgCMatrix")
+    Xind@x <- (X@x /maxbyrow[X@i+1]) == 1
     nmaxbyrow <- rowSums2(Xind)
     
     # Do not differenciate between TE and genes with istex because in Telescope
