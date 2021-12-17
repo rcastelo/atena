@@ -288,7 +288,6 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom sparseMatrixStats colSums2 rowSums2
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
-#' @importClassesFrom Matrix dgCMatrix
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
                         avgreadlen, cntvec) {
 if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
@@ -308,8 +307,7 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=1, index1 = FALSE,
                          dims = c(length(readids), length(tx_idx[istex])),
                          dimnames =  list(readids, NULL))
-    # Qmat <- Qmat / rowSums2(ovalnmat)
-    Qmat@x <- Qmat@x / rowSums2(ovalnmat)[Qmat@i +1]
+    Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
     ## (2015) stores probabilities of expression for each transcript, corrected
