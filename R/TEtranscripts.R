@@ -382,7 +382,12 @@ cntvec
 ## private function .ttEstep()
 ## E-step of the EM algorithm of TEtranscripts
 .ttEstep <- function(Q, Pi) {
-    X <- t(t(Q) * Pi)
+    ## this first part is a sparse optimization of doing
+    ## X <- t(t(Q) * Pi)
+    X <- Q
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x <- X@x * Pi[j]
+    ## End of first part
     X <- X[rowSums2(X)>0,, drop=FALSE]
     X <- X / rowSums2(X)
     X
@@ -391,7 +396,7 @@ cntvec
 ## private function .ttEstep()
 ## M-step of the EM algorithm of TEtranscripts
 .ttMstep <- function(X) {
-    Pi <- colSums2(X) / sum(X)
+    Pi <- colSums2(X) / sum(X@x)
     Pi
 }
 
