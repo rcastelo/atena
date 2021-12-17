@@ -284,7 +284,7 @@ setMethod("qtex", "TEtranscriptsParam",
 }
 
 
-#' @importFrom Matrix Matrix t which
+#' @importFrom Matrix Matrix sparseMatrix t which
 #' @importFrom sparseMatrixStats colSums2 rowSums2
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
@@ -301,9 +301,12 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     readids <- readids[!maskuniqaln[mt]][yesov]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
-    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
-                    dimnames=list(readids, NULL))
-    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    # Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
+    #                 dimnames=list(readids, NULL))
+    # Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=1, index1 = FALSE,
+                         dims = c(length(readids), length(tx_idx[istex])),
+                         dimnames =  list(readids, NULL))
     Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
