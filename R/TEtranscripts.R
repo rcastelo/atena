@@ -288,6 +288,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom sparseMatrixStats colSums2 rowSums2
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
+#' @importClassesFrom Matrix dgCMatrix
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
                         avgreadlen, cntvec) {
 if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
@@ -307,7 +308,8 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=1, index1 = FALSE,
                          dims = c(length(readids), length(tx_idx[istex])),
                          dimnames =  list(readids, NULL))
-    Qmat <- Qmat / rowSums2(ovalnmat)
+    # Qmat <- Qmat / rowSums2(ovalnmat)
+    Qmat@x <- Qmat@x / rowSums2(ovalnmat)[Qmat@i +1]
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
     ## (2015) stores probabilities of expression for each transcript, corrected
@@ -330,13 +332,23 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     ## use the estimated transcript expression probabilities
     ## to finally distribute ambiguously mapping reads
     probmassbyread <- as.vector(ovalnmat %*% Pi) 
+    # Version 1
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
-    # sparce version of the previous commented line, improves memory usage
-    wh <- which(ovalnmat, arr.ind=TRUE)
-    cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
-    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
-                FUN=sum, na.rm=TRUE)
-    cntvecovtx[as.integer(names(x))] <- x
+    # Version 2
+    # wh <- which(ovalnmat, arr.ind=TRUE)
+    # cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
+    # x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
+    #             FUN=sum, na.rm=TRUE)
+    # cntvecovtx[as.integer(names(x))] <- x
+    # cntvec[tx_idx][istex] <- cntvecovtx
+    # Version 3
+    # sparce version of the previous commented lines, improves memory usage
+    ovalnmat <- as(ovalnmat, "dgCMatrix")
+    i <- ovalnmat@i + 1
+    ovalnmat@x <- ovalnmat@x / probmassbyread[i]
+    j <- rep(1:ncol(ovalnmat), diff(ovalnmat@p))
+    ovalnmat@x <- ovalnmat@x * Pi[j]
+    cntvecovtx <- colSums2(ovalnmat, na.rm=TRUE)
     cntvec[tx_idx][istex] <- cntvecovtx
 }
 cntvec
