@@ -248,22 +248,27 @@ setMethod("qtex", "TelescopeParam",
     # ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
     ## no_feature approach used in Telescope
     no_feature <- ovall[!(ovall %in% ov)]
-    to <- rep(nRnode(ov) + 1, length(no_feature))
-    nofeat_hits <- Hits(from = queryHits(no_feature), to = to,
-                        nLnode = nLnode(ov),
-                        nRnode = max(to), sort.by.query = TRUE)
-    hits1 <- ov
-    hits2 <- nofeat_hits
-    hits <- c(Hits(from=from(hits1), to=to(hits1),
-                   nLnode=nLnode(hits1),
-                   nRnode=nRnode(hits2), sort.by.query=FALSE),
-              Hits(from=from(hits2), to=to(hits2),
-                   nLnode=nLnode(hits2),
-                   nRnode=nRnode(hits2), sort.by.query=FALSE))
-    
-    ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
-                     nRnode = nRnode(hits), sort.by.query=TRUE)
-    ov <- ovnofeat
+    if (length(no_feature) > 0) {
+        to <- rep(nRnode(ov) + 1, length(no_feature))
+        nofeat_hits <- Hits(from = queryHits(no_feature), to = to,
+                            nLnode = nLnode(ov),
+                            nRnode = max(to), sort.by.query = TRUE)
+        hits1 <- ov
+        hits2 <- nofeat_hits
+        hits <- c(Hits(from=from(hits1), to=to(hits1),
+                       nLnode=nLnode(hits1),
+                       nRnode=nRnode(hits2), sort.by.query=FALSE),
+                  Hits(from=from(hits2), to=to(hits2),
+                       nLnode=nLnode(hits2),
+                       nRnode=nRnode(hits2), sort.by.query=FALSE))
+        
+        ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
+                         nRnode = nRnode(hits), sort.by.query=TRUE)
+        ov <- ovnofeat
+    } else {
+        ov <- Hits(from = from(ov), to = to(ov), nLnode = nLnode(ov),
+                         nRnode = nRnode(ov) + 1, sort.by.query=TRUE)
+    }
     mt <- match(readids, alnreadids)
     readids <- unique(alnreadids[queryHits(ov)]) # updating 'readids'
     cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues,
