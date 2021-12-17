@@ -284,7 +284,8 @@ setMethod("qtex", "TEtranscriptsParam",
 }
 
 
-#' @importFrom Matrix Matrix rowSums colSums t which
+#' @importFrom Matrix Matrix t which
+#' @importFrom sparseMatrixStats colSums2 rowSums2
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
@@ -295,7 +296,7 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     ## Jin et al. (2015) pg. 3594, "to reduce potential bias to certain TEs."
     ## Hence, once counted, we discard unique alignments
     ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
-    yesov <- rowSums(ovalnmat)>0
+    yesov <- rowSums2(ovalnmat)>0
     ovalnmat <- ovalnmat[yesov,]
     readids <- readids[!maskuniqaln[mt]][yesov]
     ## the Qmat matrix stores row-wise the probability that read i maps to
@@ -303,12 +304,12 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
                     dimnames=list(readids, NULL))
     Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
-    Qmat <- Qmat / rowSums(ovalnmat)
+    Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
     ## (2015) stores probabilities of expression for each transcript, corrected
     ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
-    Pi <- colSums(Qmat)
+    Pi <- colSums2(Qmat)
     if (is(ttpar@features,"GRangesList")) {
         elen <- as.numeric(width(ttpar@features[tx_idx][istex])) - avgreadlen+1
     } else {
@@ -381,15 +382,15 @@ cntvec
 ## E-step of the EM algorithm of TEtranscripts
 .ttEstep <- function(Q, Pi) {
     X <- t(t(Q) * Pi)
-    X <- X[rowSums(X)>0,, drop=FALSE]
-    X <- X / rowSums(X)
+    X <- X[rowSums2(X)>0,, drop=FALSE]
+    X <- X / rowSums2(X)
     X
 }
 
 ## private function .ttEstep()
 ## M-step of the EM algorithm of TEtranscripts
 .ttMstep <- function(X) {
-    Pi <- colSums(X) / sum(X)
+    Pi <- colSums2(X) / sum(X)
     Pi
 }
 
@@ -417,7 +418,7 @@ cntvec
 ## Corrects ovalnmat for preference of unique/multi-mapping reads to
 ## genes/TEs, respectively
 .correctPreference <- function(ovalnmat, maskuniqaln, mt, istex) {
-    indx <- (rowSums(ovalnmat[,istex]) > 0) & (rowSums(ovalnmat[,!istex]) > 0)
+    indx <- (rowSums2(ovalnmat[,istex]) > 0) & (rowSums2(ovalnmat[,!istex]) > 0)
     
     ## Assigning unique reads mapping to both a TE and a gene as gene counts
     # Which unique reads overlap to both genes and TEs?
@@ -450,7 +451,7 @@ cntvec
                                     istex, tx_idx, readids, alnreadids, ov,
                                     uniqcnt) {
     ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
-    yesg <- rowSums(ovalnmat_multig)>0
+    yesg <- rowSums2(ovalnmat_multig)>0
     
     ## Computing counts for reads with multiple alignments mapping to different
     ## reads and also for multimapping reads with only 1 alignment mapping to
@@ -467,7 +468,7 @@ cntvec
     # Counts provided by unique reads for genes to which multimapping 
     # reads map to
     matmultiguniqc <- t(t(ovalnmat_multig)*uniqcnt[tx_idx][!istex])
-    rsum <- rowSums(matmultiguniqc)
+    rsum <- rowSums2(matmultiguniqc)
     rsum0 <- rsum == 0
     
     # Reads for which the genes to which the read aligns have > counts
@@ -475,13 +476,13 @@ cntvec
     
     # Reads for which the genes to which the read aligns have 0 counts
     matmultiguniqc[rsum0,] <- (ovalnmat_multig[rsum0,] /
-        rowSums(ovalnmat_multig[rsum0,]))
+        rowSums2(ovalnmat_multig[rsum0,]))
     
     # Adjusting for number of alignments
     matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
     
     multigcnt <- rep(0L, length(ttpar@features))
-    multigcnt[tx_idx][!istex] <- colSums(matmultiguniqc)
+    multigcnt[tx_idx][!istex] <- colSums2(matmultiguniqc)
     multigcnt
 }
 
@@ -491,37 +492,37 @@ cntvec
     uniqcnt <- rep(0L, length(ttpar@features))
     ovalnmatuniq_g <- ovalnmat[maskuniqaln[mt], !istex, drop=FALSE]
     ovalnmatuniq_te <- ovalnmat[maskuniqaln[mt], istex, drop=FALSE]
-    ovmultig <- rowSums(ovalnmatuniq_g) > 1
-    ovmultite <- rowSums(ovalnmatuniq_te) > 1
+    ovmultig <- rowSums2(ovalnmatuniq_g) > 1
+    ovmultite <- rowSums2(ovalnmatuniq_te) > 1
     
     # Addressing gene counts: count divided by the number of different genes
     if (any(ovmultig)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g[!ovmultig,])
+        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g[!ovmultig,])
         # Counting reads overlapping more than 1 element
-        mg <- ovalnmatuniq_g[ovmultig,]/rowSums(ovalnmatuniq_g[ovmultig,])
-        uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums(mg)
+        mg <- ovalnmatuniq_g[ovmultig,]/rowSums2(ovalnmatuniq_g[ovmultig,])
+        uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums2(mg)
     
     } else {
-        uniqcnt[tx_idx][!istex] <- colSums(ovalnmatuniq_g)
+        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g)
     }
     
     # Addressing TE counts: count divided by the number of different TEs
     # proportionally to the expression level of each TE provided by unique counts
     if (any(ovmultite)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te[!ovmultite,])
+        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te[!ovmultite,])
         # Counting reads overlapping more than 1 element
         mte <- t(t(
             ovalnmatuniq_te[ovmultite,,drop=FALSE])*uniqcnt[tx_idx][istex])
-        nocounts <- which(rowSums(mte) == 0)
+        nocounts <- which(rowSums2(mte) == 0)
         mte[nocounts,,drop=FALSE] <- ovalnmatuniq_te[
             ovmultite,,drop=FALSE][nocounts,]
-        mte <- mte/rowSums(mte)
-        uniqcnt[tx_idx][istex] <- uniqcnt[tx_idx][istex] + colSums(mte)
+        mte <- mte/rowSums2(mte)
+        uniqcnt[tx_idx][istex] <- uniqcnt[tx_idx][istex] + colSums2(mte)
     
     } else {
-        uniqcnt[tx_idx][istex] <- colSums(ovalnmatuniq_te)
+        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te)
     }
     
     uniqcnt
