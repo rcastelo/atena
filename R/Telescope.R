@@ -414,13 +414,19 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsEstep()
 ## E-step of the EM algorithm of Telescope
 .tsEstep <- function(Q, Theta, maskmulti, Pi) {
-    X <- t(t(Q) * Pi)
-    # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
-    # quicker computation of previous line
-    wh <- which(X*maskmulti > 0, arr.ind = TRUE)
-    X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
-    X <- X[rowSums2(X)>0,, drop=FALSE]
-    X <- X / rowSums2(X)
+    # X <- t(t(Q) * Pi)
+    # # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+    # # quicker computation of previous line
+    # wh <- which(X*maskmulti > 0, arr.ind = TRUE)
+    # X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
+    X <- Q
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x <- X@x * Pi[j]
+    wh <- which(X@x * maskmulti[X@i + 1] > 0)
+    j <- rep(1:ncol(X), diff(X@p))
+    X@x[wh] <- X@x[wh] * Theta[j][wh]
+    X <- X[rowSums2(X) > 0, , drop = FALSE]
+    X <- X/rowSums2(X)
     X
 }
 
@@ -428,7 +434,7 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepPi()
 ## M-step of the EM algorithm of Telescope
 .tsMstepPi <- function(X, a) {
-    Pi <- (colSums2(X) + a) / (sum(X)+a*ncol(X))
+  Pi <- (colSums2(X) + a)/(sum(X@x) + a * ncol(X))
     Pi
 }
 
