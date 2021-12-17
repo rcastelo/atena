@@ -202,6 +202,8 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
+    # Version simulating Telescope original where only those alignments
+    # not passing the minOverlap are counted as no_feature
     mode=match.fun(mode)
     readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
