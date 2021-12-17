@@ -352,14 +352,14 @@ cntvec
 ##             rids - unique read identifiers
 ##             fidx - features index
 
-#' @importFrom Matrix Matrix
+#' @importFrom Matrix sparseMatrix
 #' @importFrom S4Vectors queryHits subjectHits
 .buildOvAlignmentsMatrix <- function(ov, arids, rids, fidx) {
-    oamat <- Matrix(FALSE, nrow=length(rids), ncol=length(fidx))
     mt1 <- match(arids[queryHits(ov)], rids)
     mt2 <- match(subjectHits(ov), fidx)
-    oamat[cbind(mt1, mt2)] <- TRUE
-    
+    positions <- cbind(mt1, mt2)
+    oamat <- sparseMatrix(positions[,1], positions[,2], x=TRUE, 
+                        dims = c(length(rids), length(fidx)))
     oamat
 }
 
