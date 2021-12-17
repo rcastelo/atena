@@ -304,9 +304,6 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
                     dimnames=list(readids, NULL))
     Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
-    # Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=1, index1 = FALSE,
-    #                      dims = c(length(readids), length(tx_idx[istex])),
-    #                      dimnames =  list(readids, NULL))
     Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
@@ -333,20 +330,11 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     # Version 1
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     # Version 2
-    # wh <- which(ovalnmat, arr.ind=TRUE)
-    # cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
-    # x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
-    #             FUN=sum, na.rm=TRUE)
-    # cntvecovtx[as.integer(names(x))] <- x
-    # cntvec[tx_idx][istex] <- cntvecovtx
-    # Version 3
-    # sparce version of the previous commented lines, improves memory usage
-    ovalnmat <- as(ovalnmat, "dgCMatrix")
-    i <- ovalnmat@i + 1
-    ovalnmat@x <- ovalnmat@x / probmassbyread[i]
-    j <- rep(1:ncol(ovalnmat), diff(ovalnmat@p))
-    ovalnmat@x <- ovalnmat@x * Pi[j]
-    cntvecovtx <- colSums2(ovalnmat, na.rm=TRUE)
+    wh <- which(ovalnmat, arr.ind=TRUE)
+    cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
+    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
+                FUN=sum, na.rm=TRUE)
+    cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
 }
 cntvec
