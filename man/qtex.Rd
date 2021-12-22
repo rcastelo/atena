@@ -23,7 +23,8 @@
   phenodata = NULL,
   mode = ovUnion,
   yieldSize = 1000000L,
-  BPPARAM = SerialParam(progressbar = TRUE)
+  BPPARAM = SerialParam(progressbar = TRUE),
+  on.disk = FALSE
 )
 
 \S4method{qtex}{TelescopeParam}(
