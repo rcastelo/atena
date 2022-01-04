@@ -15,7 +15,8 @@
   mode = ovUnion,
   yieldSize = 1000000L,
   verbose = 1,
-  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
+  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE)),
+  on.disk = FALSE
 )
 
 \S4method{qtex}{TEtranscriptsParam}(
