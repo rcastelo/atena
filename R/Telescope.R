@@ -213,7 +213,6 @@ setMethod("qtex", "TelescopeParam",
         stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
     }
     ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
-    ovall <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     asvalues <- integer()
     mreadlen <- numeric(0)
@@ -226,17 +225,37 @@ setMethod("qtex", "TelescopeParam",
                                 list(use.names=TRUE))))) {
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, mcols(alnreads)$AS)
-        mreadlen <- median(width(ranges(alnreads)))
-        # yes minOverlFract filter
+        # mreadlen <- median(width(ranges(alnreads)))
+        readlen <- width(ranges(alnreads))
         thisov <- mode(alnreads, tspar@features,
-                        minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
+                        #minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
+                        minOverlFract = 0,
                         ignoreStrand=tspar@ignoreStrand)
+        
+        # Selecting the overlaps with min overlap higher than threshold
+        ovlength <- width(pintersect(GRanges(alnreads[queryHits(thisov)]),
+                                     tspar@features[subjectHits(thisov)],
+                                     ignore.strand = tspar@ignoreStrand,
+                                     strict.strand=FALSE))
+        yesminov <- ovlength > tspar@minOverlFract*readlen[queryHits(thisov)]
+        thisov <- thisov[yesminov]
+        ovlength <- ovlength[yesminov]
+        
+        # Selecting the best overlap for alignments overlapping > 1 feature
+        multiov <- (duplicated(queryHits(thisov)) |
+                        duplicated(queryHits(thisov), fromLast = TRUE))
+        # int <- width(pintersect(GRanges(alnreads[queryHits(thisov)[multiov]]),
+        #                  tspar@features[subjectHits(thisov)[multiov]],
+        #                  ignore.strand = tspar@ignoreStrand,
+        #                  strict.strand=FALSE))
+        int <- ovlength[multiov]
+        intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
+                            FUN = which.max)
+        whpos <- which(!duplicated(queryHits(thisov)[multiov]))
+        whpos <- whpos - 1
+        intmax <- intmax[!duplicated(intmax$Group.1),]
+        thisov <- thisov[-which(multiov)[-(whpos + intmax$x)]]
         ov <- .appendHits(ov, thisov)
-        # no minOverlFract filter
-        thisovall <- mode(alnreads, tspar@features,
-                       minOverlFract=0L,
-                       ignoreStrand=tspar@ignoreStrand)
-        ovall <- .appendHits(ovall, thisovall)
     }
     # close(bf)
     on.exit(close(bf))
@@ -245,30 +264,7 @@ setMethod("qtex", "TelescopeParam",
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
     ## Adding "no_feature" overlaps to 'ov'
-    # ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
-    ## no_feature approach used in Telescope
-    no_feature <- ovall[!(ovall %in% ov)]
-    if (length(no_feature) > 0) {
-        to <- rep(nRnode(ov) + 1, length(no_feature))
-        nofeat_hits <- Hits(from = queryHits(no_feature), to = to,
-                            nLnode = nLnode(ov),
-                            nRnode = max(to), sort.by.query = TRUE)
-        hits1 <- ov
-        hits2 <- nofeat_hits
-        hits <- c(Hits(from=from(hits1), to=to(hits1),
-                       nLnode=nLnode(hits1),
-                       nRnode=nRnode(hits2), sort.by.query=FALSE),
-                  Hits(from=from(hits2), to=to(hits2),
-                       nLnode=nLnode(hits2),
-                       nRnode=nRnode(hits2), sort.by.query=FALSE))
-        
-        ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
-                         nRnode = nRnode(hits), sort.by.query=TRUE)
-        ov <- ovnofeat
-    } else {
-        ov <- Hits(from = from(ov), to = to(ov), nLnode = nLnode(ov),
-                         nRnode = nRnode(ov) + 1, sort.by.query=TRUE)
-    }
+    ov <- .getNoFeatureOv(maskuniqaln, ov, alnreadids)
     mt <- match(readids, alnreadids)
     readids <- unique(alnreadids[queryHits(ov)]) # updating 'readids'
     cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues,
