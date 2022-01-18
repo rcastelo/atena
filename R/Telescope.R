@@ -245,17 +245,16 @@ setMethod("qtex", "TelescopeParam",
         # Selecting the best overlap for alignments overlapping > 1 feature
         multiov <- (duplicated(queryHits(thisov)) |
                         duplicated(queryHits(thisov), fromLast = TRUE))
-        # int <- width(pintersect(GRanges(alnreads[queryHits(thisov)[multiov]]),
-        #                  tspar@features[subjectHits(thisov)[multiov]],
-        #                  ignore.strand = tspar@ignoreStrand,
-        #                  strict.strand=FALSE))
-        int <- ovlength[multiov]
-        intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
-                            FUN = which.max)
-        whpos <- which(!duplicated(queryHits(thisov)[multiov]))
-        whpos <- whpos - 1
-        intmax <- intmax[!duplicated(intmax$Group.1),]
-        thisov <- thisov[-which(multiov)[-(whpos + intmax$x)]]
+        if (any(multiov)) {
+          int <- ovlength[multiov]
+          intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
+                              FUN = which.max)
+          whpos <- which(!duplicated(queryHits(thisov)[multiov]))
+          whpos <- whpos - 1
+          intmax <- intmax[!duplicated(intmax$Group.1),]
+          thisov <- thisov[-which(multiov)[-(whpos + intmax$x)]]
+        }
+
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)
