@@ -10,13 +10,13 @@
 #' for ranges forming a common locus (equivalent to "locus" column in
 #' Telescope), unless other metadata column names are specified in the
 #' \code{aggregateby} parameter.
-#' 
+#'
 #' @param aggregateby Character vector with column names from the annotation
 #' to be used to aggregate quantifications. By default, this is an empty
 #' vector, which means that the names of the input \code{GRanges} or
 #' \code{GRangesList} object given in the \code{teFeatures} parameter are used
 #' to aggregate quantifications.
-#' 
+#'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. The TEtranscripts approach for
 #' gene expression quantification is used, in which overlaps with unique reads
@@ -26,11 +26,11 @@
 #' metadata column named \code{type}, only the elements with
 #' \code{type} = \code{exon} are considered for the analysis. Then, exon counts
 #' are summarized to the gene level.
-#' 
+#'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
 #'
-#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or 
+#' @param strandMode (Default 1) Numeric vector which can take values 0, 1 or
 #' 2.
 #' The strand mode is a per-object switch on
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
@@ -38,14 +38,14 @@
 #' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
 #' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 #' is ignored.
-#' 
+#'
 #' @param ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
 #' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
 #' is considered to be overlapping an annotated feature as long as they
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
-#' 
+#'
 #' @param fragments (Default TRUE) A logical; applied to paired-end data only.
 #' When \code{fragments=FALSE}, the read-counting method only counts
 #' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
@@ -53,14 +53,14 @@
 #' other fragments are also counted. \code{fragments=TRUE} is equivalent to
 #' the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
-#' 
+#'
 #' @param minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
 #' is multiplied by the median read length and the resulting value is used to
 #' specify the \code{minoverlap} argument from
 #' \code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
 #' \pkg{IRanges} package. When no minimum overlap is required, set
 #' \code{minOverlFract = 0}.
-#' 
+#'
 #' @param pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
 #'
@@ -69,7 +69,7 @@
 #'
 #' @param em_epsilon (Default 1e-7) A numeric scalar indicating the EM
 #' Algorithm Epsilon cutoff.
-#' 
+#'
 #' @param maxIter A positive integer scalar storing the maximum number of
 #' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
 #' is 100 and this value is passed to the \code{maxiter} parameter of the
@@ -111,13 +111,13 @@
 #' @rdname TelescopeParam-class
 TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             geneFeatures=NA,
-                            singleEnd=TRUE, 
-                            strandMode=1L, 
+                            singleEnd=TRUE,
+                            strandMode=1L,
                             ignoreStrand=FALSE,
                             fragments=FALSE,
                             minOverlFract=0.2,
-                            pi_prior=0L, 
-                            theta_prior=0L, 
+                            pi_prior=0L,
+                            theta_prior=0L,
                             em_epsilon=1e-7,
                             maxIter=100L) {
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
@@ -145,14 +145,14 @@ setMethod("show", "TelescopeParam",
             cat(class(object), "object\n")
             cat(sprintf("# BAM files (%d): %s\n", length(object@bfl),
                         .pprintnames(names(object@bfl))))
-            cat(sprintf("# features (%s length %d): %s\n", 
+            cat(sprintf("# features (%s length %d): %s\n",
                         class(object@features),
                         length(object@features),
                         ifelse(is.null(names(object@features)),
-                                paste("on", 
+                                paste("on",
                                     .pprintnames(seqlevels(object@features))),
                                 .pprintnames(names(object@features)))))
-            cat(sprintf("# aggregated by: %s\n", 
+            cat(sprintf("# aggregated by: %s\n",
                         ifelse(length(object@aggregateby) > 0,
                                 paste(object@aggregateby, collapse=", "),
                                 paste(class(object@features), "names"))))
@@ -226,15 +226,40 @@ setMethod("qtex", "TelescopeParam",
                                 list(use.names=TRUE))))) {
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, mcols(alnreads)$AS)
-        mreadlen <- median(width(ranges(alnreads)))
+        # mreadlen <- median(width(ranges(alnreads)))
+        readlen <- width(ranges(alnreads))
         thisov <- mode(alnreads, tspar@features,
-                        minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
+                        #minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
+                        minOverlFract = 0,
                         ignoreStrand=tspar@ignoreStrand)
+        
+        # Selecting the overlaps with min overlap higher than threshold
+        ovlength <- width(pintersect(GRanges(alnreads[queryHits(thisov)]),
+                                     tspar@features[subjectHits(thisov)],
+                                     ignore.strand = tspar@ignoreStrand,
+                                     strict.strand=FALSE))
+        yesminov <- ovlength > tspar@minOverlFract*readlen[queryHits(thisov)]
+        thisov <- thisov[yesminov]
+        ovlength <- ovlength[yesminov]
+        
+        # Selecting the best overlap for alignments overlapping > 1 feature
+        multiov <- (duplicated(queryHits(thisov)) |
+                        duplicated(queryHits(thisov), fromLast = TRUE))
+        if (any(multiov)) {
+          int <- ovlength[multiov]
+          intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
+                              FUN = which.max)
+          whpos <- which(!duplicated(queryHits(thisov)[multiov]))
+          whpos <- whpos - 1
+          intmax <- intmax[!duplicated(intmax$Group.1),]
+          thisov <- thisov[-which(multiov)[-(whpos + intmax$x)]]
+        }
+
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)
     on.exit(close(bf))
-    maskuniqaln <- !(duplicated(alnreadids) | 
+    maskuniqaln <- !(duplicated(alnreadids) |
                         duplicated(alnreadids, fromLast = TRUE))
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
@@ -257,7 +282,7 @@ setMethod("qtex", "TelescopeParam",
     nofeat <- setdiff(alnall, queryHits(ov)[maskmultialn_ov])
     from <- nofeat
     to <- rep(nRnode(ov) + 1, length(nofeat))
-    nofeat_hits <- Hits(from = from, to = to, nLnode = nLnode(ov), 
+    nofeat_hits <- Hits(from = from, to = to, nLnode = nLnode(ov),
                         nRnode = max(to), sort.by.query = TRUE)
     
     # Adding overlaps to "no_feature" to 'ov'
