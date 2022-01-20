@@ -225,11 +225,9 @@ setMethod("qtex", "TelescopeParam",
                                 list(strandMode=tspar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
         alnreadids <- c(alnreadids, names(alnreads))
-        asvalues <- c(asvalues, mcols(alnreads)$AS)
-        # mreadlen <- median(width(ranges(alnreads)))
-        readlen <- width(ranges(alnreads))
+        asvalues <- c(asvalues, .getAlignmentASScoreTS(alnreads, tag = "AS"))
+        readlen <- .getAlignmentLength(alnreads)
         thisov <- mode(alnreads, tspar@features,
-                        #minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
                         minOverlFract = 0,
                         ignoreStrand=tspar@ignoreStrand)
         
@@ -481,4 +479,51 @@ setMethod("qtex", "TelescopeParam",
     
     Pi2
 }
+
+
+#' @importFrom S4Vectors mcols first second
+.getAlignmentASScoreTS <- function(aln, tag) {
+  if (is(aln, "GAlignments"))
+    score <- as.integer(mcols(aln)[[tag]])
+  else if (is(aln, "GAlignmentPairs")) {
+    ## take the sum of the score of each mate
+    score <- as.integer(mcols(first(aln))[[tag]]) + 
+        as.integer(mcols(second(aln))[[tag]])
+  } else if (is(aln, "GAlignmentsList")) {
+    l <- lengths(aln)
+    score <- aggregate(mcols(unlist(aln, use.names = FALSE))[[tag]],
+                        by = list(rep(1:length(l),l)), FUN = sum)
+    score <- score$x
+    mate_status <- mcols(aln)$mate_status == "mated"
+    score[!mate_status] <- unlist(lapply(aln[!mate_status], 
+                                  function(x) mean(mcols(x)[,tag])*2))
+                                  # multiplied by 2 since there are 2 mates
+  } else
+    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
+  
+  as.integer(score)
+}
+
+#' @importFrom S4Vectors qwidth first second
+.getAlignmentLength <- function(alnreads) {
+  if (is(aln, "GAlignments"))
+    readlen <- width(ranges(alnreads))
+  else if (is(aln, "GAlignmentPairs")) {
+      ## take the sum of the length of each mate
+      readlen <- qwidth(first(aln)) + qwidth(second(aln))
+  } else if (is(aln, "GAlignmentsList")) {
+      readlen <- sum(qwidth(alnreads))
+      mate_status <- mcols(alnreads)$mate_status == "mated"
+      # In case of ambiguous pairs, the median read length is used instead
+      readlen[!mate_status] <- median(readlen)
+  } else
+    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
+  
+  readlen
+}
+
+
+
+
+
 
