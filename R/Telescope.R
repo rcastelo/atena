@@ -513,7 +513,8 @@ setMethod("qtex", "TelescopeParam",
       # In case of reads with space between the two mates, the read length
       # assigned corresponds to twice the maximum alignment length, to account
       # for the length of the two mates, but not the region between them
-      readlen[readlen>200] <- max(qwidth(unlist(alnreads)))*2
+      maxlen <- max(qwidth(unlist(alnreads)))
+      readlen[readlen>maxlen] <- maxlen*2
   } else
     stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(alnreads)))
   
