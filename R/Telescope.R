@@ -232,10 +232,7 @@ setMethod("qtex", "TelescopeParam",
                         ignoreStrand=tspar@ignoreStrand)
         
         # Selecting the overlaps with min overlap higher than threshold
-        ovlength <- width(pintersect(GRanges(alnreads[queryHits(thisov)]),
-                                     tspar@features[subjectHits(thisov)],
-                                     ignore.strand = tspar@ignoreStrand,
-                                     strict.strand=FALSE))
+        ovlength <- .getOverlapLength(alnreads, thisov, tspar)
         yesminov <- ovlength > tspar@minOverlFract*readlen[queryHits(thisov)]
         thisov <- thisov[yesminov]
         ovlength <- ovlength[yesminov]
@@ -506,24 +503,48 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom S4Vectors qwidth first second
 .getAlignmentLength <- function(alnreads) {
-  if (is(aln, "GAlignments"))
+  if (is(alnreads, "GAlignments"))
     readlen <- width(ranges(alnreads))
-  else if (is(aln, "GAlignmentPairs")) {
-      ## take the sum of the length of each mate
-      readlen <- qwidth(first(aln)) + qwidth(second(aln))
-  } else if (is(aln, "GAlignmentsList")) {
-      readlen <- sum(qwidth(alnreads))
-      mate_status <- mcols(alnreads)$mate_status == "mated"
-      # In case of ambiguous pairs, the median read length is used instead
-      readlen[!mate_status] <- median(readlen)
+  else if (is(alnreads, "GAlignmentPairs")) {
+      ## take the length of the region comprised by the 2 mates
+      readlen <- width(granges(alnreads))
+  } else if (is(alnreads, "GAlignmentsList")) {
+      readlen <- width(granges(alnreads, ignore.strand=TRUE))
+      # In case of reads with space between the two mates, the read length
+      # assigned corresponds to twice the maximum alignment length, to account
+      # for the length of the two mates, but not the region between them
+      readlen[readlen>200] <- max(qwidth(unlist(alnreads)))*2
   } else
-    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
+    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(alnreads)))
   
   readlen
 }
 
 
-
-
-
-
+#' @importFrom S4Vectors Hits queryHits subjectHits
+#' @importFrom GenomicRanges pintersect GRanges-class
+#' @importFrom GenomeInfoDb seqlevels<- seqlevels
+.getOverlapLength <- function(alnreads, thisov, tspar) {
+    features <- tspar@features
+    seqlev <- unique(c(seqlevels(features), seqlevels(alnreads)))
+    seqlevels(features) <- seqlev
+    seqlevels(alnreads) <- seqlev
+    
+    if (is(alnreads, "GAlignmentsList")) {
+        l <- lengths(alnreads)[queryHits(thisov)]
+        features_ov <- rep(features[subjectHits(thisov)], l)
+        ovlength <- width(pintersect(GRanges(unlist(alnreads[queryHits(thisov)])),
+                                      features_ov,
+                                      ignore.strand = tspar@ignoreStrand,
+                                      strict.strand=FALSE))
+        ovlength_ag <- aggregate(ovlength, by = list(rep(1:length(l), l)), 
+                                  FUN = max)
+        ovlength <- ovlength_ag$x
+    } else {
+        ovlength <- width(pintersect(GRanges(alnreads[queryHits(thisov)]),
+                                      features[subjectHits(thisov)],
+                                      ignore.strand = tspar@ignoreStrand,
+                                      strict.strand=FALSE))
+    }
+    ovlength
+}
