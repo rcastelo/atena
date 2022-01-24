@@ -538,6 +538,9 @@ setMethod("qtex", "TelescopeParam",
                                       features_ov,
                                       ignore.strand = tspar@ignoreStrand,
                                       strict.strand=FALSE))
+        if (is(ovlength, "CompressedIntegerList")) {
+          ovlength <- max(ovlength)
+        }
         ovlength_ag <- aggregate(ovlength, by = list(rep(1:length(l), l)), 
                                   FUN = max)
         ovlength <- ovlength_ag$x
@@ -546,6 +549,9 @@ setMethod("qtex", "TelescopeParam",
                                       features[subjectHits(thisov)],
                                       ignore.strand = tspar@ignoreStrand,
                                       strict.strand=FALSE))
+        if (is(ovlength, "CompressedIntegerList")) {
+          ovlength <- max(ovlength)
+        }
     }
     ovlength
 }
