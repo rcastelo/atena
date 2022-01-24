@@ -515,12 +515,16 @@ setMethod("qtex", "TelescopeParam",
       ## take the length of the region comprised by the 2 mates
       readlen <- width(granges(alnreads))
   } else if (is(alnreads, "GAlignmentsList")) {
-      readlen <- width(granges(alnreads, ignore.strand=TRUE))
-      # In case of reads with space between the two mates, the read length
-      # assigned corresponds to twice the maximum alignment length, to account
-      # for the length of the two mates, but not the region between them
-      maxlen <- max(qwidth(unlist(alnreads)))
-      readlen[readlen>maxlen] <- maxlen*2
+      # readlen <- width(granges(alnreads, ignore.strand=TRUE))
+      # # In case of reads with space between the two mates, the read length
+      # # assigned corresponds to twice the maximum alignment length, to account
+      # # for the length of the two mates, but not the region between them
+      # maxlen <- max(qwidth(unlist(alnreads)))
+      # readlen[readlen>maxlen] <- maxlen*2
+      lsum <- sum(width(alnreads))
+      ltogether <- width(granges(alnreads, ignore.strand=TRUE))
+      ltogether[ltogether > lsum] <- lsum[ltogether > lsum]
+      readlen <- ltogether
   } else
     stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(alnreads)))
   
