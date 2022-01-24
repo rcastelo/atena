@@ -291,6 +291,11 @@
     if (!is(geneFeatures, "GRanges") && !is(geneFeatures, "GRangesList"))
         stop(sprintf("gene features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
                     geneFeaturesobjname))
+    
+    if (is.null(names(geneFeatures)))
+        stop(sprintf("gene features object '%s' has no 'names()'",
+                     geneFeaturesobjname))
+    
     if (any(names(geneFeatures) %in% names(teFeatures)))
         stop("gene features have some common identifiers with the TE features.")
     
