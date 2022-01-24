@@ -525,6 +525,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom GenomicRanges pintersect GRanges-class
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom IRanges IRangesList-class
 .getOverlapLength <- function(alnreads, thisov, tspar) {
     features <- tspar@features
     seqlev <- unique(c(seqlevels(features), seqlevels(alnreads)))
