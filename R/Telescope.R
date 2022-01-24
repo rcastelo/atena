@@ -391,7 +391,7 @@ setMethod("qtex", "TelescopeParam",
     idxu <- indx & maskuniqaln[mt]
     if (any(idxu)) {
         # QmatTS[idxu,istex] <- FALSE
-        whu <- which(QmatTS[idxu,istex] > 0, arr.ind = TRUE)
+        whu <- which(as.matrix(QmatTS[idxu,istex]) > 0, arr.ind = TRUE)
         whudf <- cbind(which(idxu)[whu[,"row"]], which(istex)[whu[,"col"]])
         QmatTS[whudf] <- FALSE
     }
@@ -401,7 +401,7 @@ setMethod("qtex", "TelescopeParam",
     idxm <- indx & !maskuniqaln[mt]
     if (any(idxm)) {
         # QmatTS[idxm,!istex] <- FALSE
-        whm <- which(QmatTS[idxm,!istex] > 0, arr.ind = TRUE)
+        whm <- which(as.matrix(QmatTS[idxm,!istex]) > 0, arr.ind = TRUE)
         whmdf <- cbind(which(idxm)[whm[,"row"]], which(!istex)[whm[,"col"]])
         QmatTS[whmdf] <- FALSE
     }

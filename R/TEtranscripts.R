@@ -431,7 +431,7 @@ cntvec
     idxu <- indx & maskuniqaln[mt]
     if (any(idxu)) {
         # ovalnmat[idxu,istex] <- FALSE
-        whu <- which(ovalnmat[idxu,istex], arr.ind = TRUE)
+        whu <- which(as.matrix(ovalnmat[idxu,istex]), arr.ind = TRUE)
         whudf <- cbind(which(idxu)[whu[,"row"]], which(istex)[whu[,"col"]])
         ovalnmat[whudf] <- FALSE
     }
@@ -441,7 +441,7 @@ cntvec
     idxm <- indx & !maskuniqaln[mt]
     if (any(idxm)) {
         # ovalnmat[idxm,!istex] <- FALSE
-        whm <- which(ovalnmat[idxm,!istex], arr.ind = TRUE)
+        whm <- which(as.matrix(ovalnmat[idxm,!istex]), arr.ind = TRUE)
         whmdf <- cbind(which(idxm)[whm[,"row"]], which(!istex)[whm[,"col"]])
         ovalnmat[whmdf] <- FALSE
     }
