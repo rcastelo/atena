@@ -254,8 +254,7 @@ setMethod("qtex", "TelescopeParam",
     }
     # close(bf)
     on.exit(close(bf))
-    maskuniqaln <- !(duplicated(alnreadids) |
-                        duplicated(alnreadids, fromLast = TRUE))
+    maskuniqaln <- .getMaskUniqueAln(alnreadids)
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
     ## Adding "no_feature" overlaps to 'ov'

@@ -214,8 +214,7 @@ setMethod("qtex", "TEtranscriptsParam",
     on.exit(close(bf))
 
     ## get uniquely aligned-reads
-    maskuniqaln <- !(duplicated(alnreadids) | duplicated(alnreadids, 
-                                                        fromLast = TRUE))
+    maskuniqaln <- .getMaskUniqueAln(alnreadids)
     if (ttpar@singleEnd == TRUE) {
         # unique + multi-mapping reads (only once) are considered
         avgreadlen <- mean(avgreadlen[!duplicated(alnreadids)])

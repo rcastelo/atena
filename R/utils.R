@@ -336,3 +336,13 @@
     
     ovmat
 }
+
+
+.getMaskUniqueAln <- function(alnreadids) {
+    maskuniqaln <- !(duplicated(alnreadids) |
+                         duplicated(alnreadids, fromLast = TRUE))
+    if (all(maskuniqaln))
+        warning("either multi-mapping reads or secondary alignments are not present in the SAM/BAM file.")
+    
+    maskuniqaln
+}
