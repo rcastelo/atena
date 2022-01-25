@@ -329,6 +329,9 @@ while (length(alnreads <- do.call(readfun,
 }
 #close(bf)
 on.exit(close(bf))
+if (length(ov)) {
+    stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
+}
 ## Expression quantification
 cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
                             alnAS, salnbestAS, readidx, mask, alnNH, readids,

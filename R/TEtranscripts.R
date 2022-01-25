@@ -214,7 +214,9 @@ setMethod("qtex", "TEtranscriptsParam",
     }
     # close(bf)
     on.exit(close(bf))
-
+    if (length(ov)) {
+        stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
+    }
     ## get uniquely aligned-reads
     maskuniqaln <- .getMaskUniqueAln(alnreadids)
     if (ttpar@singleEnd == TRUE) {

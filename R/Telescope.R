@@ -254,6 +254,9 @@ setMethod("qtex", "TelescopeParam",
     }
     # close(bf)
     on.exit(close(bf))
+    if (length(ov)) {
+      stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
+    }
     maskuniqaln <- .getMaskUniqueAln(alnreadids)
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
@@ -500,9 +503,9 @@ setMethod("qtex", "TelescopeParam",
     score[!mate_status] <- unlist(lapply(aln[!mate_status], 
                                   function(x) mean(mcols(x)[,tag])*2))
                                   # multiplied by 2 since there are 2 mates
-  } else
+  } else {
     stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(aln)))
-  
+  }
   as.integer(score)
 }
 
@@ -524,9 +527,9 @@ setMethod("qtex", "TelescopeParam",
       ltogether <- width(granges(alnreads, ignore.strand=TRUE))
       ltogether[ltogether > lsum] <- lsum[ltogether > lsum]
       readlen <- ltogether
-  } else
+  } else {
     stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(alnreads)))
-  
+  }
   readlen
 }
 
