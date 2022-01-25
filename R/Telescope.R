@@ -518,6 +518,7 @@ setMethod("qtex", "TelescopeParam",
 }
 
 #' @importFrom S4Vectors qwidth first second
+#' @importFrom GenomicRanges genomic-range-squeezers
 .getAlignmentLength <- function(alnreads) {
   if (is(alnreads, "GAlignments"))
     readlen <- width(ranges(alnreads))

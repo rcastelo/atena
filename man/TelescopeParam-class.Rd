@@ -54,7 +54,7 @@ are summarized to the gene level.}
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
 
-\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or 
+\item{strandMode}{(Default 1) Numeric vector which can take values 0, 1 or
 2.
 The strand mode is a per-object switch on
 \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}

@@ -49,6 +49,7 @@ test_combine_seqlevels_annot <- function() {
                             width = c(10,20,35,10,5,15,10,25,5,20)),
                         strand = "*", 
                         type = rep("exon",10))
+    names(gene_annot) <- paste("gene", seq(1,10), sep = "")
     empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, 
                         geneFeatures = gene_annot, singleEnd = TRUE,
                         ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
