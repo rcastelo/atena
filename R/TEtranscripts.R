@@ -202,8 +202,10 @@ setMethod("qtex", "TEtranscriptsParam",
                                 list(strandMode=ttpar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
         avgreadlen <- c(avgreadlen, .getAveLen(ttpar, alnreads))
-        if (ttpar@singleEnd == FALSE) {
+        if (is(alnreads, "GAlignmentPairs")) {
             d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
+        } else if (is(alnreads, "GAlignmentsList")) {
+            d <- c(d, max(abs(diff(start(alnreads)))))
         }
         alnreadids <- c(alnreadids, names(alnreads))
         thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
@@ -233,19 +235,29 @@ setMethod("qtex", "TEtranscriptsParam",
     setNames(as.integer(cntvec), names(cntvec))
 }
 
-#' @importFrom GenomicAlignments extractAlignmentRangesOnReference cigar start
+#' @importFrom GenomicAlignments extractAlignmentRangesOnReference
+#' @importFrom GenomicAlignments cigar start width first second
 .getAveLen <- function(ttpar, alnreads) {
-    if (ttpar@singleEnd == TRUE) {
+    if (is(alnreads, "GAlignments")) {
         cig <- cigar(alnreads)
         rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
                                                         drop.D.ranges=TRUE))
         avgreadlenaln <- sum(rcig)
-    } else {
+    } else if (is(alnreads, "GAlignmentPairs")) {
         d <- abs(start(first(alnreads)) - start(second(alnreads)))
         cig <- cigar(second(alnreads))
         rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
                                                         drop.D.ranges=TRUE))
         avgreadlenaln <- d + sum(rcig)
+    } else if (is(alnreads, "GAlignmentsList")) {
+        d <- max(abs(diff(start(alnreads))))
+        l <- lengths(alnreads)
+        cig <- unlist(cigar(alnreads))[cumsum(l)]
+        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
+                                                        drop.D.ranges=TRUE))
+        avgreadlenaln <- d + sum(rcig)
+    } else {
+        stop(sprintf(".getAveLen: wrong class %s\n", class(alnreads)))
     }
     avgreadlenaln
 }
