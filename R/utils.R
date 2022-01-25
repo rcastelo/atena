@@ -187,7 +187,7 @@
 #' @importFrom methods is
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList GRanges
-#' @importFrom IRanges IRanges
+#' @importFrom IRanges IRanges IRangesList
 .consolidateFeatures <- function(x, fnames) {
     
     iste <- as.vector(attributes(x@features)$isTE[,1])

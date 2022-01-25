@@ -517,8 +517,8 @@ setMethod("qtex", "TelescopeParam",
   as.integer(score)
 }
 
-#' @importFrom S4Vectors qwidth first second
-#' @importFrom GenomicRanges genomic-range-squeezers
+#' @importFrom S4Vectors first second
+#' @importFrom GenomicRanges granges
 .getAlignmentLength <- function(alnreads) {
   if (is(alnreads, "GAlignments"))
     readlen <- width(ranges(alnreads))
@@ -544,9 +544,8 @@ setMethod("qtex", "TelescopeParam",
 
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
-#' @importFrom GenomicRanges pintersect GRanges-class
+#' @importFrom GenomicRanges pintersect
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
-#' @importFrom IRanges IRangesList-class
 .getOverlapLength <- function(alnreads, thisov, tspar) {
     features <- tspar@features
     seqlev <- unique(c(seqlevels(features), seqlevels(alnreads)))

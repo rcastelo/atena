@@ -587,6 +587,7 @@ cntvec
 #' @importFrom S4Vectors mcols first second
 #' @importFrom IRanges relist
 #' @importFrom GenomicAlignments qwidth
+#' @importClassesFrom GenomicAlignments GAlignments
 .getAlignmentQueryWidth <- function(aln) {
     qw <- NULL
     if (is(aln, "GAlignments"))
