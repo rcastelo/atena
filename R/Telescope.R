@@ -208,7 +208,7 @@ setMethod("qtex", "TelescopeParam",
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                             isDuplicate=FALSE,
                             isNotPassingQualityControls=FALSE)
-    param <- ScanBamParam(flag=sbflags, tag="AS")
+    param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     iste <- as.vector(attributes(tspar@features)$isTE[,1])
     if (any(duplicated(names(tspar@features[iste])))) {
         stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
@@ -217,6 +217,7 @@ setMethod("qtex", "TelescopeParam",
     alnreadids <- character(0)
     asvalues <- integer()
     mreadlen <- numeric(0)
+    salnmask <- logical(0)
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
@@ -227,6 +228,7 @@ setMethod("qtex", "TelescopeParam",
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, .getAlignmentASScoreTS(alnreads, tag = "AS"))
         readlen <- .getAlignmentLength(alnreads)
+        salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         thisov <- mode(alnreads, tspar@features,
                         minOverlFract = 0,
                         ignoreStrand=tspar@ignoreStrand)
@@ -254,9 +256,7 @@ setMethod("qtex", "TelescopeParam",
     }
     # close(bf)
     on.exit(close(bf))
-    if (length(ov)) {
-      stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
-    }
+    .checkOvandsaln(ov, salnmask)
     maskuniqaln <- .getMaskUniqueAln(alnreadids)
     ## fetch all different read identifiers from the overlapping alignments
     readids <- unique(alnreadids[queryHits(ov)])
@@ -272,29 +272,33 @@ setMethod("qtex", "TelescopeParam",
 ## private function .getNoFeatureOv(), obtains the overlaps to "no_feature"
 #' @importFrom S4Vectors Hits queryHits subjectHits nRnode nLnode from to
 .getNoFeatureOv <- function(maskuniqaln, ov, alnreadids) {
-    maskmultialn_ov <- !(maskuniqaln[queryHits(ov)])
-    alnreadidx_all <- match(alnreadids, unique(alnreadids))
-    ovid <- unique(alnreadidx_all[unique(queryHits(ov)[maskmultialn_ov])])
-    alnall <- which(alnreadidx_all %in% ovid)
-    nofeat <- setdiff(alnall, queryHits(ov)[maskmultialn_ov])
-    from <- nofeat
-    to <- rep(nRnode(ov) + 1, length(nofeat))
-    nofeat_hits <- Hits(from = from, to = to, nLnode = nLnode(ov),
-                        nRnode = max(to), sort.by.query = TRUE)
-    
-    # Adding overlaps to "no_feature" to 'ov'
-    hits1 <- ov
-    hits2 <- nofeat_hits
-    
-    hits <- c(Hits(from=from(hits1), to=to(hits1),
-                    nLnode=nLnode(hits1),
-                    nRnode=nRnode(hits2), sort.by.query=FALSE),
-                Hits(from=from(hits2), to=to(hits2),
-                    nLnode=nLnode(hits2),
-                    nRnode=nRnode(hits2), sort.by.query=FALSE))
-    
-    ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
-                    nRnode = nRnode(hits), sort.by.query=TRUE)
+    if (!all(maskuniqaln)) {
+        maskmultialn_ov <- !(maskuniqaln[queryHits(ov)])
+        alnreadidx_all <- match(alnreadids, unique(alnreadids))
+        ovid <- unique(alnreadidx_all[unique(queryHits(ov)[maskmultialn_ov])])
+        alnall <- which(alnreadidx_all %in% ovid)
+        nofeat <- setdiff(alnall, queryHits(ov)[maskmultialn_ov])
+        from <- nofeat
+        to <- rep(nRnode(ov) + 1, length(nofeat))
+        nofeat_hits <- Hits(from = from, to = to, nLnode = nLnode(ov),
+                            nRnode = max(to), sort.by.query = TRUE)
+        
+        # Adding overlaps to "no_feature" to 'ov'
+        hits1 <- ov
+        hits2 <- nofeat_hits
+        
+        hits <- c(Hits(from=from(hits1), to=to(hits1),
+                        nLnode=nLnode(hits1),
+                        nRnode=nRnode(hits2), sort.by.query=FALSE),
+                    Hits(from=from(hits2), to=to(hits2),
+                        nLnode=nLnode(hits2),
+                        nRnode=nRnode(hits2), sort.by.query=FALSE))
+        
+        ovnofeat <- Hits(from = from(hits), to = to(hits), nLnode = nLnode(hits),
+                        nRnode = nRnode(hits), sort.by.query=TRUE)
+    } else {
+      ovnofeat <- ov
+    }
     return(ovnofeat)
 }
 
@@ -307,30 +311,34 @@ setMethod("qtex", "TelescopeParam",
     ## initialize vector of counts derived from multi-mapping reads
     cntvec <- rep(0L, length(tspar@features) + 1)
     
-    # Getting counts from reads overlapping only one feature (this excludes --> SOBRA
-    # unique reads mapping to two or more overlapping features)
-    # ovunique <- rowSums(ovalnmat) == 1
-    # cntvec[tx_idx] <- colSums(ovalnmat[ovunique,])
-    
     alnreadidx <- match(alnreadids, readids)
     rd_idx <- sort(unique(alnreadidx[queryHits(ov)]))
     
     ## fetch all different transcripts from the overlapping alignments
     tx_idx <- sort(unique(subjectHits(ov)))
-    istex <- as.vector(iste[tx_idx])[-length(tx_idx)]  # removing "no_feature"
-    
+    if (all(maskuniqaln)) {
+        istex <- as.vector(iste[tx_idx])
+    } else {
+        istex <- as.vector(iste[tx_idx])[-length(tx_idx)] # removing no_feature
+    }
     asvalues <- (asvalues-min(asvalues)+1) / (max(asvalues)+1 - min(asvalues))
     QmatTS <- .buildOvValuesMatrix(tspar, ov, asvalues, alnreadidx,
                                     rd_idx, tx_idx)
     
     if (!all(iste)) {
         ## Correcting for preference of unique/multimapping reads to genes/TEs
-        QmatTS_nofeat <- QmatTS[,ncol(QmatTS), drop = FALSE]
-        QmatTS <- .correctPreferenceTS(QmatTS[,-ncol(QmatTS)], maskuniqaln,
-                                       mt, istex)
-        stopifnot(!any(rowSums2(QmatTS[,istex]) > 0 &
+        if (all(maskuniqaln)) {
+          QmatTS <- .correctPreferenceTS(QmatTS, maskuniqaln, mt, istex)
+          stopifnot(!any(rowSums2(QmatTS[,istex]) > 0 &
                            rowSums2(QmatTS[,!istex]) > 0))
-        QmatTS <- cbind(QmatTS, QmatTS_nofeat)
+        } else {
+            QmatTS_nofeat <- QmatTS[,ncol(QmatTS), drop = FALSE]
+            QmatTS <- .correctPreferenceTS(QmatTS[,-ncol(QmatTS)], maskuniqaln,
+                                           mt, istex)
+            stopifnot(!any(rowSums2(QmatTS[,istex]) > 0 &
+                               rowSums2(QmatTS[,!istex]) > 0))
+            QmatTS <- cbind(QmatTS, QmatTS_nofeat)
+        }
     }
     
     # --- EM-step --- 

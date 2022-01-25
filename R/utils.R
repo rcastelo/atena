@@ -341,8 +341,17 @@
 .getMaskUniqueAln <- function(alnreadids) {
     maskuniqaln <- !(duplicated(alnreadids) |
                          duplicated(alnreadids, fromLast = TRUE))
-    if (all(maskuniqaln))
-        warning("either multi-mapping reads or secondary alignments are not present in the SAM/BAM file.")
-    
     maskuniqaln
 }
+
+
+.checkOvandsaln <- function(ov, salnmask) {
+    if (length(ov) == 0) {
+        stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
+    }
+    if (!any(salnmask)) {
+        warning("secondary alignments are not present in the SAM/BAM file. The quantification of features will proceed without taking into account overlaps of secondary alignments.")
+    }
+}
+
+

@@ -184,7 +184,7 @@ setMethod("qtex", "TEtranscriptsParam",
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
                             isNotPassingQualityControls=FALSE)
-    param <- ScanBamParam(flag=sbflags, tag="AS")
+    param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     
     iste <- as.vector(attributes(ttpar@features)$isTE[,1])
     if (any(duplicated(names(ttpar@features[iste])))) {
@@ -194,6 +194,7 @@ setMethod("qtex", "TEtranscriptsParam",
     alnreadids <- character(0)
     avgreadlen <- integer(0)
     d <- numeric(0)
+    salnmask <- logical(0)
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     open(bf)
@@ -207,6 +208,7 @@ setMethod("qtex", "TEtranscriptsParam",
         } else if (is(alnreads, "GAlignmentsList")) {
             d <- c(d, max(abs(diff(start(alnreads)))))
         }
+        salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         alnreadids <- c(alnreadids, names(alnreads))
         thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
                         ignoreStrand=ttpar@ignoreStrand)
@@ -214,9 +216,7 @@ setMethod("qtex", "TEtranscriptsParam",
     }
     # close(bf)
     on.exit(close(bf))
-    if (length(ov)) {
-        stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
-    }
+    .checkOvandsaln(ov, salnmask)
     ## get uniquely aligned-reads
     maskuniqaln <- .getMaskUniqueAln(alnreadids)
     if (ttpar@singleEnd == TRUE) {
