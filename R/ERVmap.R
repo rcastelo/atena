@@ -329,7 +329,7 @@ while (length(alnreads <- do.call(readfun,
 }
 #close(bf)
 on.exit(close(bf))
-if (length(ov)) {
+if (length(ov) == 0) {
     stop(".ervmapQuantExpress: no overlaps ware found between reads and features")
 }
 ## Expression quantification
