@@ -453,7 +453,7 @@ cntvec
 
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix rowSums
-#' @importFrom sparseMatrixStats rowMaxs
+#' @importFrom sparseMatrixStats rowMaxs colSums2 rowSums2
 .suboptimalAlignmentFilteringCounts <- function(empar, ov, alnreadidx, alnAS,
                                                 salnmask, salnbestAS) {
     ## suboptimal alignment filtering using the available secondary
@@ -487,7 +487,7 @@ cntvec
     
     palnmat <- palnmat[mask, ]
     cntvec <- rep(0, length(empar@features))
-    cntvec[tx_idx] <- colSums(palnmat)
+    cntvec[tx_idx] <- colSums2(palnmat)
     
     cntvec
 }
@@ -726,6 +726,7 @@ cntvec
 
 
 #' @importFrom Matrix rowSums
+#' @importFrom sparseMatrixStats rowSums2
 .adjustcommonTEgene <- function(palnmatfilt, readidx, mask, ov, maskthird, 
                                 empar, alnreadidx, rd_idx, tx_idx, alnNH,
                                 iste) {
@@ -748,8 +749,8 @@ cntvec
     #istex <- as.vector(empar@features$isTE[tx_idx])
     istex <- iste[tx_idx]
     ## which reads overlap both genes and TEs?
-    idx <- (rowSums(palnmatfilt[,istex]) > 0) &
-        (rowSums(palnmatfilt[,!istex])>0)
+    idx <- (rowSums2(palnmatfilt[,istex]) > 0) &
+        (rowSums2(palnmatfilt[,!istex])>0)
     ## of these, keep only the overlap with the TE in case of multimapping read
     palnmatfilt[idx,istex] <-as(maskMultimat[idx,istex]*palnmatfilt[idx,istex],
                                 "lgCMatrix")
@@ -769,7 +770,7 @@ cntvec
 
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom Matrix rowSums
-#' @importFrom sparseMatrixStats rowMaxs
+#' @importFrom sparseMatrixStats rowMaxs colSums2 rowSums2
 .countbymatrix <- function(empar, ov, alnreadidx, salnmask, alnAS, salnbestAS, 
                             avgene, applysoasfilter, readidx, mask, alnNH, 
                             iste) {
@@ -804,16 +805,16 @@ cntvec
         palnmatadj <- .adjustcommonTEgene(palnmatfilt = palnmat[maskthird, ], 
                                         readidx, mask, ov, maskthird, empar,
                                         alnreadidx, rd_idx, tx_idx, alnNH,iste)
-        cntvec[tx_idx] <- colSums(palnmatadj)
+        cntvec[tx_idx] <- colSums2(palnmatadj)
         ## counting counts of discarded reads mapping to genes
         if (empar@geneCountMode == "all" && applysoasfilter) {
             cntvecdisc <- rep(0, length(empar@features))
-            cntvecdisc[tx_idx] <- colSums(palnmat[!maskthird, ])
+            cntvecdisc[tx_idx] <- colSums2(palnmat[!maskthird, ])
             cntvec <- cntvec + cntvecdisc
         }
         
     } else {
-        cntvec[tx_idx] <- colSums(palnmat[maskthird, ])
+        cntvec[tx_idx] <- colSums2(palnmat[maskthird, ])
     }
     
     cntvec
