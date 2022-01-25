@@ -553,7 +553,7 @@ cntvec
                 stop("no NM or nM tag in BAM file.")
         }
     } else
-        stop(sprintf(".getAlignmentMismatches: wrong class %s\n", class(aln)))
+        stop(sprintf(".fetchNMtag: wrong class %s\n", class(aln)))
     
     nmtag
 }
