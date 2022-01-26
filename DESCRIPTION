@@ -29,7 +29,11 @@ Imports:
     Rsamtools,
     GenomeInfoDb,
     SQUAREM,
-    sparseMatrixStats
+    sparseMatrixStats,
+	DelayedArray,
+	DelayedMatrixStats,
+	HDF5Array,
+	rhdf5
 Suggests:
     covr,
     BiocStyle,
@@ -48,6 +52,7 @@ Collate:
     'TEtranscripts.R'
     'Telescope.R'
     'atena.R'
+    'hdf5_TEtranscripts.R'
     'overlappingModes.R'
     'qtex.R'
     'utils.R'

@@ -155,11 +155,11 @@ setMethod("show", "TEtranscriptsParam",
 #' @rdname qtex
 setMethod("qtex", "TEtranscriptsParam",
         function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
-                    BPPARAM=SerialParam(progressbar=TRUE)) {
+                    BPPARAM=SerialParam(progressbar=TRUE), on.disk=FALSE) {
             .checkPhenodata(phenodata, length(x@bfl))
 
             cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
-                            yieldSize=yieldSize, BPPARAM=BPPARAM)
+                            yieldSize=yieldSize, BPPARAM=BPPARAM, on.disk=FALSE)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
@@ -179,7 +179,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom IRanges ranges
-.qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
+.qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L, on.disk=FALSE) {
     mode=match.fun(mode)
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
@@ -228,8 +228,14 @@ setMethod("qtex", "TEtranscriptsParam",
     ## fetch all different transcripts from the overlapping alignments
     tx_idx <- sort(unique(subjectHits(ov)))
     
-    cntvec <- .ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
-                                maskuniqaln, avgreadlen)
+    if(on.disk){
+        cntvec <- .h5_ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
+                                  maskuniqaln, avgreadlen)
+    } else {
+        cntvec <- .ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
+                                  maskuniqaln, avgreadlen)
+    }
+    
     ## Original TEtranscripts coerces fractional counts to integer
     setNames(as.integer(cntvec), names(cntvec))
 }

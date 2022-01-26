@@ -15,7 +15,8 @@
   mode = ovUnion,
   yieldSize = 1000000L,
   verbose = 1,
-  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE))
+  BPPARAM = SerialParam(progressbar = ifelse(verbose == 1, TRUE, FALSE)),
+  on.disk = FALSE
 )
 
 \S4method{qtex}{TEtranscriptsParam}(
@@ -23,7 +24,8 @@
   phenodata = NULL,
   mode = ovUnion,
   yieldSize = 1000000L,
-  BPPARAM = SerialParam(progressbar = TRUE)
+  BPPARAM = SerialParam(progressbar = TRUE),
+  on.disk = FALSE
 )
 
 \S4method{qtex}{TelescopeParam}(

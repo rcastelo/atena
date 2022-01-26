@@ -182,7 +182,8 @@ setMethod("show", "ERVmapParam",
 #' @rdname qtex
 setMethod("qtex", "ERVmapParam",
         function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L, verbose=1,
-            BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE))) {
+            BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE)),
+			on.disk = FALSE) {
             .checkPhenodata(phenodata, length(x@bfl))
             
             cnt <- bplapply(x@bfl, .qtex_ervmap, empar=x, mode=mode,
