@@ -9,6 +9,8 @@ test_TEtranscripts <- function() {
     ttSE <- qtex(ttpar)
     
     checkEqualsNumeric(dim(ttSE), c(1, 2))
+    print(class(sort(assay(ttSE), decreasing=TRUE)))
+    print(sort(assay(ttSE), decreasing=TRUE))
     checkEqualsNumeric(head(sort(assay(ttSE), decreasing=TRUE)),
                        c(149, 122))
 }
