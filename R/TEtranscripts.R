@@ -477,7 +477,7 @@ cntvec
 .countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste,
                                     istex, tx_idx, readids, alnreadids, ov,
                                     uniqcnt) {
-    ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex]
+    ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex, drop=FALSE]
     yesg <- rowSums2(ovalnmat_multig)>0
     
     ## Computing counts for reads with multiple alignments mapping to different
@@ -499,11 +499,12 @@ cntvec
     rsum0 <- rsum == 0
     
     # Reads for which the genes to which the read aligns have > counts
-    matmultiguniqc[!rsum0,] <- matmultiguniqc[!rsum0,]/rsum[!rsum0]
+    matmultiguniqc[!rsum0,, drop=FALSE] <- matmultiguniqc[!rsum0,,drop=FALSE]/
+        rsum[!rsum0]
     
     # Reads for which the genes to which the read aligns have 0 counts
-    matmultiguniqc[rsum0,] <- (ovalnmat_multig[rsum0,] /
-        rowSums2(ovalnmat_multig[rsum0,]))
+    matmultiguniqc[rsum0,, drop=FALSE] <- (ovalnmat_multig[rsum0,, drop=FALSE] /
+        rowSums2(ovalnmat_multig[rsum0,, drop=FALSE]))
     
     # Adjusting for number of alignments
     matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
@@ -525,9 +526,10 @@ cntvec
     # Addressing gene counts: count divided by the number of different genes
     if (any(ovmultig)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g[!ovmultig,])
+        uniqcnt[tx_idx][!istex] <- colSums2(ovalnmatuniq_g[!ovmultig,,drop=FALSE])
         # Counting reads overlapping more than 1 element
-        mg <- ovalnmatuniq_g[ovmultig,]/rowSums2(ovalnmatuniq_g[ovmultig,])
+        mg <- ovalnmatuniq_g[ovmultig,,drop=FALSE] /
+            rowSums2(ovalnmatuniq_g[ovmultig,,drop=FALSE])
         uniqcnt[tx_idx][!istex] <- uniqcnt[tx_idx][!istex] + colSums2(mg)
     
     } else {
@@ -538,7 +540,7 @@ cntvec
     # proportionally to the expression level of each TE provided by unique counts
     if (any(ovmultite)) {
         # Counting reads overlapping only 1 element
-        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te[!ovmultite,])
+        uniqcnt[tx_idx][istex] <- colSums2(ovalnmatuniq_te[!ovmultite,,drop=FALSE])
         # Counting reads overlapping more than 1 element
         mte <- t(t(
             ovalnmatuniq_te[ovmultite,,drop=FALSE])*uniqcnt[tx_idx][istex])
