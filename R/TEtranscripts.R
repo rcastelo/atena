@@ -207,6 +207,7 @@ setMethod("qtex", "TEtranscriptsParam",
             d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
         } else if (is(alnreads, "GAlignmentsList")) {
             d <- c(d, max(abs(diff(start(alnreads)))))
+            d[d < 0] <- 0
         }
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         alnreadids <- c(alnreadids, names(alnreads))
