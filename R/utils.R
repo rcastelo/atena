@@ -347,7 +347,7 @@
 
 .checkOvandsaln <- function(ov, salnmask) {
     if (length(ov) == 0) {
-        stop(".ervmapQuantExpress: no overlaps were found between reads and features")
+        stop(".qtex: no overlaps were found between reads and features")
     }
     if (!any(salnmask)) {
         warning("secondary alignments are not present in the SAM/BAM file. The quantification of features will proceed without taking into account overlaps of secondary alignments.")

@@ -253,6 +253,7 @@ setMethod("qtex", "TEtranscriptsParam",
         avgreadlenaln <- d + sum(rcig)
     } else if (is(alnreads, "GAlignmentsList")) {
         d <- max(abs(diff(start(alnreads))))
+        d[d<0] <- 0
         l <- lengths(alnreads)
         cig <- unlist(cigar(alnreads))[cumsum(l)]
         rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
