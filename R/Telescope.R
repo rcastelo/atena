@@ -532,12 +532,22 @@ setMethod("qtex", "TelescopeParam",
       # # for the length of the two mates, but not the region between them
       # maxlen <- max(qwidth(unlist(alnreads)))
       # readlen[readlen>maxlen] <- maxlen*2
+      
       lsum <- sum(width(alnreads))
-      ltogether <- width(granges(alnreads, ignore.strand=TRUE))
+      # unmated alignments
+      unmat <- mcols(alnreads)$mate_status == "unmated"
+      # pairs with discordant chr
+      unmat <- unmat | lengths(unique(seqnames(alnreads)))>1
+      # Unmated alignments the assigned read length is the median read length
+      lsum[unmat] <- median(width(unlist(alnreads)))
+      ltogether <- integer(length = length(alnreads))
+      ltogether[!unmat] <- width(granges(alnreads[!unmat], ignore.strand=TRUE))
+      ltogether[unmat] <- median(width(unlist(alnreads)))
       ltogether[ltogether > lsum] <- lsum[ltogether > lsum]
       readlen <- ltogether
+      
   } else {
-    stop(sprintf(".getAlignmentTagScore: wrong class %s\n", class(alnreads)))
+    stop(sprintf(".getAlignmentLength: wrong class %s\n", class(alnreads)))
   }
   readlen
 }
