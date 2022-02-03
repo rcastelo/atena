@@ -326,7 +326,7 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
     Pi <- colSums2(Qmat)
     if (is(ttpar@features,"GRangesList")) {
-        elen <- as.numeric(width(ttpar@features[tx_idx][istex])) - avgreadlen+1
+        elen <- as.numeric(sum(width(ttpar@features[tx_idx][istex]))) - avgreadlen+1
     } else {
         elen <- width(ttpar@features[tx_idx][istex]) - avgreadlen + 1
     }
