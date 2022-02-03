@@ -519,6 +519,7 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom S4Vectors first second
 #' @importFrom GenomicRanges granges
+#' @importFrom GenomicAlignments seqnames
 .getAlignmentLength <- function(alnreads) {
   if (is(alnreads, "GAlignments"))
     readlen <- width(ranges(alnreads))
