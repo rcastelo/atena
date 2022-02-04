@@ -424,10 +424,11 @@ ovall <- findOverlaps(te_dros, alnreads)
 tes <- countQueryHits(ovall)
 te_dros[order(tes, decreasing = TRUE)][1:10]
 teall <- c(TE_annot, te_dros[order(tes, decreasing = TRUE)][1:10])
+colnames(mcols(teall))[2] <- "feature_type"
 saveRDS(teall, 
     file = "bioc-devel/ERVs/OhtaniSaito13_subsampled_for_atena/Top30TEs.rds")
 
-# Finally, 2 duplicated TEs were removed.
+# Finally, 2 duplicated TEs were removed creating the final object Top28TEs.rds
 
 ```
 
