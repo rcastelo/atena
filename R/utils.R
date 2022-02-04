@@ -157,6 +157,11 @@
             mtname <- match(names(features), iste$Group.1)
             iste <- iste[mtname,"x"]
         }
+    } else if (!is.null(mcols(teFeatures)$type)) {
+        iste <- aggregate(iste, by = list(names(features)), unique)
+        features <- .groupGeneExons(features)
+        mtname <- match(names(features), iste$Group.1)
+        iste <- iste[mtname,"x"]
     }
     
     attr(features, "isTE") <- DataFrame("isTE" = iste)
