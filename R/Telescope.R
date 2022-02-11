@@ -203,7 +203,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom sparseMatrixStats rowSums2 colSums2
 #' @importFrom SQUAREM squarem
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
-    mode=match.fun(mode)
+    mode <- match.fun(mode)
     readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                             isDuplicate=FALSE,
@@ -456,10 +456,10 @@ setMethod("qtex", "TelescopeParam",
     # wh <- which(X*maskmulti > 0, arr.ind = TRUE)
     # X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
     X <- Q
-    j <- rep(1:ncol(X), diff(X@p))
+    j <- rep(seq_len(ncol(X)), diff(X@p))
     X@x <- X@x * Pi[j]
     wh <- which(X@x * maskmulti[X@i + 1] > 0)
-    j <- rep(1:ncol(X), diff(X@p))
+    j <- rep(seq_len(ncol(X)), diff(X@p))
     X@x[wh] <- X@x[wh] * Theta[j][wh]
     X <- X[rowSums2(X) > 0, , drop = FALSE]
     X <- X/rowSums2(X)
@@ -505,7 +505,7 @@ setMethod("qtex", "TelescopeParam",
   } else if (is(aln, "GAlignmentsList")) {
     l <- lengths(aln)
     score <- aggregate(mcols(unlist(aln, use.names = FALSE))[[tag]],
-                        by = list(rep(1:length(l),l)), FUN = sum)
+                        by = list(rep(seq_along(l),l)), FUN = sum)
     score <- score$x
     mate_status <- mcols(aln)$mate_status == "mated"
     score[!mate_status] <- unlist(lapply(aln[!mate_status], 
@@ -573,7 +573,7 @@ setMethod("qtex", "TelescopeParam",
         if (is(ovlength, "CompressedIntegerList")) {
           ovlength <- max(ovlength)
         }
-        ovlength_ag <- aggregate(ovlength, by = list(rep(1:length(l), l)), 
+        ovlength_ag <- aggregate(ovlength, by = list(rep(seq_along(l), l)), 
                                   FUN = max)
         ovlength <- ovlength_ag$x
     } else {

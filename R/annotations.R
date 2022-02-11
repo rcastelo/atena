@@ -76,7 +76,10 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity) {
 #' "repClass" columns when a "?" is present or when they are defined
 #' as "Unknown" or "Other". Finally, assigns a unique id to each TE instance
 #' by adding the suffix "_dup" plus a number at the end of the "repName".
-#'         
+#'
+#' @examples
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
+#' 
 #' @aliases rmskbasicparser
 #' @rdname rmskbasicparser
 #' @name rmskbasicparser
@@ -116,6 +119,9 @@ rmskbasicparser <- function(gr) {
 #' @details 
 #' Identity function: returns the \link[GenomicRanges:GRanges-class]{GRanges}
 #' object without any modification.
+#' 
+#' @examples
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskidentity)
 #'         
 #' @aliases rmskidentity
 #' @rdname rmskidentity

@@ -180,7 +180,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom Matrix Matrix rowSums colSums t which
 #' @importFrom IRanges ranges
 .qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
-    mode=match.fun(mode)
+    mode <- match.fun(mode)
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
                             isNotPassingQualityControls=FALSE)
@@ -400,7 +400,7 @@ cntvec
     ## this first part is a sparse optimization of doing
     ## X <- t(t(Q) * Pi)
     X <- Q
-    j <- rep(1:ncol(X), diff(X@p))
+    j <- rep(seq_len(ncol(X)), diff(X@p))
     X@x <- X@x * Pi[j]
     ## End of first part
     X <- X[rowSums2(X)>0,, drop=FALSE]

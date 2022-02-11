@@ -208,7 +208,7 @@ setMethod("qtex", "ERVmapParam",
 #' @importFrom GenomicRanges pintersect
 .qtex_ervmap <- function(bf, empar, mode, yieldSize=1000000, verbose) {
     iste <- as.vector(attributes(empar@features)$isTE[,1])
-    mode=match.fun(mode)
+    mode <- match.fun(mode)
     readfun <- .getReadFunction(empar@singleEnd, empar@fragments)
     
     ## suboptimalAlignmentTag set to 'auto' implies following the original
