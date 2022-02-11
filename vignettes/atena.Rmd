@@ -49,7 +49,20 @@ Because these tools were only available outside R and Bioconductor, the `atena` 
 
 # TEs annotations
 
-Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations are RepeatMasker annotations, available through the RepeatMasker tracks in genome browsers. Other repositories also offer annotations of TEs (see *Table 1* in [@goerner2018computational]).
+Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations are RepeatMasker annotations, available through the RepeatMasker track in UCSC Genome Browser. `atena` can fetch RepeatMasker annotations with the function `annotaTEs()`. Moreover, this function can parse TE annotations by applying `parsefun`. Examples of `parsefun` included in `atena` are `rmskbasicparser` or `rmskidentity`. 
+
+For example, let's retrieve TE annotations for _Drosophila melanogaster_ _dm6_ genome version and process them using the `rmskbasicparser` function, which assigns a unique identifier for each TE, as well as discards repeats present in the annotations that are not TEs.
+
+```{r, message=FALSE, warning=FALSE}
+library(atena)
+library(GenomicRanges)
+```
+
+```{r}
+rmsk <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
+rmsk
+```
+
 
 # Using atena to quantify TE expression
 
@@ -77,12 +90,6 @@ To enable using ERVmap on BAM files produced by short-read aligner software othe
 * The value "auto" (default), by which `atena` will first extract the name of the short-read aligner software from the BAM file and if that software is BWA, then suboptimal alignment scores will be obtained from the `XS` tag. Otherwise, it will trigger the calculation previously explained for `suboptimalAlignemntTag="none"`.
 
 Finally, this filter is applied by comparing the difference between alignment and suboptimal alignment scores to a cutoff value, which by default is 5 but can be modified using the parameter `suboptimalAlignmentCutoff`. The default value 5 is the one employed in the original ERVmap software that assumes the BAM file was generated with BWA and for which lower values are interpreted as "equivalent to second best match has one or more mismatches than the best match" [@tokuyama2018ervmap, pg. 12571]. From a different perspective, in BWA the mismatch penalty has a value of 4 and therefore, a `suboptimalAlignmentCutoff` value of 5 only retains those reads where the suboptimal alignment has at least 1 mismatch more than the best match. Therefore, the `suboptimalAlignmentCutoff` value is specific to the short-read mapper software and we recommend to set this value according to the mismatch penalty of that software. Another option is to set `suboptimalAlignmentCutoff=NA`, which prevents the filtering of reads based on this criteria, as set in the following example.
-
-```{r, message=FALSE, warning=FALSE}
-library(atena)
-library(GenomicRanges)
-```
-
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),

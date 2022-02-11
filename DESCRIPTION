@@ -14,7 +14,7 @@ Description: Quantify expression of transposable elements (TEs) from RNA-seq dat
 License: Artistic-2.0
 Encoding: UTF-8
 Depends:
-    R (>= 4.1),
+    R (>= 4.2),
     SummarizedExperiment
 Imports: 
     methods,
@@ -29,7 +29,8 @@ Imports:
     Rsamtools,
     GenomeInfoDb,
     SQUAREM,
-    sparseMatrixStats
+    sparseMatrixStats,
+    AnnotationHub
 Suggests:
     covr,
     BiocStyle,
@@ -47,6 +48,7 @@ Collate:
     'ERVmap.R'
     'TEtranscripts.R'
     'Telescope.R'
+    'annotations.R'
     'atena.R'
     'overlappingModes.R'
     'qtex.R'
