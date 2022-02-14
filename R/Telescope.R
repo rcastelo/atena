@@ -477,7 +477,7 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-    Theta <- ((colSums2(X[maskmulti, , drop=FALSE]) + b) / 
+    Theta <- ((colSums2(X[maskmulti==1, , drop=FALSE]) + b) / 
         (sum(maskmulti) + b*ncol(X)))
 }
 
