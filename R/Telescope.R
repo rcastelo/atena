@@ -346,7 +346,8 @@ setMethod("qtex", "TelescopeParam",
     QmatTS@x <- QmatTS@x / rowSums2(QmatTS)[QmatTS@i +1]
     
     # Getting 'y' indicator of unique and multi-mapping status from QmatTS 
-    maskmulti <- ifelse(rowSums2(QmatTS > 0) == 1, 0, 1)
+    # maskmulti <- ifelse(rowSums2(QmatTS > 0) == 1, 0, 1)
+    maskmulti <- rowSums2(QmatTS > 0) > 1
     
     # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
     PiTS <- rep(1 / length(tx_idx), length(tx_idx))
@@ -458,7 +459,9 @@ setMethod("qtex", "TelescopeParam",
     X <- Q
     j <- rep(seq_len(ncol(X)), diff(X@p))
     X@x <- X@x * Pi[j]
-    wh <- which(X@x * maskmulti[X@i + 1] > 0)
+    #wh <- which(X@x * maskmulti[X@i + 1] > 0)
+    whmulti <- as.integer(maskmulti[X@i + 1])
+    wh <- which(X@x * whmulti > 0)
     j <- rep(seq_len(ncol(X)), diff(X@p))
     X@x[wh] <- X@x[wh] * Theta[j][wh]
     X <- X[rowSums2(X) > 0, , drop = FALSE]
@@ -477,7 +480,7 @@ setMethod("qtex", "TelescopeParam",
 ## private function .tsMstepTheta()
 ## Update the estimate of the MAP value of θ
 .tsMstepTheta <- function(X, maskmulti, b) {
-    Theta <- ((colSums2(X[maskmulti==1, , drop=FALSE]) + b) / 
+    Theta <- ((colSums2(X[maskmulti, , drop=FALSE]) + b) / 
         (sum(maskmulti) + b*ncol(X)))
 }
 
