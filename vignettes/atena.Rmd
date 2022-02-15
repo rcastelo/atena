@@ -66,7 +66,8 @@ rmsk
 
 # Using atena to quantify TE expression
 
-Quantification of TE expression with `atena` consists in the following two steps:
+Quantification of TE expression with `atena` consists in the following two
+steps:
 
 1. Building of a parameter object for one of the available quantification methods.
 
