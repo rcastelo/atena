@@ -216,6 +216,7 @@ setMethod("qtex", "TelescopeParam",
     ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     asvalues <- integer()
+    alen <- numeric(0)
     mreadlen <- numeric(0)
     salnmask <- logical(0)
     strand_arg <- "strandMode" %in% formalArgs(readfun)
@@ -228,6 +229,7 @@ setMethod("qtex", "TelescopeParam",
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, .getAlignmentASScoreTS(alnreads, tag = "AS"))
         readlen <- .getAlignmentLength(alnreads)
+        alen <- c(alen, readlen)
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         thisov <- mode(alnreads, tspar@features,
                         minOverlFract = 0,
@@ -265,7 +267,7 @@ setMethod("qtex", "TelescopeParam",
     mt <- match(readids, alnreadids)
     readids <- unique(alnreadids[queryHits(ov)]) # updating 'readids'
     cntvec <- .tsEMstep(tspar, alnreadids, readids, ov, asvalues,
-                        iste, maskuniqaln, mt)
+                        iste, maskuniqaln, mt, alen)
     setNames(as.integer(cntvec), names(cntvec))
 }
 
@@ -307,7 +309,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom SQUAREM squarem
 #' @importClassesFrom Matrix lgCMatrix
 .tsEMstep <- function(tspar, alnreadids, readids, ov, asvalues,
-                      iste, maskuniqaln, mt) {
+                      iste, maskuniqaln, mt, alen) {
     ## initialize vector of counts derived from multi-mapping reads
     cntvec <- rep(0L, length(tspar@features) + 1)
     
@@ -321,7 +323,8 @@ setMethod("qtex", "TelescopeParam",
     } else {
         istex <- as.vector(iste[tx_idx])[-length(tx_idx)] # removing no_feature
     }
-    asvalues <- (asvalues-min(asvalues)+1) / (max(asvalues)+1 - min(asvalues))
+    # asvalues <- (asvalues-min(asvalues)+1) / (max(asvalues)+1 - min(asvalues))
+    asvalues <- .rescaleAS(asvalues, alen = alen)
     QmatTS <- .buildOvValuesMatrix(tspar, ov, asvalues, alnreadidx,
                                     rd_idx, tx_idx)
     
@@ -390,6 +393,17 @@ setMethod("qtex", "TelescopeParam",
     cntvec <- c(cntvec, nofeat)
     cntvec
 }
+
+
+#' @importFrom scales rescale
+.rescaleAS <- function(asvalues, alen) {
+  asrescale <- rescale(asvalues, c(1, max(asvalues) - min(asvalues) + 1))
+  asrescale <- asrescale + alen
+  asrescale <- asrescale/max(asrescale)
+  asrescale <- expm1(asrescale*100)
+  asrescale
+}
+
 
 ## private function .correctPreferenceTS()
 ## Corrects QmatTS for preference of unique/multi-mapping reads to
