@@ -12,7 +12,8 @@ test_Telescope <- function() {
     
     checkEqualsNumeric(dim(tsSE), c(79, 2))
     checkEqualsNumeric(head(sort(assay(tsSE), decreasing=TRUE)), 
-                            as.integer(c(150, 150, 0, 0, 0, 0)))
+                            as.integer(c(149, 140, 6, 4, 1, 0)))  # c(150, 150, 0, 0, 0, 0)
+
 }
 
 
