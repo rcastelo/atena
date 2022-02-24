@@ -539,7 +539,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom GenomicAlignments seqnames
 .getAlignmentLength <- function(alnreads) {
   if (is(alnreads, "GAlignments"))
-    readlen <- width(ranges(alnreads))
+    readlen <- qwidth(alnreads)
   else if (is(alnreads, "GAlignmentPairs")) {
       ## take the length of the region comprised by the 2 mates
       readlen <- width(granges(alnreads))
