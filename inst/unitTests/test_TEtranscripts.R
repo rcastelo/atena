@@ -12,7 +12,7 @@ test_TEtranscripts <- function() {
     print(class(sort(assay(ttSE), decreasing=TRUE)))
     print(sort(assay(ttSE), decreasing=TRUE))
     checkEqualsNumeric(head(sort(assay(ttSE), decreasing=TRUE)),
-                       c(149, 122))
+                       c(149, 123))
 }
 
 

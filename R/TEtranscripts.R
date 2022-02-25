@@ -239,27 +239,20 @@ setMethod("qtex", "TEtranscriptsParam",
 }
 
 #' @importFrom GenomicAlignments extractAlignmentRangesOnReference
-#' @importFrom GenomicAlignments cigar start width first second
+#' @importFrom GenomicAlignments cigar start qwidth first second
 .getAveLen <- function(ttpar, alnreads) {
     if (is(alnreads, "GAlignments")) {
-        cig <- cigar(alnreads)
-        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
-                                                        drop.D.ranges=TRUE))
-        avgreadlenaln <- sum(rcig)
+        avgreadlenaln <- qwidth(alnreads)
     } else if (is(alnreads, "GAlignmentPairs")) {
         d <- abs(start(first(alnreads)) - start(second(alnreads)))
-        cig <- cigar(second(alnreads))
-        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
-                                                        drop.D.ranges=TRUE))
-        avgreadlenaln <- d + sum(rcig)
+        d2 <- qwidth(second(alnreads))
+        avgreadlenaln <- d + d2
     } else if (is(alnreads, "GAlignmentsList")) {
         d <- max(abs(diff(start(alnreads))))
         d[d<0] <- 0
         l <- lengths(alnreads)
-        cig <- unlist(cigar(alnreads))[cumsum(l)]
-        rcig <- width(extractAlignmentRangesOnReference(cigar=cig,
-                                                        drop.D.ranges=TRUE))
-        avgreadlenaln <- d + sum(rcig)
+        d2 <- unlist(qwidth(alnreads))[cumsum(l)]
+        avgreadlenaln <- d + d2
     } else {
         stop(sprintf(".getAveLen: wrong class %s\n", class(alnreads)))
     }
