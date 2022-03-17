@@ -214,6 +214,8 @@ setMethod("qtex", "TEtranscriptsParam",
         thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
                         ignoreStrand=ttpar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
+        print(it)
+        it <- it + 1
     }
     # close(bf)
     on.exit(close(bf))
@@ -481,7 +483,7 @@ cntvec
     # Getting the num of different alignments mapping to a gene for each read
     alnreadids_multig <-alnreadids[unique(queryHits(
                                             ov[!iste[subjectHits(ov)]]))]
-    nalnperread <- table(alnreadids_multig) # getting only overlaps from TEs
+    nalnperread <- table(alnreadids_multig) # getting only overlaps from genes
     readids_multig <- readids[!maskuniqaln[mt]][yesg]
     mt_multig <- match(readids_multig, names(nalnperread))
     
@@ -489,15 +491,22 @@ cntvec
     # reads map to
     matmultiguniqc <- t(t(ovalnmat_multig)*uniqcnt[tx_idx][!istex])
     rsum <- rowSums2(matmultiguniqc)
-    rsum0 <- rsum == 0
+    rsum0 <- which(rsum == 0)
     
-    # Reads for which the genes to which the read aligns have > counts
-    matmultiguniqc[!rsum0,, drop=FALSE] <- matmultiguniqc[!rsum0,,drop=FALSE]/
-        rsum[!rsum0]
+    # Reads for which the genes to which the read aligns have > 0 counts
+    # matmultiguniqc[!rsum0,, drop=FALSE] <- matmultiguniqc[!rsum0,,drop=FALSE]/
+    #     rsum[!rsum0]
+    j <- matmultiguniqc@i + 1
+    matmultiguniqc@x[!(j %in% rsum0)] <- matmultiguniqc@x[!(j %in% rsum0)] / 
+        rsum[j[!(j %in% rsum0)]]
+    
     
     # Reads for which the genes to which the read aligns have 0 counts
-    matmultiguniqc[rsum0,, drop=FALSE] <- (ovalnmat_multig[rsum0,, drop=FALSE] /
-        rowSums2(ovalnmat_multig[rsum0,, drop=FALSE]))
+    # matmultiguniqc[rsum0,, drop=FALSE] <- (ovalnmat_multig[rsum0,, drop=FALSE] /
+    #     rowSums2(ovalnmat_multig[rsum0,, drop=FALSE]))
+    
+    matmultiguniqc@x[(j %in% rsum0)] <- ovalnmat_multig@x[(j %in% rsum0)] / 
+        rowSums2(ovalnmat_multig)[j[j %in% rsum0]]
     
     # Adjusting for number of alignments
     matmultiguniqc <- matmultiguniqc/as.numeric(nalnperread[mt_multig])
