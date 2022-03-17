@@ -214,8 +214,6 @@ setMethod("qtex", "TEtranscriptsParam",
         thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
                         ignoreStrand=ttpar@ignoreStrand)
         ov <- .appendHits(ov, thisov)
-        print(it)
-        it <- it + 1
     }
     # close(bf)
     on.exit(close(bf))
