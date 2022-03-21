@@ -283,6 +283,10 @@ setMethod("qtex", "TEtranscriptsParam",
                                         iste, istex, tx_idx, readids, 
                                         alnreadids, ov, uniqcnt)
     }
+    
+    # Adjusting 'ovalnmat' when alignment from multimapping read maps > 1 TE
+    ovalnmat <- .adjustalnmultiovTE(iste, ov, alnreadids, readids, tx_idx, ovalnmat)
+    
     cntvec <- rep(0L, length(ttpar@features))
     cntvec <- .ttEMstep(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
                         avgreadlen, cntvec)
@@ -290,6 +294,7 @@ setMethod("qtex", "TEtranscriptsParam",
     cntvec <- .summarizeCounts(iste, cntvec, uniqcnt, multigcnt, ttpar)
     cntvec
 }
+
 
 
 #' @importFrom Matrix Matrix sparseMatrix t which
@@ -309,9 +314,11 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     readids <- readids[!maskuniqaln[mt]][yesov]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
-    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
-                    dimnames=list(readids, NULL))
-    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    # Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
+    #                 dimnames=list(readids, NULL))
+    # Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    
+    Qmat <- ovalnmat
     Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
@@ -338,10 +345,14 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     # Version 1
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     # Version 2
-    wh <- which(ovalnmat, arr.ind=TRUE)
+    # wh <- which(ovalnmat, arr.ind=TRUE)
     cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
-    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
+    # x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
+    #             FUN=sum, na.rm=TRUE)
+    j <- rep(1:ovalnmat@Dim[2], diff(ovalnmat@p))
+    x <- tapply((ovalnmat@x / probmassbyread[ovalnmat@i + 1]) * Pi[j], j,
                 FUN=sum, na.rm=TRUE)
+    
     cntvecovtx[as.integer(names(x))] <- x
     cntvec[tx_idx][istex] <- cntvecovtx
 }
@@ -588,3 +599,23 @@ cntvec
     cntvec
 }
 
+## private function .adjustalnmultiovTE()
+## Adjusts ovalnmat when a multimapping reads have alignments mapping to > 1
+## TE, by dividing the count value by the number of different TEs the
+## alignment maps to
+
+#' @importFrom S4Vectors queryHits subjectHits
+.adjustalnmultiovTE <- function(iste, ov, alnreadids, readids, tx_idx,
+                                ovalnmat) {
+    isteov <- iste[subjectHits(ov)]
+    multialn <- !(.getMaskUniqueAln(queryHits(ov)))
+    ovte_multialn <- ov[isteov & multialn]
+    mt1_tem <- match(alnreadids[queryHits(ovte_multialn)], readids)
+    mt2_tem <- match(subjectHits(ovte_multialn), tx_idx)
+    pos_tem <- cbind(mt1_tem, mt2_tem)
+    novperaln <- table(queryHits(ovte_multialn))
+    mt_multig <- match(queryHits(ovte_multialn), names(novperaln))
+    ovalnmat <- as(ovalnmat, "dgCMatrix")
+    ovalnmat[pos_tem] <- ovalnmat[pos_tem] / as.numeric(novperaln[mt_multig])
+    ovalnmat
+}
