@@ -314,17 +314,16 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     readids <- readids[!maskuniqaln[mt]][yesov]
     ## the Qmat matrix stores row-wise the probability that read i maps to
     ## a transcript j, assume uniform probabilities by now
-    # Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
-    #                 dimnames=list(readids, NULL))
-    # Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
-    
-    Qmat <- ovalnmat
-    Qmat <- Qmat / rowSums2(ovalnmat)
+    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
+                    dimnames=list(readids, NULL))
+    Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
+    # Qmat <- Qmat / rowSums2(ovalnmat)
     
     ## Pi, corresponding to rho in Equations (1), (2) and (3) in Jin et al.
     ## (2015) stores probabilities of expression for each transcript, corrected
     ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
-    Pi <- colSums2(Qmat)
+    # Pi <- colSums2(Qmat)
+    Pi <- colSums2(ovalnmat / rowSums2(ovalnmat))
     if (is(ttpar@features,"GRangesList")) {
         elen <- as.numeric(sum(width(ttpar@features[tx_idx][istex]))) - avgreadlen+1
     } else {
@@ -341,7 +340,9 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     Pi <- Pi / sum(Pi)
     ## use the estimated transcript expression probabilities
     ## to finally distribute ambiguously mapping reads
-    probmassbyread <- as.vector(ovalnmat %*% Pi) 
+    # probmassbyread <- as.vector(ovalnmat %*% Pi) 
+    probmassbyread <- as.vector(Qmat %*% Pi)
+    
     # Version 1
     # cntvecovtx <- rowSums(t(ovalnmat / probmassbyread) * Pi, na.rm=TRUE)
     # Version 2
@@ -349,8 +350,8 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     cntvecovtx <- rep(0, ncol(ovalnmat)) #cntvecovtx <- rep(0, length(tx_idx))
     # x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
     #             FUN=sum, na.rm=TRUE)
-    j <- rep(1:ovalnmat@Dim[2], diff(ovalnmat@p))
-    x <- tapply((ovalnmat@x / probmassbyread[ovalnmat@i + 1]) * Pi[j], j,
+    wh <- which(Qmat==1, arr.ind=TRUE)
+    x <- tapply(Pi[wh[, "col"]] / probmassbyread[wh[, "row"]], wh[, "col"],
                 FUN=sum, na.rm=TRUE)
     
     cntvecovtx[as.integer(names(x))] <- x
