@@ -151,15 +151,15 @@
     
     iste <- as.vector(features$isTE)
     if (!all(is.na(geneFeatures))) {
-        if (aggregateexons & !all(iste) & !is.null(mcols(geneFeatures)$type)) {
+        if (!all(iste) & !is.null(mcols(geneFeatures)$type)) {
             iste <- aggregate(iste, by = list(names(features)), unique)
-            features <- .groupGeneExons(features)
+            features <- .groupGeneExons(features, aggregateexons)
             mtname <- match(names(features), iste$Group.1)
             iste <- iste[mtname,"x"]
         }
-    } else if (!is.null(mcols(teFeatures)$type)) {
+    } else if (aggregateexons) {
         iste <- aggregate(iste, by = list(names(features)), unique)
-        features <- .groupGeneExons(features)
+        features <- .groupGeneExons(features, aggregateexons)
         mtname <- match(names(features), iste$Group.1)
         iste <- iste[mtname,"x"]
     }
@@ -171,12 +171,30 @@
 
 ## private function .groupGeneExons()
 ## groups exons from the same gene creating a 'GRangesList' object
-.groupGeneExons <- function(features) {
-    if (!any(mcols(features)$type == "exon")) {
-        stop(".groupGeneExons: no elements with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+.groupGeneExons <- function(features, aggregateexons) {
+    if (aggregateexons) {
+        if (!all(features$isTE) & !any(mcols(features)$type == "exon")) {
+            stop(".groupGeneExons: no genes with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+        }
+        yesexon <- rep(TRUE, length(features))
+        if (!is.null(mcols(features)$type)) {
+            yesexon <- features$type == "exon"
+            yesexon[is.na(yesexon)] <- FALSE
+        }
+        features <- features[features$isTE | yesexon]
+        featuressplit <- split(x = features, f = names(features))
+    } else {
+        features_g <- features[!features$isTE]
+        features_t <- features[features$isTE]
+        features_t_grl <- split(x = features_t, f = 1:length(features_t))
+        names(features_t_grl) <- names(features_t)
+        if (!any(mcols(features_g)$type == "exon")) {
+            stop(".groupGeneExons: no genes with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
+        }
+        features_g <- features_g[features_g$type == "exon"]
+        featuressplit <- split(x = features_g, f = names(features_g))
+        featuressplit <- c(features_t_grl, featuressplit)
     }
-    features <- features[features$isTE | features$type == "exon"]
-    featuressplit <- split(x = features, f = names(features))
     featuressplit
 }
 

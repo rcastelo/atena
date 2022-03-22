@@ -6,10 +6,12 @@
 #' string vector of BAM filenames.
 #'
 #' @param teFeatures A \code{GRanges} or \code{GRangesList} object. Elements
-#' in this object should have names, which will be used as a grouping factor
-#' for ranges forming a common locus (equivalent to "locus" column in
-#' Telescope), unless other metadata column names are specified in the
-#' \code{aggregateby} parameter.
+#' in this object should have names, which are used as a grouping factor for
+#' genomic ranges forming a common locus (equivalent to "locus" column in
+#' Telescope). This grouping is performed previous to TE expression
+#' quantification, unlike the aggregation of quantifications performed when
+#' the \code{aggregateby} parameter is specified, which is performed after
+#' individual TE instances are quantified.
 #'
 #' @param aggregateby Character vector with column names from the annotation
 #' to be used to aggregate quantifications. By default, this is an empty

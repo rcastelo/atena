@@ -132,7 +132,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                             geneFeatures, deparse(substitute(geneFeatures)),
-                            aggregateby, aggregateexons = TRUE)
+                            aggregateby, aggregateexons = FALSE)
     
     new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
         singleEnd=singleEnd, ignoreStrand=ignoreStrand,
