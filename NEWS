@@ -1,3 +1,13 @@
+CHANGES IN VERSION 1.2.0 (2022-04-21)
+---------------------------------------
+
+USER VISIBLE CHANGES
+
+    o Higher accuracy in TE quantification for TEtranscripts and Telescope methods.
+    o Improved EM step running time.
+    o New AnnotationHub resource has been added: UCSCRepeatMasker.
+    o Implemented function to retrieve and parse TE annotations.
+
 CHANGES IN VERSION 0.99.36 (2021-08-01)
 ---------------------------------------
 
