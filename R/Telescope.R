@@ -76,6 +76,19 @@
 #' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
 #' is 100 and this value is passed to the \code{maxiter} parameter of the
 #' \code{\link[SQUAREM]{squarem}()} function.
+#' 
+#' @param reassign_mode (Default 'exclude') Character vector indicating
+#' reassignment mode after EM step. 
+#' Available methods are 'exclude' (reads with more than one best
+#' assignment are excluded from the final counts), 'choose' (when reads have
+#' more than one best assignment, one of them is randomly chosen), 'average'
+#' (the read count is divided evenly among the best assignments) and 'conf'
+#' (only assignments that exceed a certain threshold -defined by 
+#' \code{conf_prob} parameter- are accepted, then the read count is
+#' proportionally divided among the assignments above \code{conf_prob}).
+#' 
+#' @param conf_prob (Default 0.9) Minimum probability for high confidence
+#' assignment.
 #'
 #'
 #' @details
@@ -121,7 +134,9 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             pi_prior=0L,
                             theta_prior=0L,
                             em_epsilon=1e-7,
-                            maxIter=100L) {
+                            maxIter=100L,
+                            reassign_mode="exclude",
+                            conf_prob=0.9) {
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
@@ -133,7 +148,8 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
         strandMode=as.integer(strandMode), fragments=fragments,
         minOverlFract=minOverlFract, pi_prior=pi_prior,
         theta_prior=theta_prior, em_epsilon=em_epsilon,
-        maxIter=as.integer(maxIter))
+        maxIter=as.integer(maxIter), reassign_mode=reassign_mode,
+        conf_prob=conf_prob)
 }
 
 #' @param object A \linkS4class{TelescopeParam} object.
@@ -372,28 +388,61 @@ setMethod("qtex", "TelescopeParam",
     PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
     # --- end EM-step ---
     
-    # Implementation for reassign_mode=exclude
     Theta <- get("Theta", envir=Thetaenv)
     X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
-    maxbyrow <- rowMaxs(X)
-    # Version 1
-    # Xind <- X == maxbyrow
-    # Version 2
-    # Xind <- (X / maxbyrow) == 1
-    
-    Xind <- as(X, "lgCMatrix")
-    Xind@x <- (X@x /maxbyrow[X@i+1]) == 1
-    nmaxbyrow <- rowSums2(Xind)
-    
-    # Do not differenciate between TE and genes with istex because in Telescope
-    # genes are also included in the EMstep.
-    cntvec[tx_idx] <- colSums2(Xind[nmaxbyrow == 1, ])
+    cntvec <- .reassign(X, tspar@reassign_mode, tspar@conf_prob, cntvec, tx_idx)
     
     names(cntvec) <- c(names(tspar@features), "no_feature")
     nofeat <- cntvec["no_feature"]
     cntvec <- .tssummarizeCounts(cntvec[-length(cntvec)], iste, tspar)
     cntvec <- c(cntvec, nofeat)
     cntvec
+}
+
+## private function .reassign()
+## Implements 4 different reassigning methods from Telescope (exclude, choose,
+## average and conf)
+#' @importFrom sparseMatrixStats rowSums2 colSums2
+.reassign <- function(X, reassign_mode, conf_prob, cntvec, tx_idx) {
+  
+  if (reassign_mode %in% c("exclude", "choose", "average")) {
+    maxbyrow <- rowMaxs(X)
+    # Older versions
+    # Xind <- X == maxbyrow
+    # Xind <- (X / maxbyrow) == 1
+    Xind <- as(X, "lgCMatrix")
+    Xind@x <- (X@x /maxbyrow[X@i+1]) == 1
+    nmaxbyrow <- rowSums2(Xind)
+    cntvec[tx_idx] <- colSums2(Xind[nmaxbyrow == 1, ])
+  
+    if (reassign_mode == "choose") {
+      Xind2_s <- summary(Xind[nmaxbyrow > 1, ])
+      Xind2_s <- Xind2_s[Xind2_s$x == TRUE,]
+      Xind2_s <- Xind2_s[order(Xind2_s$i),]
+      bestov <- as.vector(table(Xind2_s$i))
+      selected_ov <- vapply(bestov, FUN = function(x) sample(x = x, size = 1), 
+                            FUN.VALUE = integer(1L))
+      ovcol <- table(Xind2_s[c(0,cumsum(bestov)[-length(bestov)]) + selected_ov,"j"])
+      whcol <- as.integer(names(ovcol))
+      cntvec[tx_idx][whcol] <- cntvec[tx_idx][whcol] + as.integer(ovcol)
+    }
+    
+    if (reassign_mode == "average") {
+      Xind2 <- Xind[nmaxbyrow > 1, ]
+      cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2/rowSums2(Xind2))
+    }
+    
+  } else if (reassign_mode == "conf") {
+    whbelow <- which(X < conf_prob & X > 0, arr.ind = TRUE)
+    X[whbelow] <- 0
+    X_conf <- X[rowSums2(X) > 0,]
+    cntvec[tx_idx] <- colSums2(X_conf/rowSums2(X_conf))
+    
+  } else {
+    stop("'reassign_mode' should be one of 'exclude', 'choose', 'average' or 'conf'")
+  }
+  
+  cntvec
 }
 
 

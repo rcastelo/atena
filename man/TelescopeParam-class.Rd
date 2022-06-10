@@ -20,7 +20,9 @@ TelescopeParam(
   pi_prior = 0L,
   theta_prior = 0L,
   em_epsilon = 1e-07,
-  maxIter = 100L
+  maxIter = 100L,
+  reassign_mode = "exclude",
+  conf_prob = 0.9
 )
 
 \S4method{show}{TelescopeParam}(object)
@@ -101,6 +103,19 @@ iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
 is 100 and this value is passed to the \code{maxiter} parameter of the
 \code{\link[SQUAREM]{squarem}()} function.}
 
+\item{reassign_mode}{(Default 'exclude') Character vector indicating
+reassignment mode after EM step. 
+Available methods are 'exclude' (reads with more than one best
+assignment are excluded from the final counts), 'choose' (when reads have
+more than one best assignment, one of them is randomly chosen), 'average'
+(the read count is divided evenly among the best assignments) and 'conf'
+(only assignments that exceed a certain threshold -defined by 
+\code{conf_prob} parameter- are accepted, then the read count is
+proportionally divided among the assignments above \code{conf_prob}).}
+
+\item{conf_prob}{(Default 0.9) Minimum probability for high confidence
+assignment.}
+
 \item{object}{A \linkS4class{TelescopeParam} object.}
 }
 \value{
@@ -168,6 +183,19 @@ Algorithm Epsilon cutoff.}
 iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
 is 100 and this value is passed to the \code{maxiter} parameter of the
 \code{\link[SQUAREM]{squarem}()} function.}
+
+\item{\code{reassign_mode}}{(Default 'exclude') Character vector indicating
+reassignment mode after EM step. 
+Available methods are 'exclude' (reads with more than one best
+assignment are excluded from the final counts), 'choose' (when reads have
+more than one best assignment, one of them is randomly chosen), 'average'
+(the read count is divided evenly among the best assignments) and 'conf'
+(only assignments that exceed a certain threshold -defined by 
+\code{conf_prob} parameter- are accepted, then the read count is
+proportionally divided among the assignments above \code{conf_prob}).}
+
+\item{\code{conf_prob}}{(Default 0.9) Minimum probability for high confidence
+assignment.}
 }}
 
 \examples{
