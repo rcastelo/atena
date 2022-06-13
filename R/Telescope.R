@@ -430,14 +430,16 @@ setMethod("qtex", "TelescopeParam",
     
     if (reassign_mode == "average" & any(nmaxbyrow > 1)) {
       Xind2 <- Xind[nmaxbyrow > 1, ]
-      cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2/rowSums2(Xind2))
+      Xind2@x <- Xind2@x / rowSums2(Xind2)[Xind2@i +1]
+      cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2)
     }
     
   } else if (reassign_mode == "conf") {
-    whbelow <- which(X < conf_prob & X > 0, arr.ind = TRUE)
-    X[whbelow] <- 0
+    whbelow <- X@x < tspar@conf_prob
+    X@x[whbelow] <- 0
     X_conf <- X[rowSums2(X) > 0,]
-    cntvec[tx_idx] <- colSums2(X_conf/rowSums2(X_conf))
+    X_conf@x <- X_conf@x / rowSums2(X_conf)[X_conf@i +1]
+    cntvec[tx_idx] <- colSums2(X_conf)
     
   } else {
     stop("'reassign_mode' should be one of 'exclude', 'choose', 'average' or 'conf'")
