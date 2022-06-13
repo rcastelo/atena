@@ -430,8 +430,7 @@ setMethod("qtex", "TelescopeParam",
     
     if (reassign_mode == "average" & any(nmaxbyrow > 1)) {
       Xind2 <- Xind[nmaxbyrow > 1, ]
-      Xind2@x <- Xind2@x / rowSums2(Xind2)[Xind2@i +1]
-      cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2)
+      cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2/rowSums2(Xind2))
     }
     
   } else if (reassign_mode == "conf") {
