@@ -434,7 +434,7 @@ setMethod("qtex", "TelescopeParam",
     }
     
   } else if (reassign_mode == "conf") {
-    whbelow <- X@x < tspar@conf_prob
+    whbelow <- X@x < conf_prob
     X@x[whbelow] <- 0
     X_conf <- X[rowSums2(X) > 0,]
     X_conf@x <- X_conf@x / rowSums2(X_conf)[X_conf@i +1]
