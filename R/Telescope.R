@@ -403,6 +403,7 @@ setMethod("qtex", "TelescopeParam",
 ## Implements 4 different reassigning methods from Telescope (exclude, choose,
 ## average and conf)
 #' @importFrom sparseMatrixStats rowSums2 colSums2
+#' @importFrom Matrix summary
 .reassign <- function(X, reassign_mode, conf_prob, cntvec, tx_idx) {
   
   if (reassign_mode %in% c("exclude", "choose", "average")) {
@@ -415,11 +416,11 @@ setMethod("qtex", "TelescopeParam",
     nmaxbyrow <- rowSums2(Xind)
     cntvec[tx_idx] <- colSums2(Xind[nmaxbyrow == 1, ])
   
-    if (reassign_mode == "choose") {
+    if (reassign_mode == "choose" & any(nmaxbyrow > 1)) {
       Xind2_s <- summary(Xind[nmaxbyrow > 1, ])
       Xind2_s <- Xind2_s[Xind2_s$x == TRUE,]
-      Xind2_s <- Xind2_s[order(Xind2_s$i),]
-      bestov <- as.vector(table(Xind2_s$i))
+      Xind2_s <- Xind2_s[order(Xind2_s[,"i"]),]
+      bestov <- as.vector(table(Xind2_s[,"i"]))
       selected_ov <- vapply(bestov, FUN = function(x) sample(x = x, size = 1), 
                             FUN.VALUE = integer(1L))
       ovcol <- table(Xind2_s[c(0,cumsum(bestov)[-length(bestov)]) + selected_ov,"j"])
@@ -427,7 +428,7 @@ setMethod("qtex", "TelescopeParam",
       cntvec[tx_idx][whcol] <- cntvec[tx_idx][whcol] + as.integer(ovcol)
     }
     
-    if (reassign_mode == "average") {
+    if (reassign_mode == "average" & any(nmaxbyrow > 1)) {
       Xind2 <- Xind[nmaxbyrow > 1, ]
       cntvec[tx_idx] <- cntvec[tx_idx] + colSums2(Xind2/rowSums2(Xind2))
     }
