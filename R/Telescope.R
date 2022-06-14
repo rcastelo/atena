@@ -139,6 +139,9 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             conf_prob=0.9) {
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
+    if (!reassign_mode %in% c("exclude","choose","average","conf"))
+      stop("'reassign_mode' should be one of 'exclude', 'choose', 'average' or 'conf'")
+    
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures,deparse(substitute(geneFeatures)),
                                 aggregateby, aggregateexons = TRUE)
@@ -417,12 +420,14 @@ setMethod("qtex", "TelescopeParam",
     cntvec[tx_idx] <- colSums2(Xind[nmaxbyrow == 1, ])
   
     if (reassign_mode == "choose" & any(nmaxbyrow > 1)) {
-      Xind2_s <- summary(Xind[nmaxbyrow > 1, ])
+      Xind2 <- Xind[nmaxbyrow > 1, ]
+      Xind2_s <- summary(Xind2)
       Xind2_s <- Xind2_s[Xind2_s$x == TRUE,]
       Xind2_s <- Xind2_s[order(Xind2_s[,"i"]),]
       bestov <- as.vector(table(Xind2_s[,"i"]))
-      selected_ov <- vapply(bestov, FUN = function(x) sample(x = x, size = 1), 
-                            FUN.VALUE = integer(1L))
+      # selected_ov <- vapply(bestov, FUN = function(x) sample(x = x, size = 1), 
+      #                       FUN.VALUE = integer(1L))
+      selected_ov <- ceiling(runif(n=nrow(Xind2))*rowSums2(Xind2))
       ovcol <- table(Xind2_s[c(0,cumsum(bestov)[-length(bestov)]) + selected_ov,"j"])
       whcol <- as.integer(names(ovcol))
       cntvec[tx_idx][whcol] <- cntvec[tx_idx][whcol] + as.integer(ovcol)
@@ -437,7 +442,9 @@ setMethod("qtex", "TelescopeParam",
     whbelow <- X@x < conf_prob
     X@x[whbelow] <- 0
     X_conf <- X[rowSums2(X) > 0,]
-    X_conf@x <- X_conf@x / rowSums2(X_conf)[X_conf@i +1]
+    # X_conf@i indicates row and is 0-based
+    # Faster sparse implementation of X_conf/rowSums2(X_conf)
+    X_conf@x <- X_conf@x / rowSums2(X_conf)[X_conf@i +1] 
     cntvec[tx_idx] <- colSums2(X_conf)
     
   } else {
