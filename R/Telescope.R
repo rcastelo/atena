@@ -380,8 +380,8 @@ setMethod("qtex", "TelescopeParam",
     Theta <- rep(1 / length(tx_idx), length(tx_idx))
     
     ## The SQUAREM algorithm to run the EM procedure
-    a <- tspar@pi_prior # 0
-    b <- tspar@theta_prior # 0
+    a <- as.numeric(tspar@pi_prior) # 0
+    b <- as.numeric(tspar@theta_prior) # 0
     Thetaenv <- new.env()
     assign("Theta", Theta, envir=Thetaenv)
     tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatTS,maskmulti=maskmulti,
@@ -407,6 +407,7 @@ setMethod("qtex", "TelescopeParam",
 ## average and conf)
 #' @importFrom sparseMatrixStats rowSums2 colSums2
 #' @importFrom Matrix summary
+#' @importFrom stats runif
 .reassign <- function(X, reassign_mode, conf_prob, cntvec, tx_idx) {
   
   if (reassign_mode %in% c("exclude", "choose", "average")) {
