@@ -211,7 +211,7 @@
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList GRanges
 #' @importFrom IRanges IRanges IRangesList
-.consolidateFeatures <- function(x, fnames) {
+.consolidateFeatures <- function(x, fnames, whnofeat = 1L) {
     
     iste <- as.vector(attributes(x@features)$isTE[,1])
     teFeatures <- x@features
@@ -240,7 +240,16 @@
     if (is(x, "TelescopeParam")) {
         nofeat_gr <- GRanges(seqnames = "chrNofeature", 
                              ranges = IRanges(start = 1, end = 1))
-        names(nofeat_gr) <- "no_feature"
+        if (length(whnofeat)==1) {
+            names(nofeat_gr) <- "no_feature"
+            
+        } else if (length(whnofeat) > 1) {
+            nofeat_gr <- rep(nofeat_gr, length(whnofeat))
+            names(nofeat_gr) <- paste0("no_feature", 1:length(whnofeat))
+        } else {
+            stop(".consolidateFeatures: 'whnofeat' must be of length > 0")
+        }
+        
         seqlev <- unique(c(seqlevels(features),seqlevels(nofeat_gr)))
         seqlevels(features) <- seqlev
         seqlevels(nofeat_gr) <- seqlev

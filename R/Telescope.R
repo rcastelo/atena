@@ -89,6 +89,14 @@
 #' 
 #' @param conf_prob (Default 0.9) Minimum probability for high confidence
 #' assignment.
+#' 
+#' @param nofeature_mode (Default 'single') Character vector indicating
+#' the mode to quantify '__no_feature', an additional feature that accounts
+#' for missing transcripts in the annotation. Available methods are 'single',
+#' which is the method used by the original Telescope implementation that
+#' uses a single '__no_feature' feature, and 'multiple', which uses as many
+#' '__no_feature' features as different overlapping patterns of multimapping
+#' reads in the overlapping matrix.
 #'
 #'
 #' @details
@@ -136,7 +144,8 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             em_epsilon=1e-7,
                             maxIter=100L,
                             reassign_mode="exclude",
-                            conf_prob=0.9) {
+                            conf_prob=0.9,
+                            nofeature_mode="single") {
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
     if (!reassign_mode %in% c("exclude","choose","average","conf"))
@@ -152,7 +161,7 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
         minOverlFract=minOverlFract, pi_prior=pi_prior,
         theta_prior=theta_prior, em_epsilon=em_epsilon,
         maxIter=as.integer(maxIter), reassign_mode=reassign_mode,
-        conf_prob=conf_prob)
+        conf_prob=conf_prob, nofeature_mode=nofeature_mode)
 }
 
 #' @param object A \linkS4class{TelescopeParam} object.
@@ -203,11 +212,14 @@ setMethod("qtex", "TelescopeParam",
             
             cnt <- bplapply(x@bfl, .qtex_telescope, tspar=x, mode=mode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
+            cnt <- .processMultiNofeature(cnt, x)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
-            
-            features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
+            whnofeat <- grep(x = rownames(cnt), pattern = "no_feature")
+            features <- .consolidateFeatures(x, rownames(cnt)[-whnofeat],
+                                             whnofeat)
+            # features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
             SummarizedExperiment(assays=list(counts=cnt),
                                     rowRanges=c(features),
                                     colData=colData)
@@ -226,6 +238,7 @@ setMethod("qtex", "TelescopeParam",
 .qtex_telescope <- function(bf, tspar, mode, yieldSize=1e6L) {
     mode <- match.fun(mode)
     readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
+    .checktsModes(tspar)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                             isDuplicate=FALSE,
                             isNotPassingQualityControls=FALSE)
@@ -349,8 +362,7 @@ setMethod("qtex", "TelescopeParam",
     QmatTS <- .buildOvValuesMatrix(tspar, ov, asvalues, alnreadidx,
                                     rd_idx, tx_idx)
     
-    if (!all(iste)) {
-        ## Correcting for preference of unique/multimapping reads to genes/TEs
+    if (!all(iste)) { ## Correcting for preference of reads to genes/TEs
         if (all(maskuniqaln)) {
           QmatTS <- .correctPreferenceTS(QmatTS, maskuniqaln, mt, istex)
           stopifnot(!any(rowSums2(QmatTS[,istex]) > 0 &
@@ -363,6 +375,14 @@ setMethod("qtex", "TelescopeParam",
                                rowSums2(QmatTS[,!istex]) > 0))
             QmatTS <- cbind(QmatTS, QmatTS_nofeat)
         }
+    }
+    
+    if (tspar@nofeature_mode == "multiple") { # multiple no_feature method
+      nfeatures <- ncol(QmatTS)
+      QmatTS <- .multiNofeature(QmatTS)
+      nnofeat <- ncol(QmatTS) - nfeatures + 1
+      cntvec <- c(cntvec, rep(0L, nnofeat - 1))
+      tx_idx <- c(tx_idx, (max(tx_idx)+1):(max(tx_idx)+nnofeat -1))
     }
     
     # --- EM-step --- 
@@ -395,12 +415,70 @@ setMethod("qtex", "TelescopeParam",
     X <- .tsEstep(QmatTS, Theta, maskmulti, PiTS)
     cntvec <- .reassign(X, tspar@reassign_mode, tspar@conf_prob, cntvec, tx_idx)
     
-    names(cntvec) <- c(names(tspar@features), "no_feature")
-    nofeat <- cntvec["no_feature"]
-    cntvec <- .tssummarizeCounts(cntvec[-length(cntvec)], iste, tspar)
+    if (tspar@nofeature_mode == "multiple") {
+      nofeat_names <- paste("no_feature", 1:nnofeat, sep = "")
+    } else {
+      nofeat_names <- "no_feature"
+    }
+    names(cntvec) <- c(names(tspar@features), nofeat_names)
+    nofeat <- cntvec[nofeat_names]
+    cntvec <- .tssummarizeCounts(cntvec[1:length(tspar@features)], iste, tspar)
     cntvec <- c(cntvec, nofeat)
     cntvec
 }
+
+
+## private function .multiNofeature()
+## Implements multiple '__no_feature' method
+#' @importFrom stats aggregate
+#' @importFrom Matrix Matrix
+.multiNofeature <- function(QmatTS) { 
+  ## Implementation of multiple no_feature method
+  ovalnmat <- QmatTS > 0
+  comb <-  aggregate(summary(ovalnmat)$j, by = list(ovalnmat@i + 1), 
+                     FUN = function(x) paste0(x, collapse = "_"))
+  combid <- match(comb$x, unique(comb$x)) # col id
+  QmatTS[,ncol(QmatTS)] # values no_feature
+  1:nrow(QmatTS) # row id
+  ovmatnofeat <- Matrix(do.call("numeric", list(1)),
+                        nrow=nrow(QmatTS), ncol=max(combid))
+  ovmatnofeat[cbind(1:nrow(QmatTS), combid)] <- QmatTS[,ncol(QmatTS)]
+  
+  QmatTS_nofeatmulti <- cbind(QmatTS[,-ncol(QmatTS)], ovmatnofeat)
+  return(QmatTS_nofeatmulti)
+}
+
+## private function .processMultiNofeature()
+## Addresses different number of '__no_feature' features from the multiple
+## '__no_feature' method
+.processMultiNofeature <- function(cnt, x) {
+  # adapted from cbindX() from gdata package
+  if (x@nofeature_mode == "multiple" & length(cnt) > 1) {
+    nrowsam <- lengths(cnt)
+    maxi <- which.max(nrowsam)
+    test <- nrowsam < nrowsam[maxi]
+    for(i in 1:length(nrowsam)) {
+      if(test[i]) {
+        add <- rep(0, nrowsam[maxi] - nrowsam[i])
+        cnt[[i]] <- c(cnt[[i]], add)
+        names(cnt[[i]]) <- names(cnt[[maxi]])
+      }
+    }
+  }
+  return(cnt)
+}
+
+
+## private function .checktsModes()
+## Checks that parameters 'reassign_mode' and 'nofeature_mode' are valid
+.checktsModes <- function(tspar) {
+  if (!(tspar@nofeature_mode %in% c("single","multiple")))
+    stop("'nofeature_mode' must be one of: 'single' or 'multiple'")
+  
+  if (!(tspar@reassign_mode %in% c("exclude","choose","average","conf")))
+    stop("'reassign_mode' must be one of: 'exclude', 'choose', 'average' or 'conf'")
+}
+
 
 ## private function .reassign()
 ## Implements 4 different reassigning methods from Telescope (exclude, choose,

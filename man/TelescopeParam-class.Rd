@@ -22,7 +22,8 @@ TelescopeParam(
   em_epsilon = 1e-07,
   maxIter = 100L,
   reassign_mode = "exclude",
-  conf_prob = 0.9
+  conf_prob = 0.9,
+  nofeature_mode = "single"
 )
 
 \S4method{show}{TelescopeParam}(object)
@@ -116,6 +117,14 @@ proportionally divided among the assignments above \code{conf_prob}).}
 \item{conf_prob}{(Default 0.9) Minimum probability for high confidence
 assignment.}
 
+\item{nofeature_mode}{(Default 'single') Character vector indicating
+the mode to quantify '__no_feature', an additional feature that accounts
+for missing transcripts in the annotation. Available methods are 'single',
+which is the method used by the original Telescope implementation that
+uses a single '__no_feature' feature, and 'multiple', which uses as many
+'__no_feature' features as different overlapping patterns of multimapping
+reads in the overlapping matrix.}
+
 \item{object}{A \linkS4class{TelescopeParam} object.}
 }
 \value{
@@ -196,6 +205,14 @@ proportionally divided among the assignments above \code{conf_prob}).}
 
 \item{\code{conf_prob}}{(Default 0.9) Minimum probability for high confidence
 assignment.}
+
+\item{\code{nofeature_mode}}{(Default 'single') Character vector indicating
+the mode to quantify '__no_feature', an additional feature that accounts
+for missing transcripts in the annotation. Available methods are 'single',
+which is the method used by the original Telescope implementation that
+uses a single '__no_feature' feature, and 'multiple', which uses as many
+'__no_feature' features as different overlapping patterns of multimapping
+reads in the overlapping matrix.}
 }}
 
 \examples{

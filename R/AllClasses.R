@@ -216,6 +216,14 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @slot conf_prob (Default 0.9) Minimum probability for high confidence
 #' assignment.
 #' 
+#' @slot nofeature_mode (Default 'single') Character vector indicating
+#' the mode to quantify '__no_feature', an additional feature that accounts
+#' for missing transcripts in the annotation. Available methods are 'single',
+#' which is the method used by the original Telescope implementation that
+#' uses a single '__no_feature' feature, and 'multiple', which uses as many
+#' '__no_feature' features as different overlapping patterns of multimapping
+#' reads in the overlapping matrix.
+#' 
 #' @references
 #' Bendall et al. Telescope: characterization of the retrotranscriptome by
 #' accurate estimation of transposable element expression.
@@ -236,7 +244,8 @@ setClass("TelescopeParam", contains="AtenaParam",
                         em_epsilon="numeric",
                         maxIter="integer",
                         reassign_mode="character",
-                        conf_prob="numeric"))
+                        conf_prob="numeric",
+                        nofeature_mode="character"))
 
 #' TEtranscripts parameter class
 #'
