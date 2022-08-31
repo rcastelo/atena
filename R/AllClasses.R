@@ -189,11 +189,17 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' \pkg{IRanges} package. When no minimum overlap is required, set
 #' \code{minOverlFract = 0}.
 #'
-#' @slot pi_prior (Default 0) A positive integer scalar indicating the prior
-#' on pi. This is equivalent to adding n unique reads.
+#' @slot pi_prior (Default 0) A positive numeric object indicating the prior
+#' on pi. The same prior can be specified for all features setting
+#' \code{pi_prior} as a scalar, or each feature can have a specific prior by
+#' setting \code{pi_prior} as a vector with \code{names()} corresponding to
+#' all feature names. Setting a pi prior is equivalent to adding n unique reads. 
 #'
-#' @slot theta_prior (Default 0) A positive integer scalar storing the prior
-#' on Q. Equivalent to adding n non-unique reads.
+#' @slot theta_prior (Default 0) A positive numeric object indicating the prior
+#' on Q. The same prior can be specified for all features setting
+#' \code{theta_prior} as a scalar, or each feature can have a specific prior by
+#' setting \code{theta_prior} as a vector with \code{names()} corresponding to
+#' all feature names. Equivalent to adding n non-unique reads.
 #'
 #' @slot em_epsilon (Default 1e-7) A numeric scalar indicating the EM
 #' Algorithm Epsilon cutoff.
@@ -239,8 +245,8 @@ setClass("TelescopeParam", contains="AtenaParam",
                         ignoreStrand="logical",
                         fragments="logical",
                         minOverlFract="numeric",
-                        pi_prior="integer",
-                        theta_prior="integer",
+                        pi_prior="numeric",
+                        theta_prior="numeric",
                         em_epsilon="numeric",
                         maxIter="integer",
                         reassign_mode="character",
