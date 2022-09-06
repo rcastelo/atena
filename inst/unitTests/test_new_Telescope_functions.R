@@ -109,7 +109,7 @@ test_new_Telescope_functions <- function(){
   }
   
   new_Xind <- function(){
-    Xind <- as(X, "lgCMatrix")
+    Xind <- as(as(as(X, "lMatrix"), "generalMatrix"), "CsparseMatrix")
     Xind@x <- (X@x /maxbyrow[X@i+1]) == 1
     Xind
   }

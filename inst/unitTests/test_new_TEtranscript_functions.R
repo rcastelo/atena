@@ -142,7 +142,7 @@ test_new_TEtranscript_functions <- function(){
   }
   
   new_cntvecovtx <- function(){
-    ovalnmat2 <- as(ovalnmat, "dgCMatrix")
+    ovalnmat2 <- as(as(as(ovalnmat, "dMatrix"), "generalMatrix"), "CsparseMatrix")
     i <- ovalnmat2@i + 1
     ovalnmat2@x <- ovalnmat2@x / probmassbyread[i]
     j <- rep(1:ncol(ovalnmat2), diff(ovalnmat2@p))

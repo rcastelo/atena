@@ -616,7 +616,7 @@ cntvec
     pos_tem <- cbind(mt1_tem, mt2_tem)
     novperaln <- table(queryHits(ovte_multialn))
     mt_multig <- match(queryHits(ovte_multialn), names(novperaln))
-    ovalnmat <- as(ovalnmat, "dgCMatrix")
+    ovalnmat <- as(as(as(ovalnmat, "dMatrix"), "generalMatrix"), "CsparseMatrix")
     ovalnmat[pos_tem] <- ovalnmat[pos_tem] / as.numeric(novperaln[mt_multig])
     ovalnmat
 }
