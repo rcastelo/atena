@@ -18,6 +18,7 @@
 #' \code{\link{ERVmapParam-class}}
 #' \code{\link{TelescopeParam-class}}
 #' \code{\link{TEtranscriptsParam-class}}
+#' \code{\link{atenaParam-class}}
 #'
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -28,15 +29,15 @@
 #'                             ignoreStrand=TRUE, aggregateby = c("repName"))
 #' path(ttpar)
 #'
-#' @name AtenaParam-class
-#' @rdname AtenaParam-class
-#' @exportClass AtenaParam
-setClass("AtenaParam",
+#' @name QuantifyParam-class
+#' @rdname QuantifyParam-class
+#' @exportClass QuantifyParam
+setClass("QuantifyParam",
         representation(bfl="BamFileList",
                         features="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character"))
 
-#' @param object A \linkS4class{AtenaParam} object.
+#' @param object A \linkS4class{QuantifyParam} object.
 #'
 #' @importFrom BiocGenerics path
 #'
@@ -44,15 +45,15 @@ setClass("AtenaParam",
 #' parameter object.
 #'
 #' @export
-#' @aliases path,AtenaParam-method
-#' @rdname AtenaParam-class
-setMethod("path", "AtenaParam",
+#' @aliases path,QuantifyParam-method
+#' @rdname QuantifyParam-class
+setMethod("path", "QuantifyParam",
         function(object) {
             path(object@bfl)
         })
 
 
-#' @param object A \linkS4class{AtenaParam} object.
+#' @param object A \linkS4class{QuantifyParam} object.
 #'
 #' @return \code{features()}: The \code{GenomicRanges} or
 #' \code{GenomicRangesList} object with the features in the input parameter
@@ -60,10 +61,10 @@ setMethod("path", "AtenaParam",
 #'
 #' @export
 #' @aliases features
-#' @aliases features,AtenaParam-method
-#' @rdname AtenaParam-class
+#' @aliases features,QuantifyParam-method
+#' @rdname QuantifyParam-class
 #' @include AllGenerics.R
-setMethod("features", "AtenaParam",
+setMethod("features", "QuantifyParam",
         function(object) {
             object@features
         })
@@ -71,7 +72,7 @@ setMethod("features", "AtenaParam",
 #' ERVmap parameter class
 #'
 #' This is a class for storing parameters provided to the ERVmap algorithm.
-#' It is a subclass of the 'AtenaParam-class'.
+#' It is a subclass of the 'QuantifyParam-class'.
 #'
 #' @slot readMapper The name of the software used to align reads, obtained from
 #' the BAM file header.
@@ -141,7 +142,7 @@ setMethod("features", "AtenaParam",
 #' @name ERVmapParam-class
 #' @rdname ERVmapParam-class
 #' @exportClass ERVmapParam
-setClass("ERVmapParam", contains="AtenaParam",
+setClass("ERVmapParam", contains="QuantifyParam",
         representation(singleEnd="logical",
                         ignoreStrand="logical",
                         strandMode="integer",
@@ -183,11 +184,10 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
 #' @slot minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
-#' is multiplied by the median read length and the resulting value is used to
-#' specify the \code{minoverlap} argument from
-#' \code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
-#' \pkg{IRanges} package. When no minimum overlap is required, set
-#' \code{minOverlFract = 0}.
+#' is multiplied by the read length and the resulting value is used to
+#' discard alignments for which the overlapping length (number of base
+#' pairs the alignment and the feature overlap) is lower. When no minimum 
+#' overlap is required, set \code{minOverlFract = 0}.
 #'
 #' @slot pi_prior (Default 0) A positive integer scalar indicating the prior
 #' on pi. This is equivalent to adding n unique reads.
@@ -216,13 +216,6 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @slot conf_prob (Default 0.9) Minimum probability for high confidence
 #' assignment.
 #' 
-#' @slot nofeature_mode (Default 'single') Character vector indicating
-#' the mode to quantify '__no_feature', an additional feature that accounts
-#' for missing transcripts in the annotation. Available methods are 'single',
-#' which is the method used by the original Telescope implementation that
-#' uses a single '__no_feature' feature, and 'multiple', which uses as many
-#' '__no_feature' features as different overlapping patterns of multimapping
-#' reads in the overlapping matrix.
 #' 
 #' @references
 #' Bendall et al. Telescope: characterization of the retrotranscriptome by
@@ -233,7 +226,7 @@ setClass("ERVmapParam", contains="AtenaParam",
 #' @name TelescopeParam-class
 #' @rdname TelescopeParam-class
 #' @exportClass TelescopeParam
-setClass("TelescopeParam", contains="AtenaParam",
+setClass("TelescopeParam", contains="QuantifyParam",
         representation(singleEnd="logical",
                         strandMode="integer",
                         ignoreStrand="logical",
@@ -244,13 +237,12 @@ setClass("TelescopeParam", contains="AtenaParam",
                         em_epsilon="numeric",
                         maxIter="integer",
                         reassign_mode="character",
-                        conf_prob="numeric",
-                        nofeature_mode="character"))
+                        conf_prob="numeric"))
 
 #' TEtranscripts parameter class
 #'
 #' This is a class for storing parameters provided to the TEtranscripts
-#' algorithm. It is a subclass of the 'AtenaParam-class'.
+#' algorithm. It is a subclass of the 'QuantifyParam-class'.
 #'
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -295,10 +287,90 @@ setClass("TelescopeParam", contains="AtenaParam",
 #' @name TEtranscriptsParam-class
 #' @rdname TEtranscriptsParam-class
 #' @exportClass TEtranscriptsParam
-setClass("TEtranscriptsParam", contains="AtenaParam",
+setClass("TEtranscriptsParam", contains="QuantifyParam",
         representation(singleEnd="logical",
                         ignoreStrand="logical",
                         strandMode="integer",
                         fragments="logical",
                         tolerance="numeric",
                         maxIter="integer"))
+
+#' atena parameter class
+#'
+#' This is a class for storing parameters to quantify TE (and gene) expression
+#' using the atena method. It is a subclass of the 'QuantifyParam-class'.
+#'
+#' @slot singleEnd (Default TRUE) Logical value indicating if reads are single
+#' (\code{TRUE}) or paired-end (\code{FALSE}).
+#'
+#' @slot strandMode (Default 1) Numeric vector which can take values 0, 1 or 2.
+#' The strand mode is a per-object switch on
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' objects that controls the behavior of the strand getter. See
+#' \code{\link[GenomicAlignments:GAlignmentPairs-class]{GAlignmentPairs}}
+#' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
+#' is ignored.
+#'
+#' @slot ignoreStrand (Default FALSE) A logical which defines if the strand
+#' should be taken into consideration when computing the overlap between reads
+#' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
+#' is considered to be overlapping an annotated feature as long as they
+#' have a non-empty intersecting genomic range on the same strand, while when
+#' \code{ignoreStrand = TRUE} the strand is not considered.
+#'
+#' @slot fragments (Default FALSE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE} (default), the read-counting method only counts
+#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
+#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
+#' are also counted. For further details see
+#' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
+#' 
+#' @slot minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
+#' is multiplied by the read length and the resulting value is used to
+#' discard alignments for which the overlapping length (number of base
+#' pairs the alignment and the feature overlap) is lower. When no minimum 
+#' overlap is required, set \code{minOverlFract = 0}.
+#'
+#' @slot pi_prior (Default 0) A positive integer scalar indicating the prior
+#' on pi. This is equivalent to adding n unique reads.
+#'
+#' @slot theta_prior (Default 0) A positive integer scalar storing the prior
+#' on Q. Equivalent to adding n non-unique reads.
+#'
+#' @slot em_epsilon (Default 1e-7) A numeric scalar indicating the EM
+#' Algorithm Epsilon cutoff.
+#'
+#' @slot maxIter A positive integer scalar storing the maximum number of
+#' iterations of the EM SQUAREM algorithm (Du and Varadhan, 2020). Default
+#' is 100 and this value is passed to the \code{maxiter} parameter of the
+#' \code{\link[SQUAREM]{squarem}()} function.
+#' 
+#' @slot reassign_mode (Default 'exclude') Character vector indicating
+#' reassignment mode after EM step. 
+#' Available methods are 'exclude' (reads with more than one best
+#' assignment are excluded from the final counts), 'choose' (when reads have
+#' more than one best assignment, one of them is randomly chosen), 'average'
+#' (the read count is divided evenly among the best assignments) and 'conf'
+#' (only assignments that exceed a certain threshold -defined by 
+#' \code{conf_prob} parameter- are accepted, then the read count is
+#' proportionally divided among the assignments above \code{conf_prob}).
+#' 
+#' @slot conf_prob (Default 0.9) Minimum probability for high confidence
+#' assignment.
+#' 
+#'
+#' @name atenaParam-class
+#' @rdname atenaParam-class
+#' @exportClass atenaParam
+setClass("atenaParam", contains="QuantifyParam",
+         representation(singleEnd="logical",
+                        strandMode="integer",
+                        ignoreStrand="logical",
+                        fragments="logical",
+                        minOverlFract="numeric",
+                        pi_prior="integer",
+                        theta_prior="integer",
+                        em_epsilon="numeric",
+                        maxIter="integer",
+                        reassign_mode="character",
+                        conf_prob="numeric"))

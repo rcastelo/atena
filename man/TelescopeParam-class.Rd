@@ -22,8 +22,7 @@ TelescopeParam(
   em_epsilon = 1e-07,
   maxIter = 100L,
   reassign_mode = "exclude",
-  conf_prob = 0.9,
-  nofeature_mode = "single"
+  conf_prob = 0.9
 )
 
 \S4method{show}{TelescopeParam}(object)
@@ -84,11 +83,10 @@ the original Telescope algorithm. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
 \item{minOverlFract}{(Default 0.2) A numeric scalar. \code{minOverlFract}
-is multiplied by the median read length and the resulting value is used to
-specify the \code{minoverlap} argument from
-\code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
-\pkg{IRanges} package. When no minimum overlap is required, set
-\code{minOverlFract = 0}.}
+is multiplied by the read length and the resulting value is used to
+discard alignments for which the overlapping length (number of base
+pairs the alignment and the feature overlap) is lower. When no minimum 
+overlap is required, set \code{minOverlFract = 0}.}
 
 \item{pi_prior}{(Default 0) A positive integer scalar indicating the prior
 on pi. This is equivalent to adding n unique reads.}
@@ -116,14 +114,6 @@ proportionally divided among the assignments above \code{conf_prob}).}
 
 \item{conf_prob}{(Default 0.9) Minimum probability for high confidence
 assignment.}
-
-\item{nofeature_mode}{(Default 'single') Character vector indicating
-the mode to quantify '__no_feature', an additional feature that accounts
-for missing transcripts in the annotation. Available methods are 'single',
-which is the method used by the original Telescope implementation that
-uses a single '__no_feature' feature, and 'multiple', which uses as many
-'__no_feature' features as different overlapping patterns of multimapping
-reads in the overlapping matrix.}
 
 \item{object}{A \linkS4class{TelescopeParam} object.}
 }
@@ -173,11 +163,10 @@ are also counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
 \item{\code{minOverlFract}}{(Default 0.2) A numeric scalar. \code{minOverlFract}
-is multiplied by the median read length and the resulting value is used to
-specify the \code{minoverlap} argument from
-\code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
-\pkg{IRanges} package. When no minimum overlap is required, set
-\code{minOverlFract = 0}.}
+is multiplied by the read length and the resulting value is used to
+discard alignments for which the overlapping length (number of base
+pairs the alignment and the feature overlap) is lower. When no minimum 
+overlap is required, set \code{minOverlFract = 0}.}
 
 \item{\code{pi_prior}}{(Default 0) A positive integer scalar indicating the prior
 on pi. This is equivalent to adding n unique reads.}
@@ -205,14 +194,6 @@ proportionally divided among the assignments above \code{conf_prob}).}
 
 \item{\code{conf_prob}}{(Default 0.9) Minimum probability for high confidence
 assignment.}
-
-\item{\code{nofeature_mode}}{(Default 'single') Character vector indicating
-the mode to quantify '__no_feature', an additional feature that accounts
-for missing transcripts in the annotation. Available methods are 'single',
-which is the method used by the original Telescope implementation that
-uses a single '__no_feature' feature, and 'multiple', which uses as many
-'__no_feature' features as different overlapping patterns of multimapping
-reads in the overlapping matrix.}
 }}
 
 \examples{

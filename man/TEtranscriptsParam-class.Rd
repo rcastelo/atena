@@ -89,7 +89,7 @@ A \linkS4class{TEtranscriptsParam} object.
 }
 \description{
 This is a class for storing parameters provided to the TEtranscripts
-algorithm. It is a subclass of the 'AtenaParam-class'.
+algorithm. It is a subclass of the 'QuantifyParam-class'.
 
 Build an object of the class \code{TEtranscriptsParam}
 }
