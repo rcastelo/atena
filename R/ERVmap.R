@@ -756,13 +756,13 @@ cntvec
     idx <- (rowSums2(palnmatfilt[,istex]) > 0) &
         (rowSums2(palnmatfilt[,!istex])>0)
     ## of these, keep only the overlap with the TE in case of multimapping read
-    palnmatfilt[idx,istex, drop = FALSE] <- as(
+    palnmatfilt[idx,istex, drop = FALSE] <- as(as(as(
         maskMultimat[idx,istex, drop=FALSE]*palnmatfilt[idx,istex, drop=FALSE],
-                                "lgCMatrix")
+        "lMatrix"), "generalMatrix"), "CsparseMatrix")
     ## of these, keep only the overlap with the gene in case of a unique read
-    palnmatfilt[idx,!istex, drop = FALSE] <- as(
+    palnmatfilt[idx,!istex, drop = FALSE] <- as(as(as(
         maskUniqmat[idx, !istex, drop=FALSE]*palnmatfilt[idx, !istex, drop=FALSE],
-        "lgCMatrix")
+        "lMatrix"), "generalMatrix"), "CsparseMatrix")
     # sum((rowSums(palnmatfilt[,istex]) > 0) & (rowSums(palnmatfilt[,!istex]) > 0)) # [1] 0 (QC) 
     
     ## when multi-mapping / unique reads cannot be identified because there is
