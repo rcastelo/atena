@@ -60,11 +60,18 @@
 #' pairs the alignment and the feature overlap) is lower. When no minimum 
 #' overlap is required, set \code{minOverlFract = 0}.
 #'
-#' @param pi_prior (Default 0) A positive integer scalar indicating the prior
-#' on pi. This is equivalent to adding n unique reads.
+#' @param pi_prior (Default 0) A positive numeric object indicating the prior
+#' on pi. The same prior can be specified for all features setting
+#' \code{pi_prior} as a scalar, or each feature can have a specific prior by
+#' setting \code{pi_prior} as a vector with \code{names()} corresponding to
+#' all feature names. Setting a pi prior is equivalent to adding n unique
+#' reads. 
 #'
-#' @param theta_prior (Default 0) A positive integer scalar storing the prior
-#' on Q. Equivalent to adding n non-unique reads.
+#' @param theta_prior (Default 0) A positive numeric object indicating the
+#' prior on Q. The same prior can be specified for all features setting
+#' \code{theta_prior} as a scalar, or each feature can have a specific prior by
+#' setting \code{theta_prior} as a vector with \code{names()} corresponding to
+#' all feature names. Equivalent to adding n non-unique reads.
 #'
 #' @param em_epsilon (Default 1e-7) A numeric scalar indicating the EM
 #' Algorithm Epsilon cutoff.
@@ -139,6 +146,7 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures,deparse(substitute(geneFeatures)),
                                 aggregateby, aggregateexons = TRUE)
+    .checkPriors(names(features), names(pi_prior), names(theta_prior))
     
     new("atenaParam", bfl=bfl, features=features,
         aggregateby=aggregateby, singleEnd=singleEnd,ignoreStrand=ignoreStrand,
@@ -351,14 +359,15 @@ setMethod("qtex", "atenaParam",
     Theta <- rep(1 / length(tx_idx), length(tx_idx))
     
     ## The SQUAREM algorithm to run the EM procedure
-    a <- as.numeric(atpar@pi_prior) # 0
-    b <- as.numeric(atpar@theta_prior) # 0
+    a <- .processPriors(atpar@pi_prior, atpar, tx_idx, nnofeat) 
+    b <- .processPriors(atpar@theta_prior, atpar, tx_idx, nnofeat) 
+
     Thetaenv <- new.env()
     assign("Theta", Theta, envir=Thetaenv)
-    tsres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatAT,maskmulti=maskmulti,
+    atres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatAT,maskmulti=maskmulti,
                     a=a, b=b, fixptfn=.tsFixedPointFun,
                     control=list(tol=atpar@em_epsilon, maxiter=atpar@maxIter))
-    PiTS <- tsres$par
+    PiTS <- atres$par
     PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
     # --- end EM-step ---
     
@@ -417,7 +426,6 @@ setMethod("qtex", "atenaParam",
 
 
 
-
 #' @importFrom scales rescale
 .rescaleASat <- function(asvalues, alen) {
   asrescale <- rescale(asvalues, c(1, max(asvalues) - min(asvalues) + 1))
@@ -427,3 +435,82 @@ setMethod("qtex", "atenaParam",
   asrescale
 }
 
+
+## private function .checkPriors()
+## Checks that if length(prior) > 1, all features after .processFeatures()
+## have a corresponding prior with the same name
+.checkPriors <- function(namesfeatures, namespriora, namespriorb) {
+  if (length(namespriora) > 1 & (!(all(namesfeatures %in% namespriora))))
+    stop("after processing annotations (.processFeatures()), not all features have a pi_prior matching its name. Check that 'names()' of 'teFeatures' or 'geneFeatures' match those of 'pi_prior'")
+  
+  if (length(namespriorb) > 1 & (!(all(namesfeatures %in% namespriorb))))
+    stop("after processing annotations (.processFeatures()), not all features have a theta_prior matching its name. Check that 'names()' of 'teFeatures' or 'geneFeatures' match those of 'theta_prior'")
+}
+
+
+## private function .processPriors()
+## Assigns priors to "no_feature" and checks the length of the vector
+## with priors
+.processPriors <- function(prior, atpar, tx_idx, nnofeat) {
+  if (length(prior) > 1) {
+    featuresnames <- names(atpar@features)[tx_idx[1:(length(tx_idx)-nnofeat)]]
+    prior <- prior[featuresnames]
+    prior <- c(prior, rep(0, nnofeat)) # setting prior of 0 to __no_feature
+  } else if (length(prior) == 1) {
+    prior <- rep(prior, length(tx_idx))
+  }
+  
+  if (any(is.na(prior))) {
+    stop(sprintf("Prior not found for feature: %s", 
+                 featuresnames[which(is.na(prior))]))
+  }
+  return(prior)
+}
+
+
+## private function .atEstep()
+## E-step of the EM algorithm based on Telescope
+.atEstep <- function(Q, Theta, maskmulti, Pi) {
+  # X <- t(t(Q) * Pi)
+  # # X[maskmulti, ] <- t(t(X[maskmulti, ]) * Theta)
+  # # quicker computation of previous line
+  # wh <- which(X*maskmulti > 0, arr.ind = TRUE)
+  # X[wh] <- t(t(X[wh]) * Theta[wh[, "col"]])
+  X <- Q
+  j <- rep(seq_len(ncol(X)), diff(X@p))
+  X@x <- X@x * Pi[j]
+  #wh <- which(X@x * maskmulti[X@i + 1] > 0)
+  whmulti <- as.integer(maskmulti[X@i + 1])
+  wh <- which(X@x * whmulti > 0)
+  j <- rep(seq_len(ncol(X)), diff(X@p))
+  X@x[wh] <- X@x[wh] * Theta[j][wh]
+  X <- X[rowSums2(X) > 0, , drop = FALSE]
+  X <- X/rowSums2(X)
+  X
+}
+
+## private function .atMstepPi()
+## M-step of the EM algorithm based on Telescope
+.atMstepPi <- function(X, a) {
+  Pi <- (colSums2(X) + a)/(sum(X@x) + sum(a))
+  Pi
+}
+
+## private function .atMstepTheta()
+## Update the estimate of the MAP value of θ
+.atMstepTheta <- function(X, maskmulti, b) {
+  Theta <- ((colSums2(X[maskmulti, , drop=FALSE]) + b) / 
+              (sum(maskmulti) + sum(b)))
+}
+
+## private function .atFixedPointFun()
+## fixed point function of the EM algorithm based on Telescope
+.atFixedPointFun <- function(Pi, Thetaenv, Q, maskmulti, a, b) {
+  Theta <- get("Theta", envir=Thetaenv)
+  X <- .atEstep(Q, Theta, maskmulti, Pi)
+  Pi2 <- .atMstepPi(X, a)
+  Theta2 <- .atMstepTheta (X, maskmulti, b)
+  assign("Theta", Theta2, envir=Thetaenv)
+  
+  Pi2
+}

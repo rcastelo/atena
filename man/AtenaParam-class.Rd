@@ -86,11 +86,18 @@ discard alignments for which the overlapping length (number of base
 pairs the alignment and the feature overlap) is lower. When no minimum 
 overlap is required, set \code{minOverlFract = 0}.}
 
-\item{pi_prior}{(Default 0) A positive integer scalar indicating the prior
-on pi. This is equivalent to adding n unique reads.}
+\item{pi_prior}{(Default 0) A positive numeric object indicating the prior
+on pi. The same prior can be specified for all features setting
+\code{pi_prior} as a scalar, or each feature can have a specific prior by
+setting \code{pi_prior} as a vector with \code{names()} corresponding to
+all feature names. Setting a pi prior is equivalent to adding n unique
+reads.}
 
-\item{theta_prior}{(Default 0) A positive integer scalar storing the prior
-on Q. Equivalent to adding n non-unique reads.}
+\item{theta_prior}{(Default 0) A positive numeric object indicating the
+prior on Q. The same prior can be specified for all features setting
+\code{theta_prior} as a scalar, or each feature can have a specific prior by
+setting \code{theta_prior} as a vector with \code{names()} corresponding to
+all feature names. Equivalent to adding n non-unique reads.}
 
 \item{em_epsilon}{(Default 1e-7) A numeric scalar indicating the EM
 Algorithm Epsilon cutoff.}
@@ -168,11 +175,18 @@ discard alignments for which the overlapping length (number of base
 pairs the alignment and the feature overlap) is lower. When no minimum 
 overlap is required, set \code{minOverlFract = 0}.}
 
-\item{\code{pi_prior}}{(Default 0) A positive integer scalar indicating the prior
-on pi. This is equivalent to adding n unique reads.}
+\item{\code{pi_prior}}{(Default 0) A positive numeric object indicating the prior
+on pi. The same prior can be specified for all features setting
+\code{pi_prior} as a scalar, or each feature can have a specific prior by
+setting \code{pi_prior} as a vector with \code{names()} corresponding to
+all feature names. Setting a pi prior is equivalent to adding n unique
+reads.}
 
-\item{\code{theta_prior}}{(Default 0) A positive integer scalar storing the prior
-on Q. Equivalent to adding n non-unique reads.}
+\item{\code{theta_prior}}{(Default 0) A positive numeric object indicating the
+prior on Q. The same prior can be specified for all features setting
+\code{theta_prior} as a scalar, or each feature can have a specific prior by
+setting \code{theta_prior} as a vector with \code{names()} corresponding to
+all feature names. Equivalent to adding n non-unique reads.}
 
 \item{\code{em_epsilon}}{(Default 1e-7) A numeric scalar indicating the EM
 Algorithm Epsilon cutoff.}

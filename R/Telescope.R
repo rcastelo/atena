@@ -406,8 +406,8 @@ setMethod("qtex", "TelescopeParam",
 
 ## private function .checkreassignModes()
 ## Checks that 'reassign_mode' is valid
-.checkreassignModes <- function(atpar) {
-  if (!(atpar@reassign_mode %in% c("exclude","choose","average","conf")))
+.checkreassignModes <- function(tspar) {
+  if (!(tspar@reassign_mode %in% c("exclude","choose","average","conf")))
     stop("'reassign_mode' must be one of: 'exclude', 'choose', 'average' or 'conf'")
 }
 
