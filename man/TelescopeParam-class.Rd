@@ -11,6 +11,7 @@ TelescopeParam(
   bfl,
   teFeatures,
   aggregateby = character(0),
+  ovMode = "ovUnion",
   geneFeatures = NA,
   singleEnd = TRUE,
   strandMode = 1L,
@@ -45,10 +46,17 @@ vector, which means that the names of the input \code{GRanges} or
 \code{GRangesList} object given in the \code{teFeatures} parameter are used
 to aggregate quantifications.}
 
+\item{ovMode}{Character vector indicating the overlapping mode. Available
+options are: "ovUnion" (default) and "ovIntersectionStrict",
+which implement the corresponding methods from HTSeq
+(\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+Ambiguous alignments (alignments overlapping > 1 feature) are addressed
+as in the original Telescope method: the overlap with the longest
+overlapping length is kept.}
+
 \item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
 gene annotated features to be quantified. The TEtranscripts approach for
-gene expression quantification is used, in which overlaps with unique reads
-are first tallied with respect to these gene features whereas multi-mapping
+gene expression quantification is used, in which overlaps with multi-mapping
 reads are preferentially assigned to TEs. Elements should have names
 indicating the gene name/id. In case that \code{geneFeatures} contains a
 metadata column named \code{type}, only the elements with

@@ -41,7 +41,6 @@ test_new_Telescope_functions <- function(){
     asvalues <- c(asvalues, mcols(alnreads)$AS)
     mreadlen <- median(width(ranges(alnreads)))
     thisov <- mode(alnreads, tspar@features,
-                   minOverlFract=as.integer(tspar@minOverlFract*mreadlen),
                    ignoreStrand=tspar@ignoreStrand)
     ov <- atena:::.appendHits(ov, thisov)
   }

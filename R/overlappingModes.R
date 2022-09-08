@@ -25,6 +25,12 @@
 #' will be considered to be overlapping an annotated feature as long as they
 #' have a non-empty intersecting genomic ranges on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand will not be considered.
+#' 
+#' @param inter.feature When TRUE, ambiguous alignments (alignments
+#' overlapping > 1 features) are removed and not counted. When 
+#' \code{inter.feature} is set to FALSE, these ambiguous overlaps are taken
+#' into account and addressed differently depending on the TE quantification.
+#' 
 #'
 #' @details These functions are given to the \code{mode} parameter of the
 #' \code{\link{qtex}()} function and are similar to the functions
@@ -73,7 +79,13 @@ ovUnion <- function(reads, features, ignoreStrand, inter.feature=TRUE) {
 #' @rdname ovFunctions
 ovIntersectionStrict <- function(reads, features, ignoreStrand, 
                                  inter.feature=TRUE) {
-    ov <- findOverlaps(reads, features, type="within"
+    ov <- findOverlaps(reads, features, type="within",
                        ignore.strand=ignoreStrand)
+    if (inter.feature) {
+      ## Remove ambigous reads.
+      reads_to_keep <- which(countQueryHits(ov) == 1L)
+      ov <- ov[queryHits(ov) %in% reads_to_keep]
+    }
+    
     ov
 }

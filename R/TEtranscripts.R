@@ -15,6 +15,13 @@
 #' vector, which means that the names of the input \code{GRanges} or
 #' \code{GRangesList} object given in the \code{teFeatures} parameter are used
 #' to aggregate quantifications.
+#' 
+#' @param ovMode Character vector indicating the overlapping mode. Available
+#' options are: "ovUnion" (default) and "ovIntersectionStrict",
+#' which implement the corresponding methods from HTSeq
+#' (\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+#' Ambiguous alignments (alignments overlapping > 1 feature) are addressed
+#' as in the original TEtranscripts method.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. Following the TEtranscripts
@@ -93,6 +100,7 @@
 #' @export
 #' @rdname TEtranscriptsParam-class
 TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
+                                ovMode="ovUnion",
                                 geneFeatures=NA,
                                 singleEnd=TRUE,
                                 ignoreStrand=FALSE,
@@ -103,12 +111,16 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
 
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
 
+    if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
+      stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
+    
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures, deparse(substitute(geneFeatures)),
                                 aggregateby, aggregateexons = FALSE)
 
     new("TEtranscriptsParam", bfl=bfl, features=features,
-        aggregateby=aggregateby, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+        aggregateby=aggregateby, ovMode=ovMode,
+        singleEnd=singleEnd, ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
         tolerance=tolerance, maxIter=as.integer(maxIter))
 }
@@ -158,7 +170,7 @@ setMethod("qtex", "TEtranscriptsParam",
                     BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
 
-            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=mode,
+            cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=x@ovMode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)

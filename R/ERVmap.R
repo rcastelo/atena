@@ -16,6 +16,13 @@
 #' vector, which means that the names of the input \code{GRanges} or 
 #' \code{GRangesList} object given in the \code{teFeatures} parameter are used
 #' to aggregate quantifications.
+#' 
+#' @param ovMode Character vector indicating the overlapping mode. Available
+#' options are: "ovUnion" (default) and "ovIntersectionStrict",
+#' which implement the corresponding methods from HTSeq
+#' (\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+#' Ambiguous alignments (alignments overlapping > 1 feature) are addressed
+#' as in the original ERVmap algorithm.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. Overlaps with unique reads are 
@@ -116,6 +123,7 @@
 #' @export
 #' @rdname ERVmapParam-class
 ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
+                        ovMode="ovUnion",
                         geneFeatures=NA,
                         singleEnd=TRUE,
                         ignoreStrand=TRUE,
@@ -128,6 +136,9 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
+    if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
+      stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
+    
     readmapper <- .checkBamReadMapper(path(bfl))
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
@@ -135,7 +146,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                             aggregateby, aggregateexons = FALSE)
     
     new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
-        singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+        ovMode=ovMode, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
         maxMismatchRate=maxMismatchRate, readMapper=readmapper,
         suboptimalAlignmentTag=suboptimalAlignmentTag,
@@ -185,7 +196,7 @@ setMethod("qtex", "ERVmapParam",
             BPPARAM=SerialParam(progressbar=ifelse(verbose==1, TRUE, FALSE))) {
             .checkPhenodata(phenodata, length(x@bfl))
             
-            cnt <- bplapply(x@bfl, .qtex_ervmap, empar=x, mode=mode,
+            cnt <- bplapply(x@bfl, .qtex_ervmap, empar=x, mode=x@ovMode,
                             yieldSize=yieldSize, verbose=verbose,
                             BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)

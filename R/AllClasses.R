@@ -10,6 +10,16 @@
 #'
 #' @slot aggregateby Character vector with column names in the annotation
 #'       to be used to aggregate quantifications.
+#'       
+#' @slot ovMode Character vector indicating the overlapping mode. Available
+#'       options are: "ovUnion" (default) and "ovIntersectionStrict",
+#'       which implement the corresponding methods from HTSeq
+#'       (\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+#'       In the TEtranscripts, ERVmap and Telescope methods ambiguous
+#'       alignments (alignments overlapping > 1 feature) are addressed
+#'       differently depending on the method. In the atena method, those
+#'       overlaps are not counted.
+#'    
 #'
 #' @importClassesFrom Rsamtools BamFileList
 #' @importClassesFrom GenomicRanges GenomicRanges_OR_GenomicRangesList
@@ -35,7 +45,7 @@
 setClass("QuantifyParam",
         representation(bfl="BamFileList",
                         features="GenomicRanges_OR_GenomicRangesList",
-                        aggregateby="character"))
+                        aggregateby="character", ovMode="character"))
 
 #' @param object A \linkS4class{QuantifyParam} object.
 #'

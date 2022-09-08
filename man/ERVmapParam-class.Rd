@@ -11,6 +11,7 @@ ERVmapParam(
   bfl,
   teFeatures,
   aggregateby = character(0),
+  ovMode = "ovUnion",
   geneFeatures = NA,
   singleEnd = TRUE,
   ignoreStrand = TRUE,
@@ -39,6 +40,13 @@ to be used to aggregate quantifications. By default, this is an empty
 vector, which means that the names of the input \code{GRanges} or 
 \code{GRangesList} object given in the \code{teFeatures} parameter are used
 to aggregate quantifications.}
+
+\item{ovMode}{Character vector indicating the overlapping mode. Available
+options are: "ovUnion" (default) and "ovIntersectionStrict",
+which implement the corresponding methods from HTSeq
+(\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+Ambiguous alignments (alignments overlapping > 1 feature) are addressed
+as in the original ERVmap algorithm.}
 
 \item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
 gene annotated features to be quantified. Overlaps with unique reads are 

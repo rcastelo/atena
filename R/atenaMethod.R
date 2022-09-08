@@ -17,6 +17,12 @@
 #' vector, which means that the names of the input \code{GRanges} or
 #' \code{GRangesList} object given in the \code{teFeatures} parameter are used
 #' to aggregate quantifications.
+#' 
+#' @param ovMode Character vector indicating the overlapping mode. Available
+#' options are: "ovUnion" (default) and "ovIntersectionStrict",
+#' which implement the corresponding methods from HTSeq
+#' (\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
+#' Ambiguous alignments (alignments overlapping > 1 feature) are not counted.
 #'
 #' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
 #' gene annotated features to be quantified. Unique reads are first tallied
@@ -120,6 +126,7 @@
 #' @export
 #' @rdname atenaParam-class
 atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
+                            ovMode="ovUnion",
                             geneFeatures=NA,
                             singleEnd=TRUE,
                             strandMode=1L,
@@ -136,13 +143,17 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
     if (!reassign_mode %in% c("exclude","choose","average","conf"))
       stop("'reassign_mode' should be one of 'exclude', 'choose', 'average' or 'conf'")
     
+    if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
+      stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
+    
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures,deparse(substitute(geneFeatures)),
                                 aggregateby, aggregateexons = TRUE)
     .checkPriors(names(features), names(pi_prior), names(theta_prior))
     
     new("atenaParam", bfl=bfl, features=features,
-        aggregateby=aggregateby, singleEnd=singleEnd,ignoreStrand=ignoreStrand,
+        aggregateby=aggregateby, ovMode=ovMode,
+        singleEnd=singleEnd,ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
         pi_prior=pi_prior,
         theta_prior=theta_prior, em_epsilon=em_epsilon,
@@ -196,7 +207,7 @@ setMethod("qtex", "atenaParam",
                     BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
             
-            cnt <- bplapply(x@bfl, .qtex_atena, atpar=x, mode=mode,
+            cnt <- bplapply(x@bfl, .qtex_atena, atpar=x, mode=x@ovMode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- .processMultiNofeature(cnt, x)
             cnt <- do.call("cbind", cnt)

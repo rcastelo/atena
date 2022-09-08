@@ -43,7 +43,7 @@ test_new_TEtranscript_functions <- function(){
       d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))
     }
     alnreadids <- c(alnreadids, names(alnreads))
-    thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
+    thisov <- mode(alnreads, ttpar@features,
                    ignoreStrand=ttpar@ignoreStrand)
     ov <- atena:::.appendHits(ov, thisov)
   }
