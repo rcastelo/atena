@@ -211,8 +211,8 @@ setMethod("qtex", "TEtranscriptsParam",
         }
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         alnreadids <- c(alnreadids, names(alnreads))
-        thisov <- mode(alnreads, ttpar@features, minOverlFract=0L,
-                        ignoreStrand=ttpar@ignoreStrand)
+        thisov <- mode(alnreads, ttpar@features,
+                        ignoreStrand=ttpar@ignoreStrand, inter.feature=FALSE)
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)

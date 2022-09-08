@@ -18,13 +18,6 @@
 #'        \code{GAlignmentPairs} object.
 #'
 #' @param features A \code{GRanges} object with annotated features.
-#' 
-#' @param minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
-#' is multiplied by the median read length and the resulting value is used to
-#' specify the \code{minoverlap} argument from
-#' \code{\link[IRanges:findOverlaps-methods]{findOverlaps}} from the
-#' \pkg{IRanges} package. When no minimum overlap is required, set
-#' \code{minOverlFract = 0}.
 #'
 #' @param ignoreStrand (Default FALSE) A logical which defines if the strand
 #' should be taken into consideration when computing the overlap between reads
@@ -62,18 +55,25 @@
 #' @importFrom S4Vectors countQueryHits
 #' @export
 #' @rdname ovFunctions
-ovUnion <- function(reads, features, ignoreStrand, minOverlFract) {
-    ov <- findOverlaps(reads, features, minoverlap=minOverlFract,
-                        ignore.strand=ignoreStrand)
+ovUnion <- function(reads, features, ignoreStrand, inter.feature=TRUE) {
+    ov <- findOverlaps(reads, features, ignore.strand=ignoreStrand)
+    if (inter.feature) {
+      ## Remove ambigous reads.
+      reads_to_keep <- which(countQueryHits(ov) == 1L)
+      ov <- ov[queryHits(ov) %in% reads_to_keep]
+    }
+    
     ov
 }
+
 
 #' @importFrom GenomicAlignments findOverlaps
 #' @importFrom S4Vectors countQueryHits
 #' @export
 #' @rdname ovFunctions
-ovIntersectionStrict <- function(reads, features, ignoreStrand, minOverlFract) {
-    ov <- findOverlaps(reads, features, type="within",
-                        minoverlap=0L, ignore.strand=ignoreStrand)
+ovIntersectionStrict <- function(reads, features, ignoreStrand, 
+                                 inter.feature=TRUE) {
+    ov <- findOverlaps(reads, features, type="within"
+                       ignore.strand=ignoreStrand)
     ov
 }

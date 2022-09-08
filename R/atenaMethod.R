@@ -252,23 +252,7 @@ setMethod("qtex", "atenaParam",
         alen <- c(alen, readlen)
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         thisov <- mode(alnreads, atpar@features,
-                        minOverlFract = 0,
-                        ignoreStrand=atpar@ignoreStrand)
-        
-        # Selecting the best overlap for alignments overlapping > 1 feature
-        multiov <- (duplicated(queryHits(thisov)) |
-                        duplicated(queryHits(thisov), fromLast = TRUE))
-        if (any(multiov)) {
-          ovlength <- .getOverlapLength(alnreads, thisov, atpar)
-          int <- ovlength[multiov]
-          intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
-                              FUN = which.max)
-          whpos <- which(!duplicated(queryHits(thisov)[multiov]))
-          whpos <- whpos - 1
-          intmax <- intmax[!duplicated(intmax$Group.1),]
-          thisov <- thisov[-which(multiov)[-(whpos + intmax$x)]]
-        }
-
+                       ignoreStrand=atpar@ignoreStrand, inter.feature=TRUE)
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)

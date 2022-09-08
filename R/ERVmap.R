@@ -290,15 +290,15 @@ while (length(alnreads <- do.call(readfun,
     mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
     alnreadsdiscard <- .getreadsdiscard(empar, alnreads, mask, thissalnmask)
     alnreads <- .filteralnreads(empar,alnreads,mask,thissalnmask,avsoas,avgene)
-    thisov <- mode(alnreads, empar@features, minOverlFract=0L,
-                    ignoreStrand=empar@ignoreStrand)
+    thisov <- mode(alnreads, empar@features,
+                    ignoreStrand=empar@ignoreStrand, inter.feature=FALSE)
     ov <- .appendHits(ov, thisov)
     
     if (avgene && empar@geneCountMode == "all") {
         ## calculate and store overlaps between the discarded reads and genes
         thisovdiscard <- mode(alnreadsdiscard, empar@features[!iste],
-                                minOverlFract=0L,
-                                ignoreStrand=empar@ignoreStrand)
+                              ignoreStrand=empar@ignoreStrand, 
+                              inter.feature=FALSE)
         ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
     }
     

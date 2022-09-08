@@ -253,8 +253,7 @@ setMethod("qtex", "TelescopeParam",
         alen <- c(alen, readlen)
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         thisov <- mode(alnreads, tspar@features,
-                        minOverlFract = 0,
-                        ignoreStrand=tspar@ignoreStrand)
+                       ignoreStrand=tspar@ignoreStrand, inter.feature=FALSE)
         
         # Selecting the overlaps with min overlap higher than threshold
         ovlength <- .getOverlapLength(alnreads, thisov, tspar)
