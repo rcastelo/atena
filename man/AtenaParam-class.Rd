@@ -16,7 +16,6 @@ atenaParam(
   strandMode = 1L,
   ignoreStrand = FALSE,
   fragments = FALSE,
-  minOverlFract = 0.2,
   pi_prior = 0L,
   theta_prior = 0L,
   em_epsilon = 1e-07,
@@ -79,12 +78,6 @@ When \code{fragments=FALSE}, the read-counting method only counts
 other fragments are also counted. \code{fragments=TRUE} is equivalent to
 the original Telescope algorithm. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
-
-\item{minOverlFract}{(Default 0.2) A numeric scalar. \code{minOverlFract}
-is multiplied by the read length and the resulting value is used to
-discard alignments for which the overlapping length (number of base
-pairs the alignment and the feature overlap) is lower. When no minimum 
-overlap is required, set \code{minOverlFract = 0}.}
 
 \item{pi_prior}{(Default 0) A positive numeric object indicating the prior
 on pi. The same prior can be specified for all features setting
@@ -168,12 +161,6 @@ When \code{fragments=FALSE} (default), the read-counting method only counts
 same-strand pairs, singletons, reads with unmapped pairs and other fragments
 are also counted. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
-
-\item{\code{minOverlFract}}{(Default 0.2) A numeric scalar. \code{minOverlFract}
-is multiplied by the read length and the resulting value is used to
-discard alignments for which the overlapping length (number of base
-pairs the alignment and the feature overlap) is lower. When no minimum 
-overlap is required, set \code{minOverlFract = 0}.}
 
 \item{\code{pi_prior}}{(Default 0) A positive numeric object indicating the prior
 on pi. The same prior can be specified for all features setting

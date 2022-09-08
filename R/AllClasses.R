@@ -324,12 +324,6 @@ setClass("TEtranscriptsParam", contains="QuantifyParam",
 #' same-strand pairs, singletons, reads with unmapped pairs and other fragments
 #' are also counted. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
-#' 
-#' @slot minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
-#' is multiplied by the read length and the resulting value is used to
-#' discard alignments for which the overlapping length (number of base
-#' pairs the alignment and the feature overlap) is lower. When no minimum 
-#' overlap is required, set \code{minOverlFract = 0}.
 #'
 #' @slot pi_prior (Default 0) A positive numeric object indicating the prior
 #' on pi. The same prior can be specified for all features setting
@@ -374,7 +368,6 @@ setClass("atenaParam", contains="QuantifyParam",
                         strandMode="integer",
                         ignoreStrand="logical",
                         fragments="logical",
-                        minOverlFract="numeric",
                         pi_prior="numeric",
                         theta_prior="numeric",
                         em_epsilon="numeric",

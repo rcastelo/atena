@@ -54,12 +54,6 @@
 #' the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
-#' @param minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
-#' is multiplied by the read length and the resulting value is used to
-#' discard alignments for which the overlapping length (number of base
-#' pairs the alignment and the feature overlap) is lower. When no minimum 
-#' overlap is required, set \code{minOverlFract = 0}.
-#'
 #' @param pi_prior (Default 0) A positive numeric object indicating the prior
 #' on pi. The same prior can be specified for all features setting
 #' \code{pi_prior} as a scalar, or each feature can have a specific prior by
@@ -131,7 +125,6 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
                             strandMode=1L,
                             ignoreStrand=FALSE,
                             fragments=FALSE,
-                            minOverlFract=0.2,
                             pi_prior=0L,
                             theta_prior=0L,
                             em_epsilon=1e-7,
@@ -151,7 +144,7 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
     new("atenaParam", bfl=bfl, features=features,
         aggregateby=aggregateby, singleEnd=singleEnd,ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
-        minOverlFract=minOverlFract, pi_prior=pi_prior,
+        pi_prior=pi_prior,
         theta_prior=theta_prior, em_epsilon=em_epsilon,
         maxIter=as.integer(maxIter), reassign_mode=reassign_mode,
         conf_prob=conf_prob)
@@ -262,16 +255,11 @@ setMethod("qtex", "atenaParam",
                         minOverlFract = 0,
                         ignoreStrand=atpar@ignoreStrand)
         
-        # Selecting the overlaps with min overlap higher than threshold
-        ovlength <- .getOverlapLength(alnreads, thisov, atpar)
-        yesminov <- ovlength > atpar@minOverlFract*readlen[queryHits(thisov)]
-        thisov <- thisov[yesminov]
-        ovlength <- ovlength[yesminov]
-        
         # Selecting the best overlap for alignments overlapping > 1 feature
         multiov <- (duplicated(queryHits(thisov)) |
                         duplicated(queryHits(thisov), fromLast = TRUE))
         if (any(multiov)) {
+          ovlength <- .getOverlapLength(alnreads, thisov, atpar)
           int <- ovlength[multiov]
           intmax <- aggregate(int, by = list(queryHits(thisov)[multiov]),
                               FUN = which.max)
