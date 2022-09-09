@@ -335,7 +335,9 @@ if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     ## (2015) stores probabilities of expression for each transcript, corrected
     ## for its effective length as defined in Eq. (1) of Jin et al. (2015)
     # Pi <- colSums2(Qmat)
-    Pi <- colSums2(ovalnmat / rowSums2(ovalnmat))
+    # Pi <- colSums2(ovalnmat / rowSums2(ovalnmat))
+    Pi <- colSums2(ovalnmat) / sum(ovalnmat)
+    
     if (is(ttpar@features,"GRangesList")) {
         elen <- as.numeric(sum(width(ttpar@features[tx_idx][istex]))) - avgreadlen+1
     } else {
@@ -404,9 +406,9 @@ cntvec
 ##             elen - effective length of each transcript
 .correctForTxEffectiveLength <- function(x, elen) {
     x[elen > 0] <- x[elen > 0] / elen[elen > 0]
-    x[elen <= 0] <- 0 ## (this is done in the original Python code but we don't
-    if (sum(x) > 0) {  ## do it here to avoid numerical instability) --> it is
-        x <- x / sum(x) ## now implemented since now it does not give an error
+    x[elen <= 0] <- 0
+    if (sum(x) > 0) {
+        x <- x / sum(x)
     }
     x
 }
