@@ -392,7 +392,7 @@ setMethod("qtex", "atenaParam",
 ## '__no_feature' method
 .processMultiNofeature <- function(cnt, x) {
   # adapted from cbindX() from gdata package
-  if (x@nofeature_mode == "multiple" & length(cnt) > 1) {
+  if (length(cnt) > 1) {
     nrowsam <- lengths(cnt)
     maxi <- which.max(nrowsam)
     test <- nrowsam < nrowsam[maxi]
