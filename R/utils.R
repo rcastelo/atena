@@ -237,7 +237,7 @@
     stopifnot(length(features) == length(fnames)) ## QC
     features <- features[match(fnames, names(features))]
     
-    if (is(x, "TelescopeParam")) {
+    if (is(x, "TelescopeParam") | is(x, "atenaParam")) {
         nofeat_gr <- GRanges(seqnames = "chrNofeature", 
                              ranges = IRanges(start = 1, end = 1))
         if (length(whnofeat)==1) {
