@@ -52,7 +52,7 @@
 #' @export
 annotaTEs <- function(genome="hg38", parsefun=rmskidentity) {
   ah <- AnnotationHub()
-  qah <- query(ah, c(genome, "RepeatMasker"))
+  qah <- query(ah, c(genome, "RepeatMasker", "UCSC"))
   if (length(qah) == 0)
     stop(sprintf("UCSC RepeatMasker tracks for genome %s not found", genome))
   else if (length(qah) > 1)
