@@ -1,3 +1,15 @@
+CHANGES IN VERSION 1.4.0 (2022-31-11)
+---------------------------------------
+
+USER VISIBLE CHANGES
+
+    o Implemented 'choose', 'average' and 'conf' reassignment modes in Telescope method.
+    o Creation of a 4th expression quantification method, called the atena method.
+    o Modified 'ovUnion' method to address alignments overlapping > 1 feature.
+    o Implemented 'OvIntersectionStrict' overlapping method.
+    o Adapted annotaTEs() function to new RepeatMasker annotations in AnnotationHub.
+    o Changed coercions to dgCMatrix and lgCMatrix to go via virtual classes to comply with latest updates in Matrix version 1.4-2.
+
 CHANGES IN VERSION 1.2.0 (2022-04-21)
 ---------------------------------------
 
