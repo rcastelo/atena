@@ -353,7 +353,7 @@
     mt1 <- match(aridx[queryHits(ov)], ridx)
     mt2 <- match(subjectHits(ov), fidx)
     
-    if (is(x, "TelescopeParam")) {
+    if (is(x, "TelescopeParam") | is(x, "atenaParam")) {
         mtov <- cbind(mt1, mt2)
         mtalign <- match(paste(mtov[,1],mtov[,2],sep = ":"),
                          unique(paste(mtov[,1],mtov[,2], sep = ":")))
