@@ -358,8 +358,12 @@
         mtalign <- match(paste(mtov[,1],mtov[,2],sep = ":"),
                          unique(paste(mtov[,1],mtov[,2], sep = ":")))
         s <- split(x = values[queryHits(ov)], f = mtalign)
-        smax <- unlist(lapply(s, max), use.names = FALSE)
-        values <- smax[mtalign]
+        if (is(x, "TelescopeParam")) {
+          saln <- unlist(lapply(s, max), use.names = FALSE)
+        } else {
+          saln <- unlist(lapply(s, sum), use.names = FALSE)
+        }
+        values <- saln[mtalign]
     } else {
         values <- values[queryHits(ov)]
     }
