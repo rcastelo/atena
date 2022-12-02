@@ -335,11 +335,11 @@ setMethod("qtex", "atenaParam",
     # maskmulti <- ifelse(rowSums2(QmatAT > 0) == 1, 0, 1)
     maskmulti <- rowSums2(QmatAT > 0) > 1
     
-    # Telescope (Bendall et al.(2019)) defines the initial π estimate uniformly
-    PiTS <- rep(1 / length(tx_idx), length(tx_idx))
+    # π estimate proportional to relative abundances of features
+    Pi <- colSums2(QmatAT / rowSums2(QmatAT))
     
-    # Telescope defines an additional reassignment parameter (θ) as uniform
-    Theta <- rep(1 / length(tx_idx), length(tx_idx))
+    # θ proportional to relative abundances of features given by multimapping reads
+    Theta <- colSums2(QmatAT[maskmulti,] / rowSums2(QmatAT[maskmulti,]))
     
     ## The SQUAREM algorithm to run the EM procedure
     a <- .processPriors(atpar@pi_prior, atpar, tx_idx, nnofeat) 
@@ -347,15 +347,15 @@ setMethod("qtex", "atenaParam",
 
     Thetaenv <- new.env()
     assign("Theta", Theta, envir=Thetaenv)
-    atres <- squarem(par=PiTS, Thetaenv=Thetaenv, Q=QmatAT,maskmulti=maskmulti,
+    atres <- squarem(par=Pi, Thetaenv=Thetaenv, Q=QmatAT,maskmulti=maskmulti,
                     a=a, b=b, fixptfn=.tsFixedPointFun,
                     control=list(tol=atpar@em_epsilon, maxiter=atpar@maxIter))
-    PiTS <- atres$par
-    PiTS[PiTS < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
+    Pi <- atres$par
+    Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
     # --- end EM-step ---
     
     Theta <- get("Theta", envir=Thetaenv)
-    X <- .tsEstep(QmatAT, Theta, maskmulti, PiTS)
+    X <- .tsEstep(QmatAT, Theta, maskmulti, Pi)
     cntvec <- .reassign(X, atpar@reassign_mode, atpar@conf_prob, cntvec, tx_idx)
     
     nofeat_names <- paste("no_feature", 1:nnofeat, sep = "")
