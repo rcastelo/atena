@@ -348,7 +348,7 @@ setMethod("qtex", "atenaParam",
     Thetaenv <- new.env()
     assign("Theta", Theta, envir=Thetaenv)
     atres <- squarem(par=Pi, Thetaenv=Thetaenv, Q=QmatAT,maskmulti=maskmulti,
-                    a=a, b=b, fixptfn=.tsFixedPointFun,
+                    a=a, b=b, fixptfn=.atFixedPointFun,
                     control=list(tol=atpar@em_epsilon, maxiter=atpar@maxIter))
     Pi <- atres$par
     Pi[Pi < 0] <- 0 ## Pi estimates are sometimes negatively close to zero
