@@ -38,6 +38,9 @@
     if (missing(bfl) || !class(bfl) %in% c("character", "BamFileList"))
         stop("argument 'bfl' should be either a string character vector of BAM file names or a 'BamFileList' object")
     
+    if (length(bfl) == 0)
+        stop("argument 'bfl' is empty")
+  
     if (is.character(bfl)) {
         mask <- vapply(bfl, FUN = file.exists, FUN.VALUE = logical(1))
         if (any(!mask))

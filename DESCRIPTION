@@ -43,7 +43,7 @@ biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, So
 VignetteBuilder: knitr
 URL: https://github.com/functionalgenomics/atena
 BugReports: https://github.com/functionalgenomics/atena/issues
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Collate: 
     'AllGenerics.R'
     'AllClasses.R'

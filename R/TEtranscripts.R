@@ -51,10 +51,12 @@
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
 #' @param fragments (Default TRUE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE}, the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
-#' (default), same-strand pairs, singletons, reads with unmapped pairs and
-#' other fragments are also counted. \code{fragments=TRUE} is equivalent to
+#' In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+#' read-counting method discards not properly paired reads. Moreover,
+#' when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
+#' counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
+#' (see "Pairing criteria" in \code{\link[GenomicAlignments]{readGAlignments}()}). 
+#' \code{fragments=TRUE} is equivalent to
 #' the behavior of the TEtranscripts algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
@@ -195,7 +197,8 @@ setMethod("qtex", "TEtranscriptsParam",
     mode <- match.fun(mode)
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
-                            isNotPassingQualityControls=FALSE)
+                           isNotPassingQualityControls=FALSE,
+                           isProperPair=TRUE)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     
     iste <- as.vector(attributes(ttpar@features)$isTE[,1])

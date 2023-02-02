@@ -73,10 +73,12 @@ class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 is ignored.}
 
 \item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
-When \code{fragments=FALSE}, the read-counting method only counts
-‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
-(default), same-strand pairs, singletons, reads with unmapped pairs and
-other fragments are also counted. \code{fragments=TRUE} is equivalent to
+In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+read-counting method discards not properly paired reads. Moreover,
+when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
+counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
+(see "Pairing criteria" in \code{\link[GenomicAlignments]{readGAlignments}()}). 
+\code{fragments=TRUE} is equivalent to
 the behavior of the TEtranscripts algorithm. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
@@ -132,9 +134,13 @@ class for further detail. If \code{singleEnd = TRUE}, then use either
 \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.}
 
 \item{\code{fragments}}{(Default TRUE) A logical; applied to paired-end data only.
-When \code{fragments=TRUE} (default), the read-counting method will also
-count reads without mates, while when \code{fragments=FALSE} those reads
-will not be counted. For further details see
+In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+read-counting method discards not properly paired reads. Moreover,
+when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
+counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
+(see "Pairing criteria" in \code{\link[GenomicAlignments]{readGAlignments}()}). 
+\code{fragments=TRUE} is equivalent to
+the behavior of the TEtranscripts algorithm. For further details see
 \code{\link[GenomicAlignments]{summarizeOverlaps}()}.}
 
 \item{\code{tolerance}}{A positive numeric scalar storing the minimum tolerance

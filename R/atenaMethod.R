@@ -54,10 +54,12 @@
 #'
 #' @param fragments (Default TRUE) A logical; applied to paired-end data only.
 #' When \code{fragments=FALSE}, the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
-#' (default), same-strand pairs, singletons, reads with unmapped pairs and
-#' other fragments are also counted. \code{fragments=TRUE} is equivalent to
-#' the original Telescope algorithm. For further details see
+#' ‘mated pairs’ from opposite strands (non-ambiguous properly paired reads), 
+#' while when \code{fragments=TRUE} same-strand pairs, singletons, reads with 
+#' unmapped pairs and other ambiguous or not properly paired fragments
+#' are also counted (see "Pairing criteria" in 
+#' \code{\link[GenomicAlignments]{readGAlignments}()}). 
+#' For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
 #' @param pi_prior (Default 0) A positive numeric object indicating the prior
@@ -131,7 +133,7 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
                             singleEnd=TRUE,
                             strandMode=1L,
                             ignoreStrand=FALSE,
-                            fragments=FALSE,
+                            fragments=TRUE,
                             pi_prior=0L,
                             theta_prior=0L,
                             em_epsilon=1e-7,
@@ -236,9 +238,7 @@ setMethod("qtex", "atenaParam",
     mode <- match.fun(mode)
     readfun <- .getReadFunction(atpar@singleEnd, atpar@fragments)
     .checkreassignModes(atpar)
-    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                            isDuplicate=FALSE,
-                            isNotPassingQualityControls=FALSE)
+    sbflags <- .getScanBamFlag_ts(atpar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     iste <- as.vector(attributes(atpar@features)$isTE[,1])
     if (any(duplicated(names(atpar@features[iste])))) {

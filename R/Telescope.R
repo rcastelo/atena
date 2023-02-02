@@ -55,12 +55,14 @@
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
-#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
+#' @param fragments (Default FALSE) A logical; applied to paired-end data only.
 #' When \code{fragments=FALSE}, the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE}
-#' (default), same-strand pairs, singletons, reads with unmapped pairs and
-#' other fragments are also counted. \code{fragments=TRUE} is equivalent to
-#' the original Telescope algorithm. For further details see
+#' ‘mated pairs’ from opposite strands (non-ambiguous properly paired reads), 
+#' while when \code{fragments=TRUE} same-strand pairs, singletons, reads with 
+#' unmapped pairs and other ambiguous or not properly paired fragments
+#' are also counted (see "Pairing criteria" in 
+#' \code{\link[GenomicAlignments]{readGAlignments}()}). \code{fragments=TRUE} 
+#' is equivalent to the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
 #' @param minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
@@ -238,9 +240,7 @@ setMethod("qtex", "TelescopeParam",
     mode <- match.fun(mode)
     readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
     .checkreassignModes(tspar)
-    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                            isDuplicate=FALSE,
-                            isNotPassingQualityControls=FALSE)
+    sbflags <- .getScanBamFlag_ts(tspar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     iste <- as.vector(attributes(tspar@features)$isTE[,1])
     if (any(duplicated(names(tspar@features[iste])))) {
@@ -685,4 +685,19 @@ setMethod("qtex", "TelescopeParam",
         }
     }
     ovlength
+}
+
+#' @importFrom Rsamtools ScanBamParam
+.getScanBamFlag_ts <- function(fragments) {
+  if (fragments == TRUE) {
+    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                           isDuplicate=FALSE,
+                           isNotPassingQualityControls=FALSE)
+  } else {
+    sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                           isDuplicate=FALSE,
+                           isNotPassingQualityControls=FALSE,
+                           isProperPair=TRUE)
+  }
+  sbflags
 }

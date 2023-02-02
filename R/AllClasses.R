@@ -106,13 +106,15 @@ setMethod("features", "QuantifyParam",
 #' in \code{teFeatures} is counted regardless of the strand.
 #'
 #' @slot fragments (Default not \code{singleEnd}) A logical; applied to
-#' paired-end data only. When \code{fragments=TRUE} (default), the
-#' read-counting method in the original ERVmap algorithm will be applied: each
-#' mate of a paired-end read is counted once and, therefore, two mates mapping
-#' to the same element result in adding up a count value of two. When
+#' paired-end data only. When \code{fragments=TRUE}, the read-counting
+#' method in the original ERVmap algorithm is applied: each mate of a
+#' paired-end read is counted (including ambiguous and not properly paired 
+#' reads). When
 #' \code{fragments=FALSE}, if the two mates of a paired-end read map to the
 #' same element, they are counted as a single hit and singletons, reads with
-#' unmapped pairs and other fragments, are not counted.
+#' unmapped pairs and other ambiguous or not properly paired fragments are 
+#' not counted (see "Pairing criteria" in 
+#' \code{\link[GenomicAlignments]{readGAlignments}()}).
 #'
 #' @slot maxMismatchRate (Default 0.02) Numeric value storing the maximum
 #' mismatch rate employed by the ERVmap algorithm to discard aligned reads
@@ -187,10 +189,13 @@ setClass("ERVmapParam", contains="QuantifyParam",
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
 #' @slot fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
-#' are also counted. For further details see
+#' When \code{fragments=FALSE}, the read-counting method only counts
+#' ‘mated pairs’ from opposite strands (non-ambiguous properly paired reads), 
+#' while when \code{fragments=TRUE} same-strand pairs, singletons, reads with 
+#' unmapped pairs and other ambiguous or not properly paired fragments
+#' are also counted (see "Pairing criteria" in 
+#' \code{\link[GenomicAlignments]{readGAlignments}()}). \code{fragments=TRUE} 
+#' is equivalent to the original Telescope algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #' 
 #' @slot minOverlFract (Default 0.2) A numeric scalar. \code{minOverlFract}
@@ -273,9 +278,13 @@ setClass("TelescopeParam", contains="QuantifyParam",
 #' \code{strandMode = NULL} or do not specify the \code{strandMode} parameter.
 #'
 #' @slot fragments (Default TRUE) A logical; applied to paired-end data only.
-#' When \code{fragments=TRUE} (default), the read-counting method will also
-#' count reads without mates, while when \code{fragments=FALSE} those reads
-#' will not be counted. For further details see
+#' In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+#' read-counting method discards not properly paired reads. Moreover,
+#' when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
+#' counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
+#' (see "Pairing criteria" in \code{\link[GenomicAlignments]{readGAlignments}()}). 
+#' \code{fragments=TRUE} is equivalent to
+#' the behavior of the TEtranscripts algorithm. For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
 #' @slot tolerance A positive numeric scalar storing the minimum tolerance
@@ -328,11 +337,14 @@ setClass("TEtranscriptsParam", contains="QuantifyParam",
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
-#' @slot fragments (Default FALSE) A logical; applied to paired-end data only.
-#' When \code{fragments=FALSE} (default), the read-counting method only counts
-#' ‘mated pairs’ from opposite strands, while when \code{fragments=TRUE},
-#' same-strand pairs, singletons, reads with unmapped pairs and other fragments
-#' are also counted. For further details see
+#' @slot fragments (Default TRUE) A logical; applied to paired-end data only.
+#' When \code{fragments=FALSE}, the read-counting method only counts
+#' ‘mated pairs’ from opposite strands (non-ambiguous properly paired reads), 
+#' while when \code{fragments=TRUE} same-strand pairs, singletons, reads with 
+#' unmapped pairs and other ambiguous or not properly paired fragments
+#' are also counted (see "Pairing criteria" in 
+#' \code{\link[GenomicAlignments]{readGAlignments}()}). 
+#' For further details see
 #' \code{\link[GenomicAlignments]{summarizeOverlaps}()}.
 #'
 #' @slot pi_prior (Default 0) A positive numeric object indicating the prior

@@ -78,11 +78,13 @@ have a non-empty intersecting genomic range on the same strand, while when
 \item{fragments}{(Default not \code{singleEnd}) A logical; applied to
 paired-end data only. When \code{fragments=TRUE}, the read-counting
 method in the original ERVmap algorithm is applied: each mate of a
-paired-end read is counted once and, therefore, two mates mapping to the
-same element result in adding up a count value of two. When
+paired-end read is counted (including ambiguous and not properly paired 
+reads). When
 \code{fragments=FALSE}, if the two mates of a paired-end read map to the
 same element, they are counted as a single hit and singletons, reads with
-unmapped pairs and other fragments, are not counted.}
+unmapped pairs and other ambiguous or not properly paired fragments are 
+not counted (see "Pairing criteria" in 
+\code{\link[GenomicAlignments]{readGAlignments}()}).}
 
 \item{maxMismatchRate}{(Default 0.02) Numeric value storing the maximum
 mismatch rate employed by the ERVmap algorithm to discard aligned reads
@@ -163,13 +165,15 @@ contrary, when \code{ignore_strand = TRUE}, any read overlapping an element
 in \code{teFeatures} is counted regardless of the strand.}
 
 \item{\code{fragments}}{(Default not \code{singleEnd}) A logical; applied to
-paired-end data only. When \code{fragments=TRUE} (default), the
-read-counting method in the original ERVmap algorithm will be applied: each
-mate of a paired-end read is counted once and, therefore, two mates mapping
-to the same element result in adding up a count value of two. When
+paired-end data only. When \code{fragments=TRUE}, the read-counting
+method in the original ERVmap algorithm is applied: each mate of a
+paired-end read is counted (including ambiguous and not properly paired 
+reads). When
 \code{fragments=FALSE}, if the two mates of a paired-end read map to the
 same element, they are counted as a single hit and singletons, reads with
-unmapped pairs and other fragments, are not counted.}
+unmapped pairs and other ambiguous or not properly paired fragments are 
+not counted (see "Pairing criteria" in 
+\code{\link[GenomicAlignments]{readGAlignments}()}).}
 
 \item{\code{maxMismatchRate}}{(Default 0.02) Numeric value storing the maximum
 mismatch rate employed by the ERVmap algorithm to discard aligned reads
