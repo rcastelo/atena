@@ -196,9 +196,7 @@ setMethod("qtex", "TEtranscriptsParam",
 .qtex_tetranscripts <- function(bf, ttpar, mode, yieldSize=1e6L) {
     mode <- match.fun(mode)
     readfun <- .getReadFunction(ttpar@singleEnd, ttpar@fragments)
-    sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
-                           isNotPassingQualityControls=FALSE,
-                           isProperPair=TRUE)
+    sbflags <- .getScanBamFlag_tt(ttpar@singleEnd)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     
     iste <- as.vector(attributes(ttpar@features)$isTE[,1])
@@ -636,4 +634,17 @@ cntvec
     ovalnmat <- as(as(as(ovalnmat, "dMatrix"), "generalMatrix"), "CsparseMatrix")
     ovalnmat[pos_tem] <- ovalnmat[pos_tem] / as.numeric(novperaln[mt_multig])
     ovalnmat
+}
+
+#' @importFrom Rsamtools scanBamFlag
+.getScanBamFlag_tt <- function(singleEnd) {
+    if (singleEnd == TRUE) {
+        sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
+                               isNotPassingQualityControls=FALSE)
+    } else {
+        sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
+                               isNotPassingQualityControls=FALSE,
+                               isProperPair=TRUE)
+    }
+  sbflags
 }

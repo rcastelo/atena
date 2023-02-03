@@ -238,7 +238,7 @@ setMethod("qtex", "atenaParam",
     mode <- match.fun(mode)
     readfun <- .getReadFunction(atpar@singleEnd, atpar@fragments)
     .checkreassignModes(atpar)
-    sbflags <- .getScanBamFlag_ts(atpar@fragments)
+    sbflags <- .getScanBamFlag_ts(atpar@singleEnd, atpar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     iste <- as.vector(attributes(atpar@features)$isTE[,1])
     if (any(duplicated(names(atpar@features[iste])))) {

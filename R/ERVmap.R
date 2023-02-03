@@ -446,21 +446,39 @@ cntvec
 .setBamFlags <- function(bf, empar, avtags, avgene) {
     sbflags <- scanBamFlag()
     
-    ## if we use the 'XS' tag then do not read secondary alignments
-    if ("XS" %in% avtags && empar@readMapper == "bwa" &&
-        empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
-        sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                                isDuplicate=FALSE,
-                                isNotPassingQualityControls=FALSE,
-                                isSupplementaryAlignment=FALSE,
-                                isSecondaryAlignment=FALSE)
-    
-    else ## otherwise do not exclude secondary alignments
-        sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
-                                isDuplicate=FALSE,
-                                isNotPassingQualityControls=FALSE,
-                                isSupplementaryAlignment=FALSE)
-    
+    if (empar@singleEnd == TRUE | empar@fragments == TRUE) {
+        ## if we use the 'XS' tag then do not read secondary alignments
+        if ("XS" %in% avtags && empar@readMapper == "bwa" &&
+            empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
+            sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                    isDuplicate=FALSE,
+                                    isNotPassingQualityControls=FALSE,
+                                    isSupplementaryAlignment=FALSE,
+                                    isSecondaryAlignment=FALSE)
+        
+        else ## otherwise do not exclude secondary alignments
+            sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                    isDuplicate=FALSE,
+                                    isNotPassingQualityControls=FALSE,
+                                    isSupplementaryAlignment=FALSE)
+    } else {
+        ## if we use the 'XS' tag then do not read secondary alignments
+        if ("XS" %in% avtags && empar@readMapper == "bwa" &&
+            empar@suboptimalAlignmentTag %in% c("auto", "XS") && !avgene)
+            sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                   isDuplicate=FALSE,
+                                   isNotPassingQualityControls=FALSE,
+                                   isSupplementaryAlignment=FALSE,
+                                   isSecondaryAlignment=FALSE,
+                                   isProperPair=TRUE)
+        
+        else ## otherwise do not exclude secondary alignments
+            sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
+                                   isDuplicate=FALSE,
+                                   isNotPassingQualityControls=FALSE,
+                                   isSupplementaryAlignment=FALSE,
+                                   isProperPair=TRUE)
+    }
     sbflags
 }
 

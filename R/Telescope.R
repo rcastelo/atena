@@ -240,7 +240,7 @@ setMethod("qtex", "TelescopeParam",
     mode <- match.fun(mode)
     readfun <- .getReadFunction(tspar@singleEnd, tspar@fragments)
     .checkreassignModes(tspar)
-    sbflags <- .getScanBamFlag_ts(tspar@fragments)
+    sbflags <- .getScanBamFlag_ts(tspar@singleEnd, tspar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     iste <- as.vector(attributes(tspar@features)$isTE[,1])
     if (any(duplicated(names(tspar@features[iste])))) {
@@ -687,9 +687,9 @@ setMethod("qtex", "TelescopeParam",
     ovlength
 }
 
-#' @importFrom Rsamtools ScanBamParam
-.getScanBamFlag_ts <- function(fragments) {
-  if (fragments == TRUE) {
+#' @importFrom Rsamtools scanBamFlag
+.getScanBamFlag_ts <- function(singleEnd, fragments) {
+  if (singleEnd == TRUE | fragments == TRUE) {
     sbflags <- scanBamFlag(isUnmappedQuery=FALSE,
                            isDuplicate=FALSE,
                            isNotPassingQualityControls=FALSE)
