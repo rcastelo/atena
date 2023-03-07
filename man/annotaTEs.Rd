@@ -4,7 +4,7 @@
 \alias{annotaTEs}
 \title{Get RepeatMasker UCSC annotations}
 \usage{
-annotaTEs(genome = "hg38", parsefun = rmskidentity)
+annotaTEs(genome = "hg38", parsefun = rmskidentity, ...)
 }
 \arguments{
 \item{genome}{The genome version of the desired RepeatMasker annotations
@@ -23,9 +23,16 @@ annotaTEs(genome = "hg38", parsefun = rmskidentity)
         as "Unknown" or "Other". Finally, assigns a unique id to each TE
         instance by adding the suffix "_dup" plus a number at the end of
         the "repName".
+  \item Function \code{OneCodeToFindThemAll} parses annotations following
+        the 'One code to find them all' method by 
+        \href{https://doi.org/10.1186/1759-8753-5-13}{(Bailly-Bechet et al. 2014)}. 
+        Input is a \code{GRanges} object and output is a \code{GRangesList} 
+        object.
   \item User-defined function. Input and output should be \code{GRanges}
         objects.
 }}
+
+\item{...}{Arguments passed to \code{parsefun}.}
 }
 \value{
 A \link[GenomicRanges:GRanges-class]{GRanges} object with
