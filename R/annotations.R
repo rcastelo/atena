@@ -526,6 +526,16 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   outside <- outside[outside != ""]
   
   # Simplify element names by erasing LTR, I, IN, INT, or symbols like -_, etc...
+  inout <- .simplifyNameSearch(ltruniq, intuniq, inside, outside)
+  
+  if (fuzzy) {
+    inout <- .getFuzzyEquivalences(inout, elem_liste_int, elem_liste_ltr)
+  }
+  
+  inout
+}
+
+.simplifyNameSearch <- function(ltruniq, intuniq, inside, outside) {
   elem_liste_ltr <- ltruniq
   ltrpat <- grep(pattern = "^LTR", ltruniq)
   elem_liste_ltr[!ltrpat] <- gsub(pattern = "LTR", ltruniq[!ltrpat], 
@@ -543,7 +553,6 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   el1all <- names(elem_liste_int[is.na(outside[elem_liste_int])])
   el2all <- names(elem_liste_ltr[is.na(outside[elem_liste_ltr]) &
                                    is.na(inside[elem_liste_ltr])])
-  
   for (el1 in el1all) {
     for (el2 in el2all) {
       if (el1 == el2) {
@@ -564,14 +573,9 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
       }
     }
   }
-  
-  inout <- list(inside = inside, outside = outside)
-  if (fuzzy) {
-    inout <- .getFuzzyEquivalences(inout, elem_liste_int, elem_liste_ltr)
-  }
-  
-  inout
+  list(inside = inside, outside = outside)
 }
+
 
 .getFuzzyEquivalences <- function(inout, elem_liste_int, elem_liste_ltr) {
   outside <- inout$outside
@@ -682,7 +686,6 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 }
 
 #' @importFrom GenomicRanges start mcols "mcols<-"
-#' @importFrom Matrix colSums rowSums
 .reconstructTEs <- function(annchr, outside, inside, cons_length, insert, 
                             minusStrand=FALSE) {
   # For LTRs and internal regions, we check for the presence (in the same 
@@ -702,38 +705,9 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   annchrltr <- annchr[whltr]
   
   if (length(annchrint) > 0 & length(annchrltr) > 0) {
-    
-    annchrint2 <- annchrint[outsidechr[names(annchrltr)]]
-    annchrltr2 <- split(unlist(annchrltr), 
-                        rep(outsidechr[names(annchrltr)], lengths(annchrltr)))
-    
-    posc_int <- mapply(function(ltrname,intname) 
-      outer(start(annchrltr2[[ltrname]]), start(annchrint[[intname]]), "<"),
-      ltrname = names(annchrltr2), intname = names(annchrint),
-      SIMPLIFY = FALSE)
-    
-    posc_ltr <- mapply(function(ltrname,intname) 
-      outer(start(annchrltr[[ltrname]]), start(annchrint2[[intname]]), "<"),
-      ltrname = names(annchrltr), intname = names(annchrint2),
-      SIMPLIFY = FALSE)
-    
-    # 'posc' is a list of matrices in which ltr are rows and int regions are 
-    # columns the matrices are TRUE/FALSE depending if the start position of
-    # a ltr (row) is smaller than the start position of a int (col)
-    # Cases where there is only 1 ltr or internal region in the chr are well
-    # addressed
-    
-    # Creating a factor to split ltr and int according to their position in
-    # relation to their equivalent int and ltr, respectively.
-    splitfltr <- lapply(posc_ltr, function(x) rowSums(x))
-    splitfint <- lapply(posc_int, function(x) colSums(x))
-    splitfltr2 <- as.factor(paste(rep(names(splitfltr), lengths(splitfltr)),
-                                  unlist(splitfltr), sep ="."))
-    splitfint2 <- as.factor(paste(rep(names(splitfint), lengths(splitfint)),
-                                  unlist(splitfint), sep ="."))
-    annchrltrsp <- split(unlist(annchrltr), splitfltr2)
-    annchrintsp <- split(unlist(annchrint), splitfint2)
-    
+    splitf2 <- .splitNonContinous(annchrint, annchrltr, outsidechr)
+    annchrltrsp <- split(unlist(annchrltr), splitf2$splitfltr2)
+    annchrintsp <- split(unlist(annchrint), splitf2$splitfint2)
     annchr <- annchr[-c(whint, whltr)]
     
     # We keep ltr and int separated from the rest of TEs to later perform the
@@ -777,6 +751,40 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   }
   opos <- order(min(start(anngrl)), decreasing = FALSE)
   anngrl[opos]
+}
+
+#' @importFrom GenomicRanges start mcols "mcols<-"
+#' @importFrom Matrix colSums rowSums
+.splitNonContinous <- function(annchrint, annchrltr, outsidechr) {
+  annchrint2 <- annchrint[outsidechr[names(annchrltr)]]
+  annchrltr2 <- split(unlist(annchrltr), 
+                      rep(outsidechr[names(annchrltr)], lengths(annchrltr)))
+  
+  posc_int <- mapply(function(ltrname,intname) 
+    outer(start(annchrltr2[[ltrname]]), start(annchrint[[intname]]), "<"),
+    ltrname = names(annchrltr2), intname = names(annchrint),
+    SIMPLIFY = FALSE)
+  
+  posc_ltr <- mapply(function(ltrname,intname) 
+    outer(start(annchrltr[[ltrname]]), start(annchrint2[[intname]]), "<"),
+    ltrname = names(annchrltr), intname = names(annchrint2),
+    SIMPLIFY = FALSE)
+  
+  # 'posc' is a list of matrices in which ltr are rows and int regions are 
+  # columns the matrices are TRUE/FALSE depending if the start position of
+  # a ltr (row) is smaller than the start position of a int (col)
+  # Cases where there is only 1 ltr or internal region in the chr are well
+  # addressed
+  
+  # Creating a factor to split ltr and int according to their position in
+  # relation to their equivalent int and ltr, respectively.
+  splitfltr <- lapply(posc_ltr, function(x) rowSums(x))
+  splitfint <- lapply(posc_int, function(x) colSums(x))
+  splitfltr2 <- as.factor(paste(rep(names(splitfltr), lengths(splitfltr)),
+                                unlist(splitfltr), sep ="."))
+  splitfint2 <- as.factor(paste(rep(names(splitfint), lengths(splitfint)),
+                                unlist(splitfint), sep ="."))
+  list(splitfltr2 = splitfltr2, splitfint2 = splitfint2)
 }
 
 #' @importFrom GenomicRanges GRangesList start width strand end reduce
@@ -882,50 +890,58 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   partial <- whup | whdown
   partial[fulllength] <- FALSE
   
+  anngrlERVs <- .getFulllength_Partial_ERVs(fulllength, partial, annchrltrint, 
+                                            whintup, whint, whintdo, yesltrup,
+                                            yesdistup, yesltrdown, yesdistdown,
+                                            annchrltrsp2, annchrintsp2, ltrtorec,
+                                            inttorec)
+  anngrlERVs
+}
+
+#' @importFrom GenomicRanges start end mcols "mcols<-"
+#' @importFrom S4Vectors pc
+.getFulllength_Partial_ERVs <- function(fl, pt, annchrltrint, whintup,
+                                        whint, whintdo, yesltrup, yesdistup,
+                                        yesltrdown, yesdistdown, annchrltrsp2,
+                                        annchrintsp2, ltrtorec, inttorec) {
   # Creating GRangesList with full-length ERVs
-  if (any(fulllength)) {
-    fulllength_grl <- pc(annchrltrint[whintup][fulllength],
-                         annchrltrint[whint][fulllength],
-                         annchrltrint[whintdo][fulllength])
+  if (any(fl)) {
+    fulllength_grl <- pc(annchrltrint[whintup][fl], annchrltrint[whint][fl],
+                         annchrltrint[whintdo][fl])
     mcols(fulllength_grl)$type <- "full-lengthLTR"
     # assigning names of int element
-    names(fulllength_grl) <- names(annchrltrint[whint][fulllength])
+    names(fulllength_grl) <- names(annchrltrint[whint][fl])
     # Making sure no partially reconstructed ERV contains fragments from a 
     # full-length ERV
-    disc <- names(annchrltrint[whintup][partial]) %in% 
-      names(annchrltrint[whintdo][fulllength])
-    disc2 <- names(annchrltrint[whintdo][partial]) %in% 
-      names(annchrltrint[whintup][fulllength])
-    partial[partial][disc | disc2] <- FALSE
+    disc <- names(annchrltrint[whintup][pt]) %in% names(annchrltrint[whintdo][fl])
+    disc2 <- names(annchrltrint[whintdo][pt]) %in% names(annchrltrint[whintup][fl])
+    pt[pt][disc | disc2] <- FALSE
   } else {
     fulllength_grl <- GRangesList()
   }
-  
-  partialup <- partial & yesltrup & yesdistup
-  partialdown <- partial & yesltrdown & yesdistdown
+  ptup <- pt & yesltrup & yesdistup
+  ptdown <- pt & yesltrdown & yesdistdown
   
   # Creating GRangesList of partial ERVs
-  if (any(partialup)) {
-    partial_grl1 <- pc(annchrltrint[whintup][partialup], 
-                       annchrltrint[whint][partialup])
+  if (any(ptup)) {
+    partial_grl1 <- pc(annchrltrint[whintup][ptup], annchrltrint[whint][ptup])
     mcols(partial_grl1)$type <- "partialLTR_up"
     # assigning names of int element
-    names(partial_grl1) <- names(annchrltrint[whint][partialup])
+    names(partial_grl1) <- names(annchrltrint[whint][ptup])
     # removing LTR for reconstruction with an upstream int if it has been 
     # previously reconstructed with a downstream int
-    disc <- names(annchrltrint[whintdo][partialdown]) %in%
-      names(annchrltrint[whintup][partialup])
-    partial[partialdown][disc] <- FALSE
-    partialdown <- partial & yesltrdown & yesdistdown
+    disc <- names(annchrltrint[whintdo][ptdown]) %in%
+      names(annchrltrint[whintup][ptup])
+    pt[ptdown][disc] <- FALSE
+    ptdown <- pt & yesltrdown & yesdistdown
   } else {
     partial_grl1 <- GRangesList()
   }
-  if (any(partialdown)) {
-    partial_grl2 <- pc(annchrltrint[whint][partialdown], 
-                       annchrltrint[whintdo][partialdown])
+  if (any(ptdown)) {
+    partial_grl2 <- pc(annchrltrint[whint][ptdown],annchrltrint[whintdo][ptdown])
     mcols(partial_grl2)$type <- "partialLTR_down"
     # assigning names of int element
-    names(partial_grl2) <- names(annchrltrint[whint][partialdown])
+    names(partial_grl2) <- names(annchrltrint[whint][ptdown])
   } else {
     partial_grl2 <- GRangesList()
   }
@@ -933,9 +949,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   partial_grl <- c(partial_grl1, partial_grl2)
   
   # Which are not solo int or LTR (have been reconstructed)?
-  whyesrec <- c(whint[fulllength], c(whintdo)[fulllength], 
-                c(whintup)[fulllength], whint[partialup], whint[partialdown],
-                c(whintup)[partialup], c(whintdo)[partialdown])
+  whyesrec <- c(whint[fl], c(whintdo)[fl], c(whintup)[fl], whint[ptup], 
+                whint[ptdown], c(whintup)[ptup], c(whintdo)[ptdown])
   
   # GRangesList with reconstructed ERVs and solo LTR and int
   anngrlERVs <- c(annchrltrsp2[!ltrtorec], annchrintsp2[!inttorec],
