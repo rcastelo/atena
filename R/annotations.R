@@ -521,21 +521,10 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
       }
     }
   }
-  
   inside <- inside[inside != ""]
   outside <- outside[outside != ""]
   
   # Simplify element names by erasing LTR, I, IN, INT, or symbols like -_, etc...
-  inout <- .simplifyNameSearch(ltruniq, intuniq, inside, outside)
-  
-  if (fuzzy) {
-    inout <- .getFuzzyEquivalences(inout, elem_liste_int, elem_liste_ltr)
-  }
-  
-  inout
-}
-
-.simplifyNameSearch <- function(ltruniq, intuniq, inside, outside) {
   elem_liste_ltr <- ltruniq
   ltrpat <- grep(pattern = "^LTR", ltruniq)
   elem_liste_ltr[!ltrpat] <- gsub(pattern = "LTR", ltruniq[!ltrpat], 
@@ -548,7 +537,17 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
                          ignore.case = FALSE)
   elem_liste_int <- gsub(pattern = "[-_]", replacement = "", elem_liste_int)
   names(elem_liste_int) <- intuniq
+  inout <- .simplifyNameSearch(elem_liste_ltr, elem_liste_int, inside, outside)
   
+  if (fuzzy) {
+    inout <- .getFuzzyEquivalences(inout, elem_liste_int, elem_liste_ltr)
+  }
+  
+  inout
+}
+
+.simplifyNameSearch <- function(elem_liste_ltr, elem_liste_int, 
+                                inside, outside) {
   ### And we try to match the new names
   el1all <- names(elem_liste_int[is.na(outside[elem_liste_int])])
   el2all <- names(elem_liste_ltr[is.na(outside[elem_liste_ltr]) &
