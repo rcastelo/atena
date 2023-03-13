@@ -579,38 +579,37 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 .getFuzzyEquivalences <- function(inout, elem_liste_int, elem_liste_ltr) {
   outside <- inout$outside
   inside <- inout$inside
-  
-  for (el1 in names(elem_liste_int)) {
-    if (!is.na(outside[el1])) {
-      next
-    }
-    for (el2 in names(elem_liste_ltr)) {
-      if ((el1 == el2) | !is.na(outside[el2]) | !is.na(inside[el2])) {
+  patterns <- c("[a-z]$","[0-9]$","[a-z0-9][a-z0-9]$")
+  for (pat in patterns) {
+    for (el1 in sort(names(elem_liste_int))) {
+      if (!is.na(outside[el1])) {
         next
       }
-      el1_int <- elem_liste_int[el1]
-      el1_int <- c(substr(el1_int, 1, nchar(el1_int)-1),
-                   substr(el1_int, 1, nchar(el1_int)-2))
-      el2_ltr <- elem_liste_ltr[el2]
-      el2_ltr <- c(substr(el2_ltr, 1, nchar(el2_ltr)-1),
-                   substr(el2_ltr, 1, nchar(el2_ltr)-2))
-      if (any(elem_liste_ltr[el2] == el1_int) | any(elem_liste_int[el1] == el2_ltr)) {
-        if (is.na(inside[el1])) {
-          inside[el1] <- el2
-        } else {
-          inside[el1] <- paste(unique(c(inside[el1], el2)), collapse =":")
+      for (el2 in sort(names(elem_liste_ltr))) {
+        if ((el1 == el2) | !is.na(outside[el2]) | !is.na(inside[el2])) {
+          next
         }
-        # outside[el2] <- paste(unique(c(inside[el2], el1)), collapse =":")
-        if (is.na(outside[el2])) {
-          outside[el2] <- el1
-        } else {
-          outside[el2] <- paste(unique(c(outside[el2], el1)), collapse =":")
+        el1_int <- gsub(pat, "", elem_liste_int[el1], ignore.case = TRUE)
+        el2_ltr <- gsub(pat, "", elem_liste_ltr[el2], ignore.case = TRUE)
+        if (elem_liste_ltr[el2] == el1_int | elem_liste_int[el1] == el2_ltr) {
+          if (is.na(inside[el1])) {
+            inside[el1] <- el2
+          } else {
+            inside[el1] <- paste(unique(c(inside[el1], el2)), collapse =":")
+          }
+          # outside[el2] <- paste(unique(c(inside[el2], el1)), collapse =":")
+          if (is.na(outside[el2])) {
+            outside[el2] <- el1
+          } else {
+            outside[el2] <- paste(unique(c(outside[el2], el1)), collapse =":")
+          }
         }
       }
     }
   }
   list(inside = inside, outside = outside)
 }
+
 
 .filterNonTEs <- function(gr) {
   rc <- gr$repClass == "RC" & gr$repFamily == "Helitron"
