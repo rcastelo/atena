@@ -997,3 +997,305 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   
   rlen
 }
+
+
+#' atena annotation parser of RepeatMasker annotations
+#' @param gr A \link[GenomicRanges:GRanges-class]{GRanges} object with
+#' RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}
+#' 
+#' @param strict (Default FALSE) A logical; if TRUE, the 80-80 rule is applied,
+#' i.e. only copies with more than 80% identity to the reference
+#' and more than 80 bp long are reported.
+#' 
+#' @param insert (Default 1000L) An integer > 0. Fragments are assembled 
+#' together if the distance between their closest extremities
+#' is equal or less than \code{insert}. When \code{insert} = 0, two fragments
+#' are assembled if they are in contact next to each other.
+#'
+#' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
+#'         
+#' @details 
+#' atena annotation parser of RepeatMasker annotations.
+#' Parses RepeatMasker annotations from UCSC by assembling together fragments
+#' from the same transposable elemenet (TE) that are close enough (determined
+#' by the \code{insert} parameter). For TEs from the LTR class, the parser
+#' tries to reconstruct full-length, when possible, or partial TEs following
+#' the LTR - internal region - LTR structure. Equivalences between LTR and
+#' internal regions are found by, first, identifying LTR regions (those with
+#' the "LTR" substring in their name) and internal regions (those with a
+#' suffix such as "-int", "-I", etc.). Then, LTR are assigned to internal
+#' regions for which the comparison of the two names are has a higher number
+#' of equal consecutive characters.
+#'
+#' @examples
+#' \dontrun{
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = atenaParser, strict= FALSE)
+#' }
+#' 
+#' @aliases atenaParser
+#' @rdname atenaParser
+#' @name atenaParser
+#' @importFrom GenomicRanges strand width mcols "mcols<-" seqnames
+#' @importFrom IRanges mean
+#' @importFrom GenomeInfoDb seqlevels
+#' @export
+atenaParser <- function(gr, strict= FALSE, insert=1000) {
+  if (!is(gr, "GRanges"))
+    stop("'gr' should be a GRanges object with RepeatMasker annotations")
+  
+  if (length(gr) == 0)
+    stop("'gr' is empty")
+  
+  if (!is.integer(insert) & !is.numeric(insert))
+    stop("'insert' must be an integer value")
+  
+  inout <- .builDictionary_at(gr)
+  
+  gr <- .filterNonTEs(gr)
+  gr$repStart <- abs(gr$repStart)
+  gr$repLeft <- abs(gr$repLeft)
+  cons_length <- .getConsLength(gr)
+  
+  fsplit <- paste(mcols(gr)$repName, seqnames(gr), strand(gr), sep = ";")
+  ann <- split(gr, fsplit)
+  mcols(ann)$repName <- do.call("rbind", strsplit(names(ann), split = ";", 
+                                                  fixed =TRUE))[,1]
+  annrec <- .reconstructTEs_at(ann = ann, inout$outside, inout$inside,
+                               cons_length, insert)
+  # -- Filtering based on 'strict' option
+  if (strict) {
+    maxdiv <- mean(relist(mcols(unlist(annrec))$milliDiv, annrec)) < 200
+    tokeep <- sum(width(annrec)) >= 80 & maxdiv
+    annrec <- annrec[tokeep]
+  }
+  
+  # -- Computation relative length --
+  # for full-length and partial ERVs, and ERVs with only internal region, the
+  # consensus length is considered that of the full-length TE: LTR + int + LTR
+  nTEs <- do.call("rbind", strsplit(names(annrec), ";", fixed=TRUE))[,1]
+  mcols(annrec)$Rel_length <- .getRelLength(nTEs, cons_length, inout, annrec)
+  
+  # -- Simplifying TE name: subfamily name + number of TE separated by "." --
+  names(annrec) <- paste(nTEs, 1:length(annrec), sep = ".")
+  
+  # -- Including TE class name in GRangesList 
+  mcols(annrec)$Class <- unlist(unique(relist(unlist(annrec)$repClass, annrec)))
+  
+  annrec
+}
+
+#' @importFrom stats aggregate
+#' @importFrom Matrix colSums
+.builDictionary_at <- function(gr, thmatch=5, threl = 0.5) {
+  
+  # identifying LTR and int regions
+  annltr <- gr[gr$repClass=="LTR"]
+  # Possible internal id
+  intid <- c("int","in", "i")
+  intid <- c(paste0("-", intid), paste0("_", intid))
+  internal <- grepl(pattern = paste(intid,collapse="|"), annltr$repName, 
+                    ignore.case = TRUE)
+  ltr <- grepl(pattern = "LTR", annltr$repName, ignore.case = TRUE)
+  ltr[internal] <- FALSE # preference goes to internal regions
+  # not internal and not ltr: undecided (it could be int or LTR)
+  # here we discard undecided elements
+  undecid <- !internal & !ltr
+  internal[undecid] <- FALSE
+  ltr[undecid] <- FALSE
+  
+  intuniq <- unique(annltr$repName[internal])
+  ltruniq <- unique(annltr$repName[ltr])
+  
+  inside <- character(length(intuniq))
+  names(inside) <- intuniq
+  outside <- character(length(ltruniq))
+  names(outside) <- ltruniq
+  
+  mm <- NULL
+  for (ltrn in names(outside)) {
+    nmatch <- vapply(names(inside), function(intn) {
+      max(nchar(abbreviate(c(intn, ltrn), minlength = 1, use.classes=FALSE)))
+    }, FUN.VALUE = integer(1L))
+    nmatch[nmatch < c(thmatch +1)] <- 0
+    nmatch <- nmatch / nchar(ltrn)
+    mm <- cbind(mm, nmatch)
+  }
+  colnames(mm) <- names(outside)
+  rownames(mm) <- names(inside)
+  # at least 66% of characters in LTR name have to consecutively match the
+  # internal region name
+  mm[mm < threl] <- 0L
+  whmin <- colSums(mm) > 0
+  outside[whmin] <- names(inside)[apply(mm[,whmin],2, which.max)]
+  aginside <- aggregate(names(outside[outside != ""]), 
+                        by = list(outside[outside != ""]),
+                        FUN= paste, collapse = ":")
+  inside[aginside$Group.1] <- aginside$x
+  outside <- outside[outside != ""]
+  
+  list(inside = inside, outside = outside)
+}
+
+#' @importFrom GenomicRanges start mcols "mcols<-"
+#' @importFrom GenomeInfoDb seqlevels
+.reconstructTEs_at <- function(ann, outside, inside, cons_length, insert) {
+  # For LTRs and internal regions, we check for the presence (in the same 
+  # strand) of internal regions and LTRs, respectively, between elements with 
+  # the same repName. To do so, we divide features with the same repName
+  # (e.g. LTR23) using the start of the corresponding internal region (LTR23-int)
+  # as flanking regions.
+  
+  # Selecting only cases where both the ltr and internal region are in the
+  # chromosome
+  stchr <- c(paste(seqlevels(ann), c("+"), sep =";"),
+             paste(seqlevels(ann), c("-"), sep =";"))
+  outside_stchr <- paste(rep(outside, each = length(stchr)), 
+                         rep(stchr, length(outside)), sep =";")
+  names(outside_stchr) <-  paste(rep(names(outside), each = length(stchr)), 
+                                 rep(stchr, length(outside)), sep =";")
+  outsidechr <- outside_stchr[(outside_stchr %in% names(ann)) &
+                                (names(outside_stchr) %in% names(ann))]
+  whint <- which(names(ann) %in% outsidechr)
+  whltr <- which(names(ann) %in% names(outsidechr))
+  # We extract coordinates of int and corresponding ltr (same order)
+  annint <- ann[whint]
+  annltr <- ann[whltr]
+  
+  if (length(annint) > 0 & length(annltr) > 0) {
+    splitf2 <- .splitNonContinous_at(annint, annltr, outsidechr)
+    annltrsp <- split(unlist(annltr), splitf2$splitfltr2)
+    annintsp <- split(unlist(annint), splitf2$splitfint2)
+    ann <- ann[-c(whint, whltr)]
+    # We keep ltr and int separated from the rest of TEs to later perform the
+    # reconstruction of full-length or partial ERVs
+    
+    # Now, features with the same repName, strand and chromosome are merged
+    # together if they are close enough, according to the 'insert' parameter
+    annltrsp2 <- .mergeCloseFeatures_at(annltrsp, cons_length, insert)
+    annintsp2 <- .mergeCloseFeatures_at(annintsp, cons_length, insert)
+    mcols(annltrsp2)$type <- "LTR"
+    mcols(annintsp2)$type <- "int"
+  }
+  ann2 <- .mergeCloseFeatures_at(ann, cons_length, insert)
+  
+  # Note: All features not identified as LTR or int (from the previously built
+  # dictionary with equivalences: 'outside'), are identinfied as "noLTR",
+  # however LTRs and int are expected to be inside 'annchr2' since the
+  # dictionary 'outside' does not identify all LTR and int regions.
+  mcols(ann2)$type <- "noLTR"
+  
+  # ---- Reconstructing full-length and partial ERVs ----
+  if (length(annint) > 0 & length(annltr) > 0) {
+    anngrlERVs <- .reconstructERVs_at(annltrsp2, annintsp2, outsidechr,
+                                      outside, inside, cons_length)
+    anngrl <- c(ann2, anngrlERVs)
+  } else {
+    anngrl <- ann2
+  }
+  chr <- do.call("rbind", strsplit(names(anngrl), ";", fixed=TRUE))[,2]
+  opos <- order(chr, min(start(anngrl)), decreasing = FALSE)
+  anngrl[opos]
+}
+
+#' @importFrom GenomicRanges start mcols "mcols<-"
+#' @importFrom Matrix colSums rowSums
+.splitNonContinous_at <- function(annint, annltr, outsidechr) {
+  annint2 <- annint[outsidechr[names(annltr)]]
+  annltr2 <- split(unlist(annltr), 
+                   rep(outsidechr[names(annltr)], lengths(annltr)))
+  
+  posc_int <- mapply(function(ltrname, intname) 
+    outer(start(annltr2[[ltrname]]), start(annint[[intname]]), "<"),
+    ltrname = names(annltr2), intname = names(annint),
+    SIMPLIFY = FALSE)
+  
+  posc_ltr <- mapply(function(ltrname, intname) 
+    outer(start(annltr[[ltrname]]), start(annint2[[intname]]), "<"),
+    ltrname = names(annltr), intname = names(annint2),
+    SIMPLIFY = FALSE)
+  
+  # 'posc' is a list of matrices in which ltr are rows and int regions are 
+  # columns the cells are TRUE/FALSE depending if the start position of
+  # a ltr (row) is smaller than the start position of a int (col)
+  
+  # Creating a factor to split ltr and int according to their position in
+  # relation to their equivalent int and ltr, respectively.
+  splitfltr <- lapply(posc_ltr, function(x) rowSums(x))
+  splitfint <- lapply(posc_int, function(x) colSums(x))
+  splitfltr2 <- as.factor(paste(rep(names(splitfltr), lengths(splitfltr)),
+                                unlist(splitfltr), sep = "."))
+  splitfint2 <- as.factor(paste(rep(names(splitfint), lengths(splitfint)),
+                                unlist(splitfint), sep = "."))
+  list(splitfltr2 = splitfltr2, splitfint2 = splitfint2)
+}
+
+#' @importFrom GenomicRanges GRangesList start width strand end reduce
+.mergeCloseFeatures_at <- function(annsp, cons_length, insert) {
+  insert <- insert + 1 # to adapt to reduce() behaviour
+  sp2 <- reduce(annsp, with.revmap=TRUE, min.gapwidth=insert)
+  annsp2 <- relist(unlist(annsp), mcols(unlist(sp2))$revmap)
+  names(annsp2) <- paste(rep(names(sp2), lengths(sp2)), 
+                         1:length(annsp2), sep =".")
+  annsp2
+}
+
+#' @importFrom GenomicRanges start end mcols "mcols<-"
+#' @importFrom S4Vectors pc
+.reconstructERVs_at <- function(annltrsp2, annintsp2, outsidechr, 
+                                outside, inside, cons_length) {
+  ltrtorec <- do.call("rbind", strsplit(names(annltrsp2), 
+                                        ".", fixed=TRUE))[,1] %in% names(outsidechr)
+  inttorec<- do.call("rbind", strsplit(names(annintsp2), 
+                                       ".", fixed=TRUE))[,1] %in% outsidechr
+  # GRangesList with both int and equivalent LTRs
+  annltrint <- c(annltrsp2[ltrtorec], annintsp2[inttorec])
+  
+  # Setting order based on strand, chr and start position of element 
+  chr <- do.call("rbind", strsplit(names(annltrint), ";", fixed=TRUE))[,2]
+  st <- do.call("rbind", strsplit(names(annltrint), ";", fixed=TRUE))[,3]
+  st <- do.call("rbind", strsplit(st, ".", fixed=TRUE))[,1]
+  o <- order(chr, st, min(start(annltrint)), decreasing = FALSE)
+  annltrint <- annltrint[o]
+  whint <- which(mcols(annltrint)$type == "int")
+  namef <- do.call("rbind", strsplit(names(annltrint), ".", fixed =TRUE))[,1]
+  int <- namef[whint]
+  ltr <- split(names(outsidechr), f = outsidechr)
+  ltr <- ltr[int]
+  whintup <- whint-1
+  whintdo <- whint+1
+  # Addressing for when first or last feature in 'annltrint' is not an LTR
+  # by setting as upstream/downatream feature the int feature itself, causing
+  # yesltrup/yesltrdown to be FALSE
+  whintup[whintup < 1] <- 1
+  whintdo[whintdo > length(annltrint)] <- length(annltrint)
+  yesltrup <- .checkEquivalentLTR(namef[whintup], ltr)
+  yesltrdown <- .checkEquivalentLTR(namef[whintdo], ltr)
+  namef_simp <- do.call("rbind", strsplit(namef, ";", fixed =TRUE))[,1]
+  yesdistup <- (min(start(annltrint[whint])) - max(end(annltrint[whintup]))) <
+    cons_length[namef_simp[whintup]]/2
+  yesdistdown <- (min(start(annltrint[whintdo])) - max(end(annltrint[whint]))) <
+    cons_length[namef_simp[whintup]]/2
+  
+  # Addressing cases where an LTR is simultaneously a downstream LTR of int1
+  # and an upstream LTR of int2. Preference is given to int1.
+  whup <- yesltrup & yesdistup
+  whdown <- yesltrdown & yesdistdown
+  if (sum(whup) > 0 & sum(whdown) > 0) {
+    conflictltr <- names(annltrint[whintup][whup]) %in%
+      names(annltrint[whintdo][whdown])
+    yesltrup[whup][conflictltr] <- FALSE
+    yesdistup[whup][conflictltr] <- FALSE
+    whup <- yesltrup & yesdistup
+    whdown <- yesltrdown & yesdistdown
+  }
+  fulllength <- whup & whdown
+  partial <- whup | whdown
+  partial[fulllength] <- FALSE
+  
+  anngrlERVs <- .getFulllength_Partial_ERVs(fulllength, partial, annltrint, 
+                                      whintup, whint, whintdo, yesltrup,
+                                      yesdistup, yesltrdown, yesdistdown,
+                                      annltrsp2, annintsp2, ltrtorec,inttorec)
+  anngrlERVs
+}
+
