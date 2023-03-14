@@ -209,6 +209,15 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   if (!is.integer(insert) & !is.numeric(insert))
     stop("'insert' must be an integer value")
   
+  if (!is(gr, "GRanges"))
+    stop("'gr' should be a GRanges object with RepeatMasker annotations")
+  
+  if (length(gr) == 0)
+    stop("'gr' is empty")
+  
+  if (!is.null(dictionary) & !file.exists(dictionary))
+    stop("'dictionary' should be NULL or specify the name of a dictionary file, see ?OneCodeToFindThemAll")
+  
   if (is.null(dictionary)) {
     inout <- .builDictionary(gr, fuzzy)
   } else {
@@ -318,7 +327,7 @@ getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
   
   tokeep <- mcols(parsed_ann)$Class == "LTR" & 
     mcols(parsed_ann)$Rel_length > relLength
-  LTRtypes <- c("full_length"[full_length], "partialLTR_up"[partial], 
+  LTRtypes <- c("full-lengthLTR"[full_length], "partialLTR_up"[partial], 
                 "partialLTR_down"[partial], "LTR"[soloLTR],
                 "int"[otherLTR], "noLTR"[otherLTR])
   tokeep2 <- mcols(parsed_ann)$type %in% LTRtypes
@@ -527,7 +536,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   # Simplify element names by erasing LTR, I, IN, INT, or symbols like -_, etc...
   elem_liste_ltr <- ltruniq
   ltrpat <- grep(pattern = "^LTR", ltruniq)
-  elem_liste_ltr[!ltrpat] <- gsub(pattern = "LTR", ltruniq[!ltrpat], 
+  elem_liste_ltr[-ltrpat] <- gsub(pattern = "LTR", ltruniq[-ltrpat], 
                                   replacement = "")
   elem_liste_ltr <- gsub(pattern = "[-_]", replacement = "", elem_liste_ltr)
   names(elem_liste_ltr) <- ltruniq
@@ -537,6 +546,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
                          ignore.case = FALSE)
   elem_liste_int <- gsub(pattern = "[-_]", replacement = "", elem_liste_int)
   names(elem_liste_int) <- intuniq
+  whr <- (intuniq %in% ltruniq) & grepl(pattern = "[-_]$", intuniq)
+  elem_liste_int <- elem_liste_int[!whr]
   inout <- .simplifyNameSearch(elem_liste_ltr, elem_liste_int, inside, outside)
   
   if (fuzzy) {
