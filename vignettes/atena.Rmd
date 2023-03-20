@@ -55,18 +55,141 @@ Because these tools were only available outside R and Bioconductor, the `atena` 
 
 # TEs annotations
 
-Another challenge in TE expression quantification is the lack of complete TE annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations are RepeatMasker annotations, available through the RepeatMasker track in UCSC Genome Browser. `atena` can fetch RepeatMasker annotations with the function `annotaTEs()`. Moreover, this function can parse TE annotations by applying `parsefun`. Examples of `parsefun` included in `atena` are `rmskbasicparser()` or `rmskidentity()`. 
+Another challenge in TE expression quantification is the lack of complete TE 
+annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations are
+RepeatMasker annotations, available through the RepeatMasker track in UCSC 
+Genome Browser. `atena` can fetch RepeatMasker annotations with the function
+`annotaTEs()`. Moreover, this function can parse TE annotations by applying 
+`parsefun`. Examples of `parsefun` included in `atena` are:
 
-For example, let's retrieve TE annotations for _Drosophila melanogaster_ _dm6_ genome version and process them using the `rmskbasicparser()` function, which assigns a unique identifier for each TE, as well as discards repeats present in the annotations that are not TEs.
+* `rmskidentity()`: returns RepeatMasker annotations without any modification.
+* `rmskbasicparser()`: filters out non-TE repeats and elements without strand
+information from RepeatMasker annotations. Then assigns a unique id to each 
+elements based on their repeat name.
+* `rmskatenaparser()`: attempts to reconstruct fragmented TEs by assembling 
+together fragments from the same TE that are close enough. For LTR class TEs,
+tries to reconstruct full-length and partial TEs following the LTR - internal
+region - LTR structure.
+* `OneCodeToFindThemAll()`: implementation of the 
+`OneCodeToFindThemAll.pl` [@bailly2014one] tool for parsing RepeatMasker 
+output files.
 
+Both `rmskatenaparser()` and `OneCodeToFindThemAll()` functions try to address
+the annotation fragmentation present in the output file of the RepeatMasker 
+software (i.e. presence of multiple hits (homology-based matches) corresponding
+to a unique copy of an element). This is highly frequent for LTR class TEs,
+where the consensus sequences are split into LTR and internal regions
+separately, causing RepeatMasker to also report these two regions of a TE as
+separate elements. These two functions attempt to identify these and other 
+cases of fragmented annotations and assemble them together into single 
+elements. To do so, the assembled elements must satisfy certain criteria. 
+Differences in these criteria, as
+well as different approaches for finding equivalences between LTR and internal
+regions to reconstruct LTR retrotransposons, is what differences these two
+functions.
+
+## Retrieving and parsing TE annotations
+
+As an example, let's retrieve TE annotations for *Drosophila melanogaster* 
+*dm6* genome version. By setting `rmskidentity()` as `parsefun`, the 
+RepeatMasker annotations are not modified:
 ```{r, message=FALSE, warning=FALSE}
 library(atena)
 library(GenomicRanges)
+rmskid <- annotaTEs(genome = "dm6", parsefun = rmskidentity)
+rmskid
+```
+We get annotations with `r length(rmskid)` elements.
 
-rmsk <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
-rmsk
+Now, let's obtain the same annotations but processes them using the 
+`rmskatenaparser` function. We set parameter `strict = FALSE` to avoid
+applying a filter of minimum 80% identity with the consensus sequence and 
+minimum 80 bp length. The `insert` parameter is set to 500 meaning that two
+elements with the same name are merged if they are closer than 500 bp.
+```{r}
+rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, strict = FALSE,
+                    insert = 500)
+rmskat[1]
 ```
 
+How many elements are present in the annotations?
+```{r}
+length(rmskat)
+```
+
+As expected, we get a lower number of elements in the annotations because 
+repeats that are not TEs have been removed. Furthermore, some fragmented 
+regions of TEs have been assembled together.
+
+The resulting `rmskat` object is of class `GRangesList`. Each element of the
+list represents an assembled TE containing a `GRanges` object of length 1
+(when the TE was not assembled with another element) or length > 1 (when
+two or more fragments were assembled together into a single TE).
+
+We can get more information of the parsed annotations by accessing the 
+metadata columns with `mcols()`:
+```{r}
+mcols(rmskat)
+```
+
+There is information about the type of assembled TE (*type* column), the
+relative length of the reconstructed TE (*Rel_length*) and the repeat class
+of the TE (*Class*). The relative length is computed by adding the length
+(in base pairs) of all fragments from the same assembled TE and dividing the
+sum by the length (in base pairs) of the consensus sequence. For full-length
+and partially reconstructed LTR TEs, the consensus sequence length used is the
+one resulting from adding twice the consensus sequence length of the long
+terminal repeat (LTR) and the one from the corresponding internal region. For 
+solo-LTRs, the consensus sequence length of the long terminal repeat is used.
+
+We can get an insight into the composition of the assembled annotations using
+the information from the *type* column. Let's look at the absolute frequencies
+of the type and class of TEs in the annotations.
+```{r}
+par(mfrow = c(1,2), mar = c(7,4,3,1))
+
+barplot(table(mcols(rmskat)$type), las = 2, cex.names = 0.7,
+        main = "TEs by type", cex=0.6, border = "white")
+barplot(table(mcols(rmskat)$Class), las = 1, cex.names = 0.7,
+        main = "TEs by class", cex=0.6,  border = "white",
+        ylim = c(0,max(table(mcols(rmskat)$type))))
+```
+
+Here, *full-lengthLTR* are reconstructed LTR retrotransposons following the
+LTR - internal region (int) - LTR structure. Partially reconstructed LTR TEs are
+*partialLTR_down* (internal region followed by a downstream LTR) and
+*partialLTR_up* (LTR upstream of an internal region). *int* and *LTR*
+correspond to internal and solo-LTR regions, respectively. Finally, the
+*noLTR* refers to TEs of other classes (not LTR), as well as TEs of class LTR
+which could not be identified as either internal or long terminal repeat
+regions based on their name.
+
+
+Moreover, the `atena` package provides useful functions to retrieve
+TEs of a specific class, using a specific relative length threshold.
+Those TEs with higher relative lengths are more likely to have intact open
+reading frames, making them more interesting for expression quantification
+and functional analyses. For example, to get LINEs with a minimum of 0.9
+relative length, we can use the `getLINEs()` function. We use the previously
+obtained object (`rmskat`) with annotations parsed with the `rmskatenaparser()` 
+function, and set the `relLength` to 0.9.
+```{r}
+rmskLINE <- getLINEs(rmskat, relLength = 0.9)
+length(rmskLINE)
+rmskLINE[1]
+```
+
+To get LTR retrotransposons, we can use the function `getLTRs()`. This
+function also allows to get one or more specific types of reconstructed TEs.
+To get full-length and partial LTRs, we can:
+```{r}
+rmskLTR <- getLTRs(rmskat, relLength = 0.8, full_length = TRUE, partial = TRUE)
+length(rmskLTR)
+rmskLTR[1]
+```
+
+To obtain DNA transposons and SINEs, one can use the `getDNAtransposons()` and
+`getSINEs()` functions, respectively.
 
 # Using atena to quantify TE expression
 
@@ -79,6 +202,13 @@ steps:
    built parameter object.
    
 The dataset that will be used to illustrate how to quantify TE expression with `atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available at the National Center for Biotechnology Information (NCBI) Gene Expression Omnibus (accession no. [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). The two selected samples are: a piwi knockdown and a piwi control (GSM1142845 and GSM1142844). These files have been subsampled. The piwi-associated silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the knockdown of piwi causes the de-repression of TEs. To minimize the computational cost and memory requirements when building this vignette, the annotations used in following examples consist of 28 and 50 highly expressed TEs and genes, respectively, from _Drosophila melanogaster_.
+
+TE annotations for *Drosophila melanogaster* *dm6* processed with the 
+`rmskbasicparser()` function will be used:
+```{r, message=FALSE, warning=FALSE}
+rmsk <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
+# rmsk
+```
 
 ## Building a parameter object for ERVmap
 

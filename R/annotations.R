@@ -216,7 +216,8 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
     stop("'gr' is empty")
   
   if (!is.null(dictionary) & !file.exists(dictionary))
-    stop("'dictionary' should be NULL or specify the name of a dictionary file, see ?OneCodeToFindThemAll")
+    stop("'dictionary' should be NULL or specify the name of a dictionary", 
+         "file, see ?OneCodeToFindThemAll")
   
   if (is.null(dictionary)) {
     inout <- .builDictionary(gr, fuzzy)
@@ -700,8 +701,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   # For LTRs and internal regions, we check for the presence (in the same 
   # strand) of internal regions and LTRs, respectively, between elements with 
   # the same repName. To do so, we divide features with the same repName
-  # (e.g. LTR23) using the start of the corresponding internal region (LTR23-int)
-  # as flanking regions.
+  # (e.g. LTR23) using the start of the corresponding internal region
+  # (LTR23-int) as flanking regions.
   
   # Selecting only cases where both the ltr and internal region are in the
   # chromosome
@@ -834,11 +835,11 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
                      paste(rep(names(annchr), lengths(annchr)),aggf, sep ="."))
     annchr2 <- sort(annchr2)
     
-    # Note that this implementation does not take into account the start position
-    # of the 1st merged element to see if the distance between the end of a
-    # downstream element and the start of an upstream element is smaller than
-    # twice the consensus length. Instead, here we take the start of the previous
-    # element to compute this distance.
+    # Note that this implementation does not take into account the start 
+    # position of the 1st merged element to see if the distance between the
+    # end of a downstream element and the start of an upstream element
+    # is smaller than twice the consensus length. Instead, here we take the
+    # start of the previous element to compute this distance.
     
   } else {
     insert <- insert + 1 # to adapt to reduce() behaviour
@@ -1017,7 +1018,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 #' @details 
 #' atena annotation parser of RepeatMasker annotations.
 #' Parses RepeatMasker annotations from UCSC by assembling together fragments
-#' from the same transposable elemenet (TE) that are close enough (determined
+#' from the same transposable element (TE) that are close enough (determined
 #' by the \code{insert} parameter). For TEs from the LTR class, the parser
 #' tries to reconstruct full-length, when possible, or partial TEs following
 #' the LTR - internal region - LTR structure. Equivalences between LTR and
@@ -1029,17 +1030,18 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 #'
 #' @examples
 #' \dontrun{
-#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = atenaParser, strict= FALSE)
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+#'                      strict = FALSE)
 #' }
 #' 
-#' @aliases atenaParser
-#' @rdname atenaParser
-#' @name atenaParser
+#' @aliases rmskatenaparser
+#' @rdname rmskatenaparser
+#' @name rmskatenaparser
 #' @importFrom GenomicRanges strand width mcols "mcols<-" seqnames
 #' @importFrom IRanges mean
 #' @importFrom GenomeInfoDb seqlevels
 #' @export
-atenaParser <- function(gr, strict= FALSE, insert=1000) {
+rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   if (!is(gr, "GRanges"))
     stop("'gr' should be a GRanges object with RepeatMasker annotations")
   
@@ -1122,7 +1124,7 @@ atenaParser <- function(gr, strict= FALSE, insert=1000) {
   }
   colnames(mm) <- names(outside)
   rownames(mm) <- names(inside)
-  # at least 66% of characters in LTR name have to consecutively match the
+  # at least 50% of characters in LTR name have to consecutively match the
   # internal region name
   mm[mm < threl] <- 0L
   whmin <- colSums(mm) > 0
@@ -1142,8 +1144,8 @@ atenaParser <- function(gr, strict= FALSE, insert=1000) {
   # For LTRs and internal regions, we check for the presence (in the same 
   # strand) of internal regions and LTRs, respectively, between elements with 
   # the same repName. To do so, we divide features with the same repName
-  # (e.g. LTR23) using the start of the corresponding internal region (LTR23-int)
-  # as flanking regions.
+  # (e.g. LTR23) using the start of the corresponding internal region
+  # (LTR23-int) as flanking regions.
   
   # Selecting only cases where both the ltr and internal region are in the
   # chromosome
