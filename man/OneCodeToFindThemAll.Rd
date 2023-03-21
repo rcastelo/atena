@@ -63,10 +63,8 @@ parameter or can be obtained by the parser. In this last case, the
 for LTR - internal region equivalences.
 }
 \examples{
-\dontrun{
 rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
-}
 
 }
 \references{

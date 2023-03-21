@@ -184,10 +184,8 @@ rmskidentity <- function(gr) {
 #' for LTR - internal region equivalences.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
 #'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
-#' }
 #' 
 #' @references
 #' Bailly-Bechet et al. "One code to find them all": a perl tool to 
@@ -217,7 +215,7 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   
   if (!is.null(dictionary) & !file.exists(dictionary))
     stop("'dictionary' should be NULL or specify the name of a dictionary", 
-         "file, see ?OneCodeToFindThemAll")
+         " file, see ?OneCodeToFindThemAll")
   
   if (is.null(dictionary)) {
     inout <- .builDictionary(gr, fuzzy)
@@ -259,7 +257,7 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   mcols(annrec)$Rel_length <- .getRelLength(nTEs, cons_length, inout, annrec)
   
   # -- Simplifying TE name: subfamily name + number of TE separated by "." --
-  names(annrec) <- paste(nTEs, 1:length(annrec), sep = ".")
+  names(annrec) <- paste(nTEs, seq_along(annrec), sep = ".")
   
   # -- Including TE class name in GRangesList 
   mcols(annrec)$Class <- unlist(unique(relist(unlist(annrec)$repClass, annrec)))
@@ -309,12 +307,10 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #' parameters can be used to fine-tune the type of elements to be reported.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
 #'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 #' rmsk_gr_ltr <- getLTRs(rmsk_gr, relLength = 0.95, full_length = TRUE,
 #'                        partial = TRUE)
-#' }
 #'  
 #' @aliases getLTRs
 #' @rdname getLTRs
@@ -324,7 +320,8 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
                     partial = FALSE, soloLTR = FALSE, otherLTR = FALSE) {
   if(!any(c(full_length, partial, soloLTR, otherLTR)))
-    stop("at least one of these arguments should be TRUE: 'full_length', 'partial', 'soloLTR', 'otherLTR'")
+    stop("at least one of these arguments should be TRUE: 'full_length',",
+         " 'partial', 'soloLTR', 'otherLTR'")
   
   tokeep <- mcols(parsed_ann)$Class == "LTR" & 
     mcols(parsed_ann)$Rel_length > relLength
@@ -356,11 +353,9 @@ getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
 #'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 #' rmsk_gr_line <- getLINEs(rmsk_gr, relLength = 0.95)
-#' }
 #'  
 #' @aliases getLINEs
 #' @rdname getLINEs
@@ -394,11 +389,9 @@ getLINEs <- function(parsed_ann, relLength = 0.9) {
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
 #'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 #' rmsk_gr_sine <- getSINEs(rmsk_gr, relLength = 0.95)
-#' }
 #'  
 #' @aliases getSINEs
 #' @rdname getSINEs
@@ -432,11 +425,9 @@ getSINEs <- function(parsed_ann, relLength = 0.9) {
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
 #'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 #' rmsk_gr_DNAtrans <- getDNAtransposons(rmsk_gr, relLength = 0.95)
-#' }
 #'  
 #' @aliases getDNAtransposons
 #' @rdname getDNAtransposons
@@ -830,7 +821,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
       yescons & yesclose
     aggf <- integer(sum(lengths(annchr, use.names = FALSE)))
     whfirst <- c(1, cumsum(lengths(annchr, use.names=FALSE))+1)
-    aggf[c(1:length(aggf))[-whfirst]] <- unlist(cumsum(!yesclosepos))
+    aggf[c(seq_along(aggf))[-whfirst]] <- unlist(cumsum(!yesclosepos))
     annchr2 <- split(unlist(annchr, use.names = FALSE), 
                      paste(rep(names(annchr), lengths(annchr)),aggf, sep ="."))
     annchr2 <- sort(annchr2)
@@ -846,7 +837,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
     sp2 <- reduce(annchr, with.revmap=TRUE, min.gapwidth=insert)
     annchr2 <- relist(unlist(annchr), mcols(unlist(sp2))$revmap)
     names(annchr2) <- paste(rep(names(sp2), lengths(sp2)), 
-                            1:length(annchr2), sep =".")
+                            seq_along(annchr2), sep =".")
   }
   annchr2
 }
@@ -970,7 +961,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 
 .checkEquivalentLTR <- function(namef, ltr) {
   yesequiv <- logical()
-  for (i in 1:length(namef)) {
+  for (i in seq_along(namef)) {
     yesequiv <- c(yesequiv, namef[i] %in% ltr[[i]])
   }
   yesequiv
@@ -1029,10 +1020,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 #' of equal consecutive characters.
 #'
 #' @examples
-#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
 #'                      strict = FALSE)
-#' }
 #' 
 #' @aliases rmskatenaparser
 #' @rdname rmskatenaparser
@@ -1078,7 +1067,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   mcols(annrec)$Rel_length <- .getRelLength(nTEs, cons_length, inout, annrec)
   
   # -- Simplifying TE name: subfamily name + number of TE separated by "." --
-  names(annrec) <- paste(nTEs, 1:length(annrec), sep = ".")
+  names(annrec) <- paste(nTEs, seq_along(annrec), sep = ".")
   
   # -- Including TE class name in GRangesList 
   mcols(annrec)$Class <- unlist(unique(relist(unlist(annrec)$repClass, annrec)))
@@ -1237,7 +1226,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   sp2 <- reduce(annsp, with.revmap=TRUE, min.gapwidth=insert)
   annsp2 <- relist(unlist(annsp), mcols(unlist(sp2))$revmap)
   names(annsp2) <- paste(rep(names(sp2), lengths(sp2)), 
-                         1:length(annsp2), sep =".")
+                         seq_along(annsp2), sep =".")
   annsp2
 }
 

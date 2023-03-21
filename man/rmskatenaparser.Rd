@@ -39,9 +39,7 @@ regions for which the comparison of the two names are has a higher number
 of equal consecutive characters.
 }
 \examples{
-\dontrun{
 rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
                      strict = FALSE)
-}
 
 }

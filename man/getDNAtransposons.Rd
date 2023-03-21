@@ -31,10 +31,8 @@ the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
 can be used to filter out elements with a lower relative length.
 }
 \examples{
-\dontrun{
 rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 rmsk_gr_DNAtrans <- getDNAtransposons(rmsk_gr, relLength = 0.95)
-}
  
 }

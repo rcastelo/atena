@@ -189,7 +189,7 @@
     } else {
         features_g <- features[!features$isTE]
         features_t <- features[features$isTE]
-        features_t_grl <- split(x = features_t, f = 1:length(features_t))
+        features_t_grl <- split(x = features_t, f = seq_along(features_t))
         names(features_t_grl) <- names(features_t)
         if (!any(mcols(features_g)$type == "exon")) {
             stop(".groupGeneExons: no genes with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
@@ -248,7 +248,7 @@
             
         } else if (length(whnofeat) > 1) {
             nofeat_gr <- rep(nofeat_gr, length(whnofeat))
-            names(nofeat_gr) <- paste0("no_feature", 1:length(whnofeat))
+            names(nofeat_gr) <- paste0("no_feature", seq_along(whnofeat))
         } else {
             stop(".consolidateFeatures: 'whnofeat' must be of length > 0")
         }

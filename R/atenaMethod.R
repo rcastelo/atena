@@ -361,7 +361,7 @@ setMethod("qtex", "atenaParam",
     nofeat_names <- paste("no_feature", 1:nnofeat, sep = "")
     names(cntvec) <- c(names(atpar@features), nofeat_names)
     nofeat <- cntvec[nofeat_names]
-    cntvec <- .tssummarizeCounts(cntvec[1:length(atpar@features)], iste, atpar)
+    cntvec <- .tssummarizeCounts(cntvec[seq_along(atpar@features)], iste, atpar)
     cntvec <- c(cntvec, nofeat)
     cntvec
 }
@@ -396,7 +396,7 @@ setMethod("qtex", "atenaParam",
     nrowsam <- lengths(cnt)
     maxi <- which.max(nrowsam)
     test <- nrowsam < nrowsam[maxi]
-    for(i in 1:length(nrowsam)) {
+    for(i in seq_along(nrowsam)) {
       if(test[i]) {
         add <- rep(0, nrowsam[maxi] - nrowsam[i])
         cnt[[i]] <- c(cnt[[i]], add)

@@ -59,11 +59,9 @@ can be used to filter out elements with a lower relative length. The other
 parameters can be used to fine-tune the type of elements to be reported.
 }
 \examples{
-\dontrun{
 rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
 rmsk_gr_ltr <- getLTRs(rmsk_gr, relLength = 0.95, full_length = TRUE,
                        partial = TRUE)
-}
  
 }

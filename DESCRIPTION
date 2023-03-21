@@ -14,7 +14,7 @@ Description: Quantify expression of transposable elements (TEs) from RNA-seq dat
 License: Artistic-2.0
 Encoding: UTF-8
 Depends:
-    R (>= 4.1),
+    R (>= 4.3.0),
     SummarizedExperiment
 Imports: 
     methods,
