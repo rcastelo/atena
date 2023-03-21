@@ -215,6 +215,7 @@ setMethod("qtex", "TEtranscriptsParam",
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=ttpar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
+        alnreads <- .matchSeqinfo(alnreads, ttpar@features)
         avgreadlen <- c(avgreadlen, .getAveLen(ttpar, alnreads))
         if (is(alnreads, "GAlignmentPairs")) {
             d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))

@@ -257,6 +257,7 @@ setMethod("qtex", "atenaParam",
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=atpar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
+        alnreads <- .matchSeqinfo(alnreads, atpar@features)
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, .getAlignmentASScoreTS(alnreads, tag = "AS"))
         readlen <- .getAlignmentLength(alnreads)

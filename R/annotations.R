@@ -20,6 +20,12 @@
 #'         as "Unknown" or "Other". Finally, assigns a unique id to each TE
 #'         instance by adding the suffix "_dup" plus a number at the end of
 #'         the "repName".
+#'   \item Function \code{rmskatenaparser} parses RepeatMasker annotations 
+#'         reconstructing fragmented TEs by assembling together fragments from
+#'         the same TE that are close enough. For LTR class TEs, it tries to
+#'         reconstruct full-length and partial TEs following the LTR - internal
+#'         region - LTR structure. Input is a \code{GRanges} object and output
+#'         is a \code{GRangesList} object.
 #'   \item Function \code{OneCodeToFindThemAll} parses annotations following
 #'         the 'One code to find them all' method by 
 #'         \href{https://doi.org/10.1186/1759-8753-5-13}{(Bailly-Bechet et al. 2014)}. 
@@ -49,7 +55,7 @@
 #' 
 #'
 #' @examples
-#' rmsk_gr <- annotaTEs(genome = "hg38", parsefun = rmskidentity)
+#' rmsk_gr <- annotaTEs(genome = "hg19", parsefun = rmskidentity)
 #' 
 #' 
 #' @aliases annotaTEs
@@ -184,8 +190,10 @@ rmskidentity <- function(gr) {
 #' for LTR - internal region equivalences.
 #'
 #' @examples
+#' \dontrun{
 #' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-#'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+#'                      fuzzy = FALSE, strict = FALSE)
+#' }
 #' 
 #' @references
 #' Bailly-Bechet et al. "One code to find them all": a perl tool to 
@@ -213,9 +221,11 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   if (length(gr) == 0)
     stop("'gr' is empty")
   
-  if (!is.null(dictionary) & !file.exists(dictionary))
-    stop("'dictionary' should be NULL or specify the name of a dictionary", 
-         " file, see ?OneCodeToFindThemAll")
+  if (!is.null(dictionary)) {
+    if (!file.exists(dictionary))
+        stop("'dictionary' should be NULL or specify the name of a dictionary",
+        " file, see ?OneCodeToFindThemAll")
+  }
   
   if (is.null(dictionary)) {
     inout <- .builDictionary(gr, fuzzy)
@@ -268,13 +278,15 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #' Getter of LTR class TEs from parsed RepeatMasker annotations
 #' @param parsed_ann A \link[GenomicRanges:GRangesList-class]{GRangesList} 
 #'                   object obtained from parsing RepeatMasker annotations
-#'                   with \code{OneCodeToFindThemAll} function.
+#'                   with \code{OneCodeToFindThemAll()} or 
+#'                   \code{rmskatenaparser()} function.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
 #'                  features. Elements with a lower relative length than
 #'                  \code{relLength} will be filtered. The relative length
-#'                  used is the one obtained by \code{OneCodeToFindThemAll}
+#'                  used is the one obtained by \code{OneCodeToFindThemAll()}
+#'                  or \code{rmskatenaparser()}.
 #'                  (length of the reconstructed TE / length of the reference).
 #' 
 #' @param full_length (Default TRUE) A logical. Should reconstructed 
@@ -302,13 +314,14 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #'         
 #' @details 
 #' Retrieves LTR class TEs from RepeatMasker annotations after parsing using
-#' the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
+#' the \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()} function. 
+#' The \code{relLength} parameter
 #' can be used to filter out elements with a lower relative length. The other
 #' parameters can be used to fine-tune the type of elements to be reported.
 #'
 #' @examples
-#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-#'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+#'                      strict = FALSE)
 #' rmsk_gr_ltr <- getLTRs(rmsk_gr, relLength = 0.95, full_length = TRUE,
 #'                        partial = TRUE)
 #'  
@@ -335,13 +348,15 @@ getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
 #' Getter of LINE class TEs from parsed RepeatMasker annotations
 #' @param parsed_ann A \link[GenomicRanges:GRangesList-class]{GRangesList} 
 #'                   object obtained from parsing RepeatMasker annotations
-#'                   with \code{OneCodeToFindThemAll} function.
+#'                   with \code{OneCodeToFindThemAll()} or
+#'                   \code{rmskatenaparser()} function.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
 #'                  features. Elements with a lower relative length than
 #'                  \code{relLength} will be filtered. The relative length
-#'                  used is the one obtained by \code{OneCodeToFindThemAll}
+#'                  used is the one obtained by \code{OneCodeToFindThemAll()}
+#'                  or \code{rmskatenaparser()}.
 #'                  (length of the reconstructed TE / length of the reference).
 #'
 #' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
@@ -349,12 +364,13 @@ getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
 #'         
 #' @details 
 #' Retrieves LINE class TEs from RepeatMasker annotations after parsing using
-#' the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
+#' the \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()} function. 
+#' The \code{relLength} parameter
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-#'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+#'                      strict = FALSE)
 #' rmsk_gr_line <- getLINEs(rmsk_gr, relLength = 0.95)
 #'  
 #' @aliases getLINEs
@@ -371,13 +387,15 @@ getLINEs <- function(parsed_ann, relLength = 0.9) {
 #' Getter of SINE class TEs from parsed RepeatMasker annotations
 #' @param parsed_ann A \link[GenomicRanges:GRangesList-class]{GRangesList} 
 #'                   object obtained from parsing RepeatMasker annotations
-#'                   with \code{OneCodeToFindThemAll} function.
+#'                   with \code{OneCodeToFindThemAll()} or 
+#'                   \code{rmskatenaparser()} function.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
 #'                  features. Elements with a lower relative length than
 #'                  \code{relLength} will be filtered. The relative length
-#'                  used is the one obtained by \code{OneCodeToFindThemAll}
+#'                  used is the one obtained by \code{OneCodeToFindThemAll()}
+#'                  or \code{rmskatenaparser()}
 #'                  (length of the reconstructed TE / length of the reference).
 #'
 #' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
@@ -385,12 +403,13 @@ getLINEs <- function(parsed_ann, relLength = 0.9) {
 #'         
 #' @details 
 #' Retrieves SINE class TEs from RepeatMasker annotations after parsing using
-#' the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
+#' the \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()} function.
+#' The \code{relLength} parameter
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-#'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+#'                      strict = FALSE)
 #' rmsk_gr_sine <- getSINEs(rmsk_gr, relLength = 0.95)
 #'  
 #' @aliases getSINEs
@@ -407,13 +426,15 @@ getSINEs <- function(parsed_ann, relLength = 0.9) {
 #' Getter of DNA class TEs from parsed RepeatMasker annotations
 #' @param parsed_ann A \link[GenomicRanges:GRangesList-class]{GRangesList} 
 #'                   object obtained from parsing RepeatMasker annotations
-#'                   with \code{OneCodeToFindThemAll} function.
+#'                   with \code{OneCodeToFindThemAll()} or 
+#'                   \code{rmskatenaparser()} function.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
 #'                  features. Elements with a lower relative length than
 #'                  \code{relLength} will be filtered. The relative length
-#'                  used is the one obtained by \code{OneCodeToFindThemAll}
+#'                  used is the one obtained by \code{OneCodeToFindThemAll()}
+#'                  or \code{rmskatenaparser()}
 #'                  (length of the reconstructed TE / length of the reference).
 #'
 #' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
@@ -421,12 +442,13 @@ getSINEs <- function(parsed_ann, relLength = 0.9) {
 #'         
 #' @details 
 #' Retrieves DNA class TEs from RepeatMasker annotations after parsing using
-#' the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
+#' the \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()} function.
+#' The \code{relLength} parameter
 #' can be used to filter out elements with a lower relative length.
 #'
 #' @examples
-#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-#'                      dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+#' rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+#'                      strict = FALSE)
 #' rmsk_gr_DNAtrans <- getDNAtransposons(rmsk_gr, relLength = 0.95)
 #'  
 #' @aliases getDNAtransposons
@@ -680,9 +702,6 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
     annrec <- c(annrec, annchru_rec)
   }
   
-  # Computation of relative length with respect to consensus sequence length
-  
-  
   annrec
 }
 
@@ -740,7 +759,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   # dictionary with equivalences: 'outside'), are identinfied as "noLTR",
   # however LTRs and int are expected to be inside 'annchr2' since the
   # dictionary 'outside' does not identify all LTR and int regions.
-  mcols(annchr2)$type <- "noLTR"
+  if (length(annchr2) > 0)
+    mcols(annchr2)$type <- "noLTR"
   
   # ---- Reconstructing full-length and partial ERVs ----
   if (length(annchrint) > 0 & length(annchrltr) > 0) {

@@ -7,9 +7,9 @@ test_ERVmap <- function() {
                             ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
     emSE <- qtex(empar)
     
-    checkEqualsNumeric(dim(emSE), c(28, 2))
+    checkEqualsNumeric(dim(emSE), c(27, 2))
     checkEqualsNumeric(head(sort(assay(emSE), decreasing=TRUE)), 
-                            c(4, 3, 3, 3, 2, 2))
+                            c(3, 3, 3, 2, 2, 2))
 }
 
 test_em_input1 <- function() {

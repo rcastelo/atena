@@ -433,3 +433,27 @@ saveRDS(teall,
 ```
 
 
+**Adding `seqinfo` data**
+
+```{r}
+TE_annot <- readRDS(file = "Top28TEs.rds")
+gene_annot <- readRDS(file =  "Top50genes.rds")
+
+suppressPackageStartupMessages(library(BSgenome.Dmelanogaster.UCSC.dm6))
+suppressPackageStartupMessages(library(GenomeInfoDb))
+seqlevelsStyle(gene_annot) <- "UCSC"
+seqlevelsStyle(TE_annot) <- "UCSC"
+
+seqlevels(gene_annot, 
+          pruning.mode="coarse") <- seqlevels(BSgenome.Dmelanogaster.UCSC.dm6)
+
+seqlevels(TE_annot, 
+          pruning.mode="coarse") <- seqlevels(BSgenome.Dmelanogaster.UCSC.dm6)
+
+seqlengths(gene_annot) <- seqlengths(BSgenome.Dmelanogaster.UCSC.dm6)
+seqlengths(TE_annot) <- seqlengths(BSgenome.Dmelanogaster.UCSC.dm6)
+
+saveRDS(TE_annot, file = "Top28TEs.rds")
+saveRDS(gene_annot, file = "Top50genes.rds")
+```
+

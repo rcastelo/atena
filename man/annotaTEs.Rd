@@ -23,6 +23,12 @@ annotaTEs(genome = "hg38", parsefun = rmskidentity, ...)
         as "Unknown" or "Other". Finally, assigns a unique id to each TE
         instance by adding the suffix "_dup" plus a number at the end of
         the "repName".
+  \item Function \code{rmskatenaparser} parses RepeatMasker annotations 
+        reconstructing fragmented TEs by assembling together fragments from
+        the same TE that are close enough. For LTR class TEs, it tries to
+        reconstruct full-length and partial TEs following the LTR - internal
+        region - LTR structure. Input is a \code{GRanges} object and output
+        is a \code{GRangesList} object.
   \item Function \code{OneCodeToFindThemAll} parses annotations following
         the 'One code to find them all' method by 
         \href{https://doi.org/10.1186/1759-8753-5-13}{(Bailly-Bechet et al. 2014)}. 
@@ -53,7 +59,7 @@ annotations (e.g. \code{rmskbasicparser} or a user-defined function). If no
 parsing is required, \code{parsefun} can be set to \code{rmskidentity}.
 }
 \examples{
-rmsk_gr <- annotaTEs(genome = "hg38", parsefun = rmskidentity)
+rmsk_gr <- annotaTEs(genome = "hg19", parsefun = rmskidentity)
 
 
 }

@@ -393,4 +393,56 @@
     }
 }
 
+## private function .matchSeqinfo()
+#' @importFrom GenomeInfoDb seqlengths keepSeqlevels seqlevelsStyle seqlevelsStyle<-
+#' @importFrom GenomeInfoDb seqinfo seqinfo<-
+.matchSeqinfo <- function(gal, features, verbose=TRUE) {
+  stopifnot("GAlignments" %in% class(gal) ||
+              "GAlignmentPairs" %in% class(gal) ||
+              "GAlignmentsList" %in% class(gal) ||
+              "GRanges" %in% class(features) || 
+              "GRangesList" %in% class(features)) ## QC
+  
+  seqlevelsStyle(gal) <- seqlevelsStyle(features)[1]
+  slengal <- seqlengths(gal)
+  slenf <- seqlengths(features)
+  commonchr <- intersect(names(slengal), names(slenf))
+  slengal <- slengal[commonchr]
+  slenf <- slenf[commonchr]
+  if (any(slengal != slenf)) {
+    if (sum(slengal != slenf) == 1 && verbose) {
+      message(sprintf(paste("Chromosome %s has different lengths",
+                            "between the input BAM and the annotations",
+                            "This chromosome will",
+                            "be discarded from further analysis",
+                            sep=" "),
+                      paste(commonchr[which(slengal != slenf)],
+                            collapse=", ")))
+      
+    } else if (verbose) {
+      message(sprintf(paste("Chromosomes %s have different lengths",
+                            "between the input BAM and the annotations",
+                            "These chromosomes",
+                            "will be discarded from further analysis",
+                            sep=" "),
+                      # paste(commonChr[which(slenVcf != slenBSgenome)],
+                      #       collapse=", "),
+                      paste(commonchr[which(slengal != slenf)],
+                            collapse=", ")))
+    }
+    if (sum(slengal == slenf) == 0)
+      stop(paste("None of the chromosomes in the input BAM file has the",
+                 "same length as the chromosomes in the input annotations.",
+                 sep = " "))
+    gal <- keepSeqlevels(gal, commonchr[slengal == slenf],
+                         pruning.mode="coarse")
+    commonchr <- commonchr[slengal == slenf]
+  }
+  
+  ## set the seqinfo information to the one of the annotations
+  mt <- match(commonchr, seqlevels(gal))
+  seqinfo(gal, new2old=mt, pruning.mode="coarse") <- seqinfo(features)[commonchr]
+  
+  gal
+}
 

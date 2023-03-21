@@ -286,6 +286,7 @@ while (length(alnreads <- do.call(readfun,
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=empar@strandMode)[strand_arg],
                                 list(use.names=(!avsoas || avgene)))))) {
+    alnreads <- .matchSeqinfo(alnreads, empar@features)
     n <- n + length(alnreads)
     thissalnmask <- .secondaryAlignmentMask(alnreads) #secondary alignment mask
     mask <- .pass2Filters(alnreads, empar) #which alignments pass filters 1 & 2

@@ -259,6 +259,7 @@ setMethod("qtex", "TelescopeParam",
                                 c(list(file = bf), list(param=param),
                                 list(strandMode=tspar@strandMode)[strand_arg],
                                 list(use.names=TRUE))))) {
+        alnreads <- .matchSeqinfo(alnreads, tspar@features)
         alnreadids <- c(alnreadids, names(alnreads))
         asvalues <- c(asvalues, .getAlignmentASScoreTS(alnreads, tag = "AS"))
         readlen <- .getAlignmentLength(alnreads)

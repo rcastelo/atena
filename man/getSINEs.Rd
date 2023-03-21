@@ -9,13 +9,15 @@ getSINEs(parsed_ann, relLength = 0.9)
 \arguments{
 \item{parsed_ann}{A \link[GenomicRanges:GRangesList-class]{GRangesList} 
 object obtained from parsing RepeatMasker annotations
-with \code{OneCodeToFindThemAll} function.}
+with \code{OneCodeToFindThemAll()} or 
+\code{rmskatenaparser()} function.}
 
 \item{relLength}{(Default 0.9) Numeric value that can take values between 0
 to 1. Sets the minimum relative length required for
 features. Elements with a lower relative length than
 \code{relLength} will be filtered. The relative length
-used is the one obtained by \code{OneCodeToFindThemAll}
+used is the one obtained by \code{OneCodeToFindThemAll()}
+or \code{rmskatenaparser()}
 (length of the reconstructed TE / length of the reference).}
 }
 \value{
@@ -27,12 +29,13 @@ Getter of SINE class TEs from parsed RepeatMasker annotations
 }
 \details{
 Retrieves SINE class TEs from RepeatMasker annotations after parsing using
-the \code{OneCodeToFindThemAll} function. The \code{relLength} parameter
+the \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()} function.
+The \code{relLength} parameter
 can be used to filter out elements with a lower relative length.
 }
 \examples{
-rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-                     dictionary=NULL, fuzzy = FALSE, strict = FALSE)
+rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser,
+                     strict = FALSE)
 rmsk_gr_sine <- getSINEs(rmsk_gr, relLength = 0.95)
  
 }

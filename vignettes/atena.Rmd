@@ -203,13 +203,6 @@ steps:
    
 The dataset that will be used to illustrate how to quantify TE expression with `atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available at the National Center for Biotechnology Information (NCBI) Gene Expression Omnibus (accession no. [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). The two selected samples are: a piwi knockdown and a piwi control (GSM1142845 and GSM1142844). These files have been subsampled. The piwi-associated silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the knockdown of piwi causes the de-repression of TEs. To minimize the computational cost and memory requirements when building this vignette, the annotations used in following examples consist of 28 and 50 highly expressed TEs and genes, respectively, from _Drosophila melanogaster_.
 
-TE annotations for *Drosophila melanogaster* *dm6* processed with the 
-`rmskbasicparser()` function will be used:
-```{r, message=FALSE, warning=FALSE}
-rmsk <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
-# rmsk
-```
-
 ## Building a parameter object for ERVmap
 
 To use the ERVmap method in `atena` we should first build an object of the class `ERVmapParam` using the function `ERVmapParam()`. The `singleEnd` parameter is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` parameter works analogously to the same parameter in the function `summarizeOverlaps()` from package `r Biocpkg("GenomicAlignments")` and should be set to `TRUE` whenever the RNA library preparation protocol was stranded.

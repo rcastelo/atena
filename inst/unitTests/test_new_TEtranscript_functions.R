@@ -38,6 +38,7 @@ test_new_TEtranscript_functions <- function(){
                                     c(list(file = bf), list(param=param),
                                       list(strandMode=ttpar@strandMode)[strand_arg],
                                       list(use.names=TRUE))))) {
+    alnreads <- atena:::.matchSeqinfo(alnreads, ttpar@features)
     avgreadlen <- c(avgreadlen, atena:::.getAveLen(ttpar, alnreads))
     if (ttpar@singleEnd == FALSE) {
       d <- c(d, abs(start(first(alnreads)) - start(second(alnreads))))

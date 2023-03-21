@@ -37,6 +37,7 @@ test_new_Telescope_functions <- function(){
                                     c(list(file = bf), list(param=param),
                                       list(strandMode=tspar@strandMode)[strand_arg],
                                       list(use.names=TRUE))))) {
+    alnreads <- atena:::.matchSeqinfo(alnreads, tspar@features)
     alnreadids <- c(alnreadids, names(alnreads))
     asvalues <- c(asvalues, mcols(alnreads)$AS)
     mreadlen <- median(width(ranges(alnreads)))
