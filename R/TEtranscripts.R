@@ -613,6 +613,7 @@ cntvec
         cntvec <- cntvec_t
     }
     
+    cntvec <- round(cntvec, digits = 8)
     cntvec
 }
 
