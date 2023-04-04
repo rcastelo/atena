@@ -746,8 +746,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   
   if (length(annchrint) > 0 & length(annchrltr) > 0) {
     splitf2 <- .splitNonContinous(annchrint, annchrltr, outsidechr)
-    annchrltrsp <- split(unlist(annchrltr), splitf2$splitfltr2)
-    annchrintsp <- split(unlist(annchrint), splitf2$splitfint2)
+    annchrltrsp <- split(unlist(annchrltr,use.names=FALSE), splitf2$splitfltr2)
+    annchrintsp <- split(unlist(annchrint,use.names=FALSE), splitf2$splitfint2)
     annchr <- annchr[-c(whint, whltr)]
     
     # We keep ltr and int separated from the rest of TEs to later perform the
@@ -875,7 +875,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   } else {
     insert <- insert + 1 # to adapt to reduce() behaviour
     sp2 <- reduce(annchr, with.revmap=TRUE, min.gapwidth=insert)
-    annchr2 <- relist(unlist(annchr), mcols(unlist(sp2))$revmap)
+    annchr2 <- relist(unlist(annchr, use.names = FALSE), 
+                      mcols(unlist(sp2))$revmap)
     names(annchr2) <- paste(rep(names(sp2), lengths(sp2)), 
                             seq_along(annchr2), sep =".")
   }
@@ -1194,8 +1195,8 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   
   if (length(annint) > 0 & length(annltr) > 0) {
     splitf2 <- .splitNonContinous_at(annint, annltr, outsidechr)
-    annltrsp <- split(unlist(annltr), splitf2$splitfltr2)
-    annintsp <- split(unlist(annint), splitf2$splitfint2)
+    annltrsp <- split(unlist(annltr, use.names = FALSE), splitf2$splitfltr2)
+    annintsp <- split(unlist(annint, use.names = FALSE), splitf2$splitfint2)
     ann <- ann[-c(whint, whltr)]
     # We keep ltr and int separated from the rest of TEs to later perform the
     # reconstruction of full-length or partial ERVs
@@ -1264,7 +1265,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
 .mergeCloseFeatures_at <- function(annsp, cons_length, insert) {
   insert <- insert + 1 # to adapt to reduce() behaviour
   sp2 <- reduce(annsp, with.revmap=TRUE, min.gapwidth=insert)
-  annsp2 <- relist(unlist(annsp), mcols(unlist(sp2))$revmap)
+  annsp2 <- relist(unlist(annsp, use.names=FALSE), mcols(unlist(sp2))$revmap)
   names(annsp2) <- paste(rep(names(sp2), lengths(sp2)), 
                          seq_along(annsp2), sep =".")
   annsp2
