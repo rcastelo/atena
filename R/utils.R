@@ -115,11 +115,12 @@
 
 #' @importFrom S4Vectors mcols Rle DataFrame
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom GenomicRanges mcols<- mcols
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
                                 geneFeaturesobjname, aggregateby,
                                 aggregateexons) {
     
-    if (missing(teFeatures)) 
+    if (missing(teFeatures))
         stop("missing 'teFeatures' argument.")
     
     # if (!exists(teFeaturesobjname))
@@ -130,37 +131,57 @@
         stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
                     teFeaturesobjname))
     
-    if (length(aggregateby) > 0)
-        if (any(!aggregateby %in% colnames(mcols(teFeatures))))
-            stop(sprintf("%s not in metadata columns of the TE features object.",
-                aggregateby[!aggregateby %in% colnames(mcols(teFeatures))]))
-    
     if (is.null(names(teFeatures)) && length(aggregateby) == 0)
         stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
                     teFeaturesobjname))
     
     features <- teFeatures
-    if (is(teFeatures, "GRangesList")) 
+    if (is(teFeatures, "GRangesList"))
         features <- unlist(teFeatures)
     
+    if (length(aggregateby) > 0)
+      if (any(!aggregateby %in% colnames(mcols(features))))
+        stop(sprintf("%s not in metadata columns of the TE features object.",
+                     aggregateby[!aggregateby %in% colnames(mcols(features))]))
+    
     if (!all(is.na(geneFeatures))) {
-        if (is(geneFeatures, "GRangesList")) 
+        if (is(geneFeatures, "GRangesList"))
             geneFeatures <- unlist(geneFeatures)
         
         features <- .joinTEsGenes(teFeatures, geneFeatures)
     } else {
-        features$isTE <- rep(TRUE, length(features))
+        features <- teFeatures
+        mcols(features)$isTE <- rep(TRUE, length(features))
     }
     
-    iste <- as.vector(features$isTE)
+    iste <- as.vector(mcols(features)$isTE)
+    
     if (!all(is.na(geneFeatures))) {
         if (!all(iste) & !is.null(mcols(geneFeatures)$type)) {
-            iste <- aggregate(iste, by = list(names(features)), unique)
-            features <- .groupGeneExons(features, aggregateexons)
-            mtname <- match(names(features), iste$Group.1)
-            iste <- iste[mtname,"x"]
+            if (is(features, "GRanges")) {
+                iste <- aggregate(iste, by = list(names(features)), unique)
+                features <- .groupGeneExons(features, aggregateexons)
+                mtname <- match(names(features), iste$Group.1)
+                iste <- iste[mtname,"x"]
+                
+            } else if (is(geneFeatures, "GRanges")) {
+            # when gene annotations were a GRanges but TE annotations a
+            # GRangesList, we only aggregate at the exon level gene annotation
+                features_g <- unlist(features[which(!iste)])
+                mcols(features_g)$isTE <- FALSE
+                mcols(features_g)$type <- mcols(features)[which(!iste), "type"]
+                features_g <- .groupGeneExons(features_g,
+                                              aggregateexons)
+                mcols(features_g)$isTE <- FALSE
+                mcols(features_g)$type <- "exon"
+                iste_g <- unlist(lapply(relist(iste[which(!iste)], features_g),
+                                        function(x) x[1]),  use.names = FALSE)
+                iste <- c(iste[which(iste)], iste_g)
+                features <- c(features[which(iste)], features_g)
+            }
         }
-    } else if (aggregateexons) {
+      
+    } else if (aggregateexons & is(features, "GRanges")) {
         iste <- aggregate(iste, by = list(names(features)), unique)
         features <- .groupGeneExons(features, aggregateexons)
         mtname <- match(names(features), iste$Group.1)
@@ -181,10 +202,10 @@
         }
         yesexon <- rep(TRUE, length(features))
         if (!is.null(mcols(features)$type)) {
-            yesexon <- features$type == "exon"
+            yesexon <- mcols(features)$type == "exon"
             yesexon[is.na(yesexon)] <- FALSE
         }
-        features <- features[features$isTE | yesexon]
+        features <- features[mcols(features)$isTE | yesexon]
         featuressplit <- split(x = features, f = names(features))
     } else {
         features_g <- features[!features$isTE]
@@ -194,7 +215,7 @@
         if (!any(mcols(features_g)$type == "exon")) {
             stop(".groupGeneExons: no genes with value 'exon' in 'type' column of the metadata of the 'GRanges' or 'GRangesList' object with gene annotations.")
         }
-        features_g <- features_g[features_g$type == "exon"]
+        features_g <- features_g[mcols(features_g)$type == "exon"]
         featuressplit <- split(x = features_g, f = names(features_g))
         featuressplit <- c(features_t_grl, featuressplit)
     }
@@ -224,8 +245,10 @@
     
     if (length(x@aggregateby) > 0) {
         f <- .factoraggregateby(teFeatures, x@aggregateby)
-        if (is(teFeatures, "GRangesList"))
+        if (is(teFeatures, "GRangesList")) {
+            f <- rep(f, times = lengths(teFeatures))
             teFeatures <- unlist(teFeatures)
+        }
         teFeatures <- split(teFeatures, f)
     }
     
@@ -274,6 +297,7 @@
 #' @importFrom GenomicRanges mcols
 .factoraggregateby <- function(ann, aggby) {
     if (is(ann,"GRangesList")) {
+        anngrl <- ann
         ann <- unlist(ann)
     }
     stopifnot(all(aggby %in% colnames(mcols(ann)))) ## QC
@@ -282,6 +306,11 @@
     } else {
         spfstr <- paste(rep("%s", length(aggby)), collapse=":")
         f <- do.call("sprintf", c(spfstr, as.list(mcols(ann)[, aggby])))
+    }
+    
+    if (exists("anngrl")) {
+      # Using the aggby of the 1st GRanges in each element of the GRangesList
+      f <- unlist(lapply(relist(f, anngrl), function(x) x[1]))
     }
     f
 }
@@ -320,6 +349,8 @@
 
 
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom GenomeInfoDb seqlevelsStyle seqlevelsStyle<-
+#' @importFrom GenomicRanges mcols<-
 .joinTEsGenes <- function(teFeatures, geneFeatures) {
     
     geneFeaturesobjname <- deparse(substitute(geneFeatures))
@@ -337,13 +368,14 @@
     if (length(geneFeatures) == 0)
         stop(sprintf("gene features object '%s' is empty.", geneFeaturesobjname))
     
+    seqlevelsStyle(geneFeatures) <- seqlevelsStyle(teFeatures)[1]
     slev <- unique(c(seqlevels(teFeatures), seqlevels(geneFeatures)))
     seqlevels(teFeatures) <- slev
     seqlevels(geneFeatures) <- slev
     features <- c(teFeatures, geneFeatures)
     temask <- Rle(rep(FALSE, length(teFeatures) + length(geneFeatures)))
     temask[seq_along(teFeatures)] <- TRUE
-    features$isTE <- temask
+    mcols(features)$isTE <- temask
     features
 }
 

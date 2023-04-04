@@ -31,7 +31,8 @@
 #' gene annotated features to be quantified. The TEtranscripts approach for
 #' gene expression quantification is used, in which overlaps with multi-mapping
 #' reads are preferentially assigned to TEs. Elements should have names
-#' indicating the gene name/id. In case that \code{geneFeatures} contains a
+#' indicating the gene name/id. In case that \code{geneFeatures} 
+#' is a \code{GRanges} and contains a
 #' metadata column named \code{type}, only the elements with
 #' \code{type} = \code{exon} are considered for the analysis. Then, exon counts
 #' are summarized to the gene level.

@@ -38,7 +38,9 @@ Suggests:
     BiocStyle,
     knitr,
     rmarkdown,
-    RUnit
+    RUnit,
+    TxDb.Dmelanogaster.UCSC.dm6.ensGene,
+    RColorBrewer
 biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage, DifferentialExpression, FunctionalGenomics
 VignetteBuilder: knitr
 URL: https://github.com/functionalgenomics/atena

@@ -49,7 +49,8 @@ as in the original TEtranscripts method.}
 gene annotated features to be quantified. Following the TEtranscripts
 algorithm, overlaps with unique reads are first tallied with respect to
 these gene features. Elements should have names indicating the gene name/id.
-In case that \code{geneFeatures} contains a metadata column named
+In case that \code{geneFeatures} is a \code{GRanges} and contains a 
+metadata column named
 \code{type}, only the elements with \code{type} = \code{exon} are considered
 for the analysis. Then, exon counts are summarized to the gene level.}
 

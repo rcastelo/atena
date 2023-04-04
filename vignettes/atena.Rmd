@@ -132,27 +132,54 @@ metadata columns with `mcols()`:
 mcols(rmskat)
 ```
 
-There is information about the type of assembled TE (*type* column), the
-relative length of the reconstructed TE (*Rel_length*) and the repeat class
-of the TE (*Class*). The relative length is computed by adding the length
-(in base pairs) of all fragments from the same assembled TE and dividing the
-sum by the length (in base pairs) of the consensus sequence. For full-length
-and partially reconstructed LTR TEs, the consensus sequence length used is the
-one resulting from adding twice the consensus sequence length of the long
-terminal repeat (LTR) and the one from the corresponding internal region. For 
-solo-LTRs, the consensus sequence length of the long terminal repeat is used.
+There is information about the reconstruction status of the TE (*status* 
+column), the relative length of the reconstructed TE (*Rel_length*) and the 
+repeat class of the TE (*Class*). The relative length is computed by adding
+the length (in base pairs) of all fragments from the same assembled TE and 
+dividing the sum by the length (in base pairs) of the consensus sequence. For 
+full-length and partially reconstructed LTR TEs, the consensus sequence length
+used is the one resulting from adding twice the consensus sequence length of 
+the long terminal repeat (LTR) and the one from the corresponding internal 
+region. For solo-LTRs, the consensus sequence length of the long terminal 
+repeat is used.
 
 We can get an insight into the composition of the assembled annotations using
-the information from the *type* column. Let's look at the absolute frequencies
-of the type and class of TEs in the annotations.
+the information from the *status* column. Let's look at the absolute
+frequencies of the status and class of TEs in the annotations.
 ```{r}
 par(mfrow = c(1,2), mar = c(7,4,3,1))
 
-barplot(table(mcols(rmskat)$type), las = 2, cex.names = 0.7,
-        main = "TEs by type", cex=0.6, border = "white")
+barplot(table(mcols(rmskat)$status), las = 2, cex.names = 0.7,
+        main = "TEs by status", cex=0.6, border = "white")
 barplot(table(mcols(rmskat)$Class), las = 1, cex.names = 0.7,
         main = "TEs by class", cex=0.6,  border = "white",
-        ylim = c(0,max(table(mcols(rmskat)$type))))
+        ylim = c(0,max(table(mcols(rmskat)$status))))
+```
+```{r comparsedann, message=FALSE, height=6, width=10, out.width="800px", fig.cap="Composition of parsed TE annotations."}
+library(RColorBrewer)
+
+pal1 <- brewer.pal(6, "Pastel2")
+pal2 <- brewer.pal(length(unique(mcols(rmskat)$Class)), "Set2")
+
+par(mfrow = c(1,2), mar = c(5,4,3,1))
+bp1 <- barplot(table(mcols(rmskat)$status), col = pal1, border = "black",
+        main = "TEs by status", cex.axis=0.8, xaxt = "n")
+grid(nx=NA, ny=NULL)
+axis(1, at=bp1, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
+par(xpd=TRUE)
+text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(rmskat)$status)), 
+     srt=40, offset = 1.7, cex = 0.8, pos = 1)
+par(xpd=FALSE)
+
+bp2 <- barplot(table(mcols(rmskat)$Class), col = pal2, border = "black",
+        main = "TEs by class", cex.axis=0.8, xaxt = "n",
+        ylim = c(0,max(table(mcols(rmskat)$status))))
+grid(nx=NA, ny=NULL)
+axis(1, at=bp2, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
+par(xpd=TRUE)
+text(x= bp2[, 1] - 0.1, y = 10, labels=names(table(mcols(rmskat)$Class)), 
+     srt=35, offset = 1.2, cex = 0.8, pos = 1)
+par(xpd=FALSE)
 ```
 
 Here, *full-lengthLTR* are reconstructed LTR retrotransposons following the
@@ -181,9 +208,11 @@ rmskLINE[1]
 
 To get LTR retrotransposons, we can use the function `getLTRs()`. This
 function also allows to get one or more specific types of reconstructed TEs.
-To get full-length and partial LTRs, we can:
+To get full-length, partial LTRs and other fragments that could not be
+reconstructed, we can:
 ```{r}
-rmskLTR <- getLTRs(rmskat, relLength = 0.8, full_length = TRUE, partial = TRUE)
+rmskLTR <- getLTRs(rmskat, relLength = 0.8, full_length = TRUE, partial = TRUE,
+                   otherLTR = TRUE)
 length(rmskLTR)
 rmskLTR[1]
 ```
@@ -201,7 +230,17 @@ steps:
 2. Calling the TE expression quantification method `qtex()` using the previously
    built parameter object.
    
-The dataset that will be used to illustrate how to quantify TE expression with `atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available at the National Center for Biotechnology Information (NCBI) Gene Expression Omnibus (accession no. [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). The two selected samples are: a piwi knockdown and a piwi control (GSM1142845 and GSM1142844). These files have been subsampled. The piwi-associated silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the knockdown of piwi causes the de-repression of TEs. To minimize the computational cost and memory requirements when building this vignette, the annotations used in following examples consist of 28 and 50 highly expressed TEs and genes, respectively, from _Drosophila melanogaster_.
+The dataset that will be used to illustrate how to quantify TE expression with
+`atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available
+at the National Center for Biotechnology Information (NCBI) Gene Expression
+Omnibus (accession no. [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). 
+The two selected samples are: a piwi knockdown and a piwi control (GSM1142845
+and GSM1142844). These files have been subsampled. The piwi-associated 
+silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the
+knockdown of piwi causes the de-repression of TEs. 
+
+Here, the expression of full-length LTR retrotransposons present in `rmskLTR` 
+will be quantified.
 
 ## Building a parameter object for ERVmap
 
@@ -222,10 +261,11 @@ Finally, this filter is applied by comparing the difference between alignment an
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
-empar <- ERVmapParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
-                     ignoreStrand = TRUE, suboptimalAlignmentCutoff=NA)
+empar <- ERVmapParam(bamfiles, 
+                     teFeatures = rmskLTR, 
+                     singleEnd = TRUE, 
+                     ignoreStrand = TRUE, 
+                     suboptimalAlignmentCutoff=NA)
 empar
 ```
 
@@ -250,18 +290,16 @@ To use the Telescope method for TE expression quantification, the `TelescopePara
 
 As in the case of `ERVmapParam()`, the `aggregateby` argument, which should be a character vector of column names in the annotation, determines the columns to be used to aggregate TE expression quantifications. This way, `atena` provides not only quantifications at the subfamily level, but also allows to quantify TEs at the desired level (family, class, etc.), including locus based quantifications. For such a use case, the object with the TE annotations should include a column with unique identifiers for each TE locus and the `aggregateby` argument should specify the name of that column. When `aggregateby` is not specified, the `names()` of the object containing TE annotations are used to aggregate quantifications.
 
-Here, the Telescope annotations will be used and TE quantifications will be aggregated according to the `names()` of the `TE_annot` object.
+Here, TE quantifications will be aggregated according to the `names()` of the
+`rmskLTR` object. 
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
-gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds", 
-                                         package="atena"))
-tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot, 
-                        geneFeatures = gene_annot,
-                        singleEnd = TRUE, ignoreStrand=TRUE)
+tspar <- TelescopeParam(bfl=bamfiles, 
+                        teFeatures=rmskLTR, 
+                        singleEnd = TRUE, 
+                        ignoreStrand=TRUE)
 tspar
 ```
 
@@ -274,15 +312,28 @@ As in the ERVmap method from `atena`, the gene expression quantification method 
 
 Finally, the third method available is TEtranscripts. First, the `TEtranscriptsParam()` function is called to build a parameter object of the class `TEtranscriptsParam`. The usage of the `aggregateby` argument is the same as in `TelescopeParam()` and `ERVmapParam()`. Locus based quantifications in the TEtranscripts method from `atena` is possible because the TEtranscripts algorithm actually computes TE quantifications at the locus level and then sums up all instances of each TE subfamily to provide expression at the subfamily level. By avoiding this last step, `atena` can provide TE expression quantification at the locus level using the TEtranscripts method. For such a use case, the object with the TE annotations should include a column with unique identifiers for each TE and the `aggregateby` argument should specify the name of that column.
 
-Here, the Telescope annotations will be used and TE quantifications will be aggregated at the repeat name level. This way, the `aggregateby` argument will be set to `aggregateby = "repName"`.
+In this example, the `aggregateby` argument will be set to
+`aggregateby = "repName"` in order to aggregate quantifications at the repeat 
+name level. Moreover, gene expression will also be quantified. To do so,
+gene annotations are loaded from a *TxDb* object.
+
+```{r, message=FALSE}
+library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
+txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
+txdb_genes <- genes(txdb)
+length(txdb_genes)
+```
+
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds", 
-                                       package="atena"))
-ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, singleEnd = TRUE, 
-                            ignoreStrand=TRUE, aggregateby = c("repName"))
+ttpar <- TEtranscriptsParam(bamfiles, 
+                            teFeatures = rmskLTR,
+                            geneFeatures = txdb_genes,
+                            singleEnd = TRUE, 
+                            ignoreStrand=TRUE, 
+                            aggregateby = c("repName"))
 
 ttpar
 ```
@@ -291,20 +342,22 @@ For paired-end data (`singleEnd=FALSE`), the usage of the `fragments` argument i
 
 Regarding gene expression quantification, `atena` has implemented the approach of the original TEtranscripts software [@jin2015tetranscripts]. As in the case of the ERVmap and Telescope methods from `atena`, either secondary alignments or the `NH` tag are required.
 
-Following the gene annotation processing present in the TEtranscripts algorithm, in case that `geneFeatures` contains a metadata column named "type", only the elements with "type" = "exon" are considered for the analysis. Then, exon counts are summarized to the gene level in a `GRangesList` object. This also applies to the ERVmap and Telescope methods for `atena` when gene feature are present. Let's see an example of this processing:
+Following the gene annotation processing present in the TEtranscripts algorithm, in case that `geneFeatures` contains a metadata column named "type", only the elements with "type" = "exon" are considered for the analysis. Then, exon counts are summarized to the gene level in a `GRangesList` object. This also applies to the ERVmap and Telescope methods for `atena` when gene features are present. Let's see an example of this processing:
 
 ```{r}
 # Creating an example of gene annotations
-annot_gen <- GRanges(seqnames = rep("2L",10),
-                     ranges = IRanges(start = c(1,20,45,80,110,130,150,170,200,220),
-                                      width = c(10,20,35,10,5,15,10,25,5,20)),
+annot_gen <- GRanges(seqnames = rep("2L",8),
+                     ranges = IRanges(start = c(1,20,45,80,110,130,150,170),
+                                      width = c(10,20,35,10,5,15,10,25)),
                      strand = "*", 
-                     type = rep("exon",10))
+                     type = rep("exon",8))
 # Setting gene ids
-names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,3)))
+names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,1)))
 annot_gen
-ttpar_gen <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot, 
-                                geneFeatures = annot_gen, singleEnd = TRUE, 
+ttpar_gen <- TEtranscriptsParam(bamfiles, 
+                                teFeatures = rmskLTR, 
+                                geneFeatures = annot_gen, 
+                                singleEnd = TRUE, 
                                 ignoreStrand=TRUE)
 ttpar_gen
 ```
@@ -312,7 +365,8 @@ ttpar_gen
 Let's see the result of the gene annotation processing:
 
 ```{r}
-features(ttpar_gen)[!attributes(features(ttpar_gen))$isTE$isTE]
+features_tt <- atena::features(ttpar_gen)
+features_tt[!attributes(features_tt)$isTE$isTE]
 ```
 
 
@@ -352,11 +406,8 @@ ttq
 colSums(assay(ttq))
 ```
 
-As mentioned, TE expression quantification is provided at the repeat name level. All 28 TE features share the same repeat name. Thus, the expression levels of the initial 28 TE features have been a aggregated into 1 element with repeat name _ROO_LTR_.
+As mentioned, TE expression quantification is provided at the repeat name level.
 
-```{r}
-nrow(ttq)
-```
 
 
 # Session information

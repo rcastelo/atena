@@ -341,7 +341,7 @@ getLTRs <- function(parsed_ann, relLength = 0.9, full_length = TRUE,
   LTRtypes <- c("full-lengthLTR"[full_length], "partialLTR_up"[partial], 
                 "partialLTR_down"[partial], "LTR"[soloLTR],
                 "int"[otherLTR], "noLTR"[otherLTR])
-  tokeep2 <- mcols(parsed_ann)$type %in% LTRtypes
+  tokeep2 <- mcols(parsed_ann)$status %in% LTRtypes
   parsed_ann[tokeep & tokeep2]
 }
 
@@ -744,8 +744,8 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
     annchrintsp2 <- .mergeCloseFeatures(annchrintsp, cons_length, insert,
                                         minusStrand=minusStrand)
     
-    mcols(annchrltrsp2)$type <- "LTR"
-    mcols(annchrintsp2)$type <- "int"
+    mcols(annchrltrsp2)$status <- "LTR"
+    mcols(annchrintsp2)$status <- "int"
   }
   
   # if 'annchrltrsp2' or 'annchrintsp2' are empty, 'annchr2' contains all
@@ -760,7 +760,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   # however LTRs and int are expected to be inside 'annchr2' since the
   # dictionary 'outside' does not identify all LTR and int regions.
   if (length(annchr2) > 0)
-    mcols(annchr2)$type <- "noLTR"
+    mcols(annchr2)$status <- "noLTR"
   
   # ---- Reconstructing full-length and partial ERVs ----
   if (length(annchrint) > 0 & length(annchrltr) > 0) {
@@ -874,7 +874,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   annchrltrint <- c(annchrltrsp2[ltrtorec], annchrintsp2[inttorec])
   o <- order(min(start(annchrltrint)), decreasing = FALSE)
   annchrltrint <- annchrltrint[o]
-  whint <- which(mcols(annchrltrint)$type == "int")
+  whint <- which(mcols(annchrltrint)$status == "int")
   namef <- do.call("rbind", strsplit(names(annchrltrint), ".", fixed =TRUE))[,1]
   int <- namef[whint]
   # ltr <- inside[int]
@@ -929,7 +929,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   if (any(fl)) {
     fulllength_grl <- pc(annchrltrint[whintup][fl], annchrltrint[whint][fl],
                          annchrltrint[whintdo][fl])
-    mcols(fulllength_grl)$type <- "full-lengthLTR"
+    mcols(fulllength_grl)$status <- "full-lengthLTR"
     # assigning names of int element
     names(fulllength_grl) <- names(annchrltrint[whint][fl])
     # Making sure no partially reconstructed ERV contains fragments from a 
@@ -946,7 +946,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   # Creating GRangesList of partial ERVs
   if (any(ptup)) {
     partial_grl1 <- pc(annchrltrint[whintup][ptup], annchrltrint[whint][ptup])
-    mcols(partial_grl1)$type <- "partialLTR_up"
+    mcols(partial_grl1)$status <- "partialLTR_up"
     # assigning names of int element
     names(partial_grl1) <- names(annchrltrint[whint][ptup])
     # removing LTR for reconstruction with an upstream int if it has been 
@@ -960,7 +960,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
   }
   if (any(ptdown)) {
     partial_grl2 <- pc(annchrltrint[whint][ptdown],annchrltrint[whintdo][ptdown])
-    mcols(partial_grl2)$type <- "partialLTR_down"
+    mcols(partial_grl2)$status <- "partialLTR_down"
     # assigning names of int element
     names(partial_grl2) <- names(annchrltrint[whint][ptdown])
   } else {
@@ -989,7 +989,7 @@ getDNAtransposons <- function(parsed_ann, relLength = 0.9) {
 
 #' @importFrom GenomicRanges width mcols "mcols<-"
 .getRelLength <- function(nTEs, cons_length, inout, annrec) {
-  whERVs <- mcols(annrec)$type %in% c("partialLTR_up","partialLTR_down",
+  whERVs <- mcols(annrec)$status %in% c("partialLTR_up","partialLTR_down",
                                       "full-lengthLTR","int")
   ltrconsl <- cons_length[names(inout$outside)[match(nTEs[whERVs], inout$outside)]]
   cons_length_full <- cons_length[nTEs[whERVs]] + 2*ltrconsl
@@ -1184,8 +1184,8 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
     # together if they are close enough, according to the 'insert' parameter
     annltrsp2 <- .mergeCloseFeatures_at(annltrsp, cons_length, insert)
     annintsp2 <- .mergeCloseFeatures_at(annintsp, cons_length, insert)
-    mcols(annltrsp2)$type <- "LTR"
-    mcols(annintsp2)$type <- "int"
+    mcols(annltrsp2)$status <- "LTR"
+    mcols(annintsp2)$status <- "int"
   }
   ann2 <- .mergeCloseFeatures_at(ann, cons_length, insert)
   
@@ -1193,7 +1193,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   # dictionary with equivalences: 'outside'), are identinfied as "noLTR",
   # however LTRs and int are expected to be inside 'annchr2' since the
   # dictionary 'outside' does not identify all LTR and int regions.
-  mcols(ann2)$type <- "noLTR"
+  mcols(ann2)$status <- "noLTR"
   
   # ---- Reconstructing full-length and partial ERVs ----
   if (length(annint) > 0 & length(annltr) > 0) {
@@ -1267,7 +1267,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   st <- do.call("rbind", strsplit(st, ".", fixed=TRUE))[,1]
   o <- order(chr, st, min(start(annltrint)), decreasing = FALSE)
   annltrint <- annltrint[o]
-  whint <- which(mcols(annltrint)$type == "int")
+  whint <- which(mcols(annltrint)$status == "int")
   namef <- do.call("rbind", strsplit(names(annltrint), ".", fixed =TRUE))[,1]
   int <- namef[whint]
   ltr <- split(names(outsidechr), f = outsidechr)
