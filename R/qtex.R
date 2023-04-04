@@ -79,13 +79,16 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
-#'                     package="atena"))
-#' gene_annot <- readRDS(file = system.file("extdata", "Top50genes.rds",
-#'                                          package="atena"))
-#' tspar <- TelescopeParam(bfl=bamfiles, teFeatures=TE_annot,
-#'                         geneFeatures = gene_annot,
-#'                         singleEnd = TRUE, ignoreStrand=TRUE)
-#' tsSE <- qtex(tspar)
+#' rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
+#'                     strict = FALSE, insert = 500)
+#' rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
+#'                    full_length = TRUE, 
+#'                    partial = TRUE,
+#'                    otherLTR = TRUE)
+#' tspar <- TelescopeParam(bfl=bamfiles, 
+#'                         teFeatures=rmskLTR, 
+#'                         singleEnd = TRUE, 
+#'                         ignoreStrand=TRUE)
+#' tsquant <- qtex(tspar)
 NULL
 

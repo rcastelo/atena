@@ -158,10 +158,20 @@ is 100 and this value is passed to the \code{maxiter} parameter of the
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-TE_annot <- readRDS(file = system.file("extdata", "Top28TEs.rds",
-                    package="atena"))
-ttpar <- TEtranscriptsParam(bamfiles, teFeatures = TE_annot,
-                            singleEnd = TRUE, ignoreStrand=TRUE,
+rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
+                    strict = FALSE, insert = 500)
+rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
+                   full_length = TRUE, 
+                   partial = TRUE,
+                   otherLTR = TRUE)
+library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
+txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
+txdb_genes <- genes(txdb)
+ttpar <- TEtranscriptsParam(bamfiles, 
+                            teFeatures = rmskLTR,
+                            geneFeatures = txdb_genes,
+                            singleEnd = TRUE, 
+                            ignoreStrand=TRUE, 
                             aggregateby = c("repName"))
 ttpar
 

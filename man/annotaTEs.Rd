@@ -4,7 +4,7 @@
 \alias{annotaTEs}
 \title{Get RepeatMasker UCSC annotations}
 \usage{
-annotaTEs(genome = "hg38", parsefun = rmskidentity, ...)
+annotaTEs(genome = "hg38", parsefun = rmskidentity, AHid = NULL, ...)
 }
 \arguments{
 \item{genome}{The genome version of the desired RepeatMasker annotations
@@ -37,6 +37,13 @@ annotaTEs(genome = "hg38", parsefun = rmskidentity, ...)
   \item User-defined function. Input and output should be \code{GRanges}
         objects.
 }}
+
+\item{AHid}{AnnotationHub unique identifier, of the form AH12345, of an
+object with TE annotations. This is an optional argument to
+specify a concrete AnnotationHub resource, for instance
+when more there is more than one RepeatMasker annotation
+available for a specific genome version. If \code{AHid} is
+not specified, the latest RepeatMasker annotation is be used.}
 
 \item{...}{Arguments passed to \code{parsefun}.}
 }

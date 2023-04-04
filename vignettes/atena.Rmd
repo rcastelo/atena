@@ -146,15 +146,7 @@ repeat is used.
 We can get an insight into the composition of the assembled annotations using
 the information from the *status* column. Let's look at the absolute
 frequencies of the status and class of TEs in the annotations.
-```{r}
-par(mfrow = c(1,2), mar = c(7,4,3,1))
 
-barplot(table(mcols(rmskat)$status), las = 2, cex.names = 0.7,
-        main = "TEs by status", cex=0.6, border = "white")
-barplot(table(mcols(rmskat)$Class), las = 1, cex.names = 0.7,
-        main = "TEs by class", cex=0.6,  border = "white",
-        ylim = c(0,max(table(mcols(rmskat)$status))))
-```
 ```{r comparsedann, message=FALSE, height=6, width=10, out.width="800px", fig.cap="Composition of parsed TE annotations."}
 library(RColorBrewer)
 
