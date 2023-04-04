@@ -35,6 +35,13 @@
 #'         objects.
 #' }
 #' 
+#' @param AHid AnnotationHub unique identifier, of the form AH12345, of an
+#'             object with TE annotations. This is an optional argument to
+#'             specify a concrete AnnotationHub resource, for instance
+#'             when more there is more than one RepeatMasker annotation
+#'             available for a specific genome version. If \code{AHid} is
+#'             not specified, the latest RepeatMasker annotation is be used.
+#' 
 #' @param ... Arguments passed to \code{parsefun}.
 #'        
 #'
@@ -63,17 +70,30 @@
 #' @name annotaTEs
 #' @importFrom AnnotationHub AnnotationHub query
 #' @export
-annotaTEs <- function(genome="hg38", parsefun=rmskidentity, ...) {
-  ah <- AnnotationHub()
-  qah <- query(ah, c(genome, "RepeatMasker", "UCSC"))
-  if (length(qah) == 0)
-    stop(sprintf("UCSC RepeatMasker tracks for genome %s not found", genome))
-  else if (length(qah) > 1)
-    stop(sprintf("more than one UCSC RepeatMasker track for genome %s found", genome))
-  
-  id <- names(qah)
-  gr <- ah[[id]]
-  parsefun(gr, ...)
+annotaTEs <- function(genome="hg38", parsefun=rmskidentity, AHid = NULL, ...) {
+    suppressMessages(ah <- AnnotationHub())
+    if (!is.null(AHid))
+        qah <- ah[AHid]
+    else
+        suppressMessages(qah <- query(ah, c(genome, "RepeatMasker", "UCSC")))
+    
+    if (length(qah) == 0) {
+        stop(sprintf("UCSC RepeatMasker tracks for genome %s not found", 
+                     genome))
+    }
+    else if (length(qah) > 1) {
+        message(sprintf("more than one UCSC RepeatMasker track for genome %s found, using the latest one", genome))
+        mt <- gregexpr(pattern=" \\([A-Za-z0-9]+\\) ", qah$title)
+        qahdates <- substr(qah$title, unlist(mt)+2,
+                             unlist(mt)+sapply(mt, attr, "match.length")-3)
+        qahdates <- as.Date(paste0("1", qahdates), "%d%b%Y")
+        ## in case > 1 RM annotations available, pick the most recent one
+        suppressMessages(qah <- qah[which.max(qahdates)])
+    }
+    
+    id <- names(qah)
+    gr <- ah[[id]]
+    parsefun(gr, ...)
 }
 
 #' Parser of RepeatMasker annotations
