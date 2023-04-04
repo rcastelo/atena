@@ -479,9 +479,9 @@ setMethod("qtex", "TelescopeParam",
 }
 
 
-#' @importFrom scales rescale
 .rescaleAS <- function(asvalues, alen) {
-  asrescale <- rescale(asvalues, c(1, max(asvalues) - min(asvalues) + 1))
+  # asrescale <- rescale(asvalues, c(1, max(asvalues) - min(asvalues) + 1))
+  asrescale <- asvalues - min(asvalues) + 1
   asrescale <- asrescale + alen
   asrescale <- asrescale/max(asrescale)
   asrescale <- expm1(asrescale*100)
