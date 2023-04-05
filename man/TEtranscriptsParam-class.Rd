@@ -12,7 +12,7 @@ TEtranscriptsParam(
   teFeatures,
   aggregateby = character(0),
   ovMode = "ovUnion",
-  geneFeatures = NA,
+  geneFeatures = NULL,
   singleEnd = TRUE,
   ignoreStrand = FALSE,
   strandMode = 1L,
@@ -45,14 +45,16 @@ which implement the corresponding methods from HTSeq
 Ambiguous alignments (alignments overlapping > 1 feature) are addressed
 as in the original TEtranscripts method.}
 
-\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+\item{geneFeatures}{(Default NULL) A \code{GRanges} or 
+\code{GRangesList} object with the
 gene annotated features to be quantified. Following the TEtranscripts
 algorithm, overlaps with unique reads are first tallied with respect to
 these gene features. Elements should have names indicating the gene name/id.
 In case that \code{geneFeatures} is a \code{GRanges} and contains a 
 metadata column named
 \code{type}, only the elements with \code{type} = \code{exon} are considered
-for the analysis. Then, exon counts are summarized to the gene level.}
+for the analysis. Then, exon counts are summarized to the gene level. If
+NULL, gene expression is not quantified.}
 
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}

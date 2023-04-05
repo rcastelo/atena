@@ -147,7 +147,7 @@ We can get an insight into the composition of the assembled annotations using
 the information from the *status* column. Let's look at the absolute
 frequencies of the status and class of TEs in the annotations.
 
-```{r comparsedann, message=FALSE, height=6, width=10, out.width="800px", fig.cap="Composition of parsed TE annotations."}
+```{r comparsedann, message=FALSE, height=6, width=10, out.width="800px", fig.cap="Composition of parsed TE annotations.", echo=FALSE}
 library(RColorBrewer)
 
 pal1 <- brewer.pal(6, "Pastel2")
@@ -312,7 +312,7 @@ gene annotations are loaded from a *TxDb* object.
 ```{r, message=FALSE}
 library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
 txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
-txdb_genes <- genes(txdb)
+txdb_genes <- exonsBy(txdb, by = "gene")
 length(txdb_genes)
 ```
 

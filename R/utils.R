@@ -144,7 +144,7 @@
         stop(sprintf("%s not in metadata columns of the TE features object.",
                      aggregateby[!aggregateby %in% colnames(mcols(features))]))
     
-    if (!all(is.na(geneFeatures))) {
+    if (!all(is.null(geneFeatures))) {
         if (is(geneFeatures, "GRangesList"))
             geneFeatures <- unlist(geneFeatures)
         
@@ -156,7 +156,7 @@
     
     iste <- as.vector(mcols(features)$isTE)
     
-    if (!all(is.na(geneFeatures))) {
+    if (!all(is.null(geneFeatures))) {
         if (!all(iste) & !is.null(mcols(geneFeatures)$type)) {
             if (is(features, "GRanges")) {
                 iste <- aggregate(iste, by = list(names(features)), unique)

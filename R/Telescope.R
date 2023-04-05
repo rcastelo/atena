@@ -27,7 +27,8 @@
 #' as in the original Telescope method: the overlap with the longest
 #' overlapping length is kept.
 #'
-#' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' @param geneFeatures (Default NULL) A \code{GRanges} or 
+#' \code{GRangesList} object with the
 #' gene annotated features to be quantified. The TEtranscripts approach for
 #' gene expression quantification is used, in which overlaps with multi-mapping
 #' reads are preferentially assigned to TEs. Elements should have names
@@ -35,7 +36,8 @@
 #' is a \code{GRanges} and contains a
 #' metadata column named \code{type}, only the elements with
 #' \code{type} = \code{exon} are considered for the analysis. Then, exon counts
-#' are summarized to the gene level.
+#' are summarized to the gene level. If NULL, gene expression is not
+#' quantified.
 #'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -139,7 +141,7 @@
 #' @rdname TelescopeParam-class
 TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
                             ovMode="ovUnion",
-                            geneFeatures=NA,
+                            geneFeatures=NULL,
                             singleEnd=TRUE,
                             strandMode=1L,
                             ignoreStrand=FALSE,

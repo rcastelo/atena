@@ -12,7 +12,7 @@ atenaParam(
   teFeatures,
   aggregateby = character(0),
   ovMode = "ovUnion",
-  geneFeatures = NA,
+  geneFeatures = NULL,
   singleEnd = TRUE,
   strandMode = 1L,
   ignoreStrand = FALSE,
@@ -50,7 +50,8 @@ which implement the corresponding methods from HTSeq
 (\url{https://htseq.readthedocs.io/en/release_0.11.1/count.html}).
 Ambiguous alignments (alignments overlapping > 1 feature) are not counted.}
 
-\item{geneFeatures}{A \code{GRanges} or \code{GRangesList} object with the
+\item{geneFeatures}{(Default NULL) A \code{GRanges} or 
+\code{GRangesList} object with the
 gene annotated features to be quantified. Unique reads are first tallied
 with respect to these gene features whereas multi-mapping reads are
 preferentially assigned to TEs. Elements should have names indicating the
@@ -58,7 +59,7 @@ gene name/id. In case that \code{geneFeatures} is a \code{GRanges} and
 contains a metadata column
 named \code{type}, only the elements with \code{type} = \code{exon} are 
 considered for the analysis. Then, exon counts are summarized to the gene
-level.}
+level. If NULL, gene expression is not quantified.}
 
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}

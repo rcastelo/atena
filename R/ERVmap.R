@@ -24,14 +24,16 @@
 #' Ambiguous alignments (alignments overlapping > 1 feature) are addressed
 #' as in the original ERVmap algorithm.
 #'
-#' @param geneFeatures A \code{GRanges} or \code{GRangesList} object with the
+#' @param geneFeatures (Default NULL) A \code{GRanges} or 
+#' \code{GRangesList} object with the
 #' gene annotated features to be quantified. Overlaps with unique reads are 
 #' first tallied with respect to these gene features. Elements should have 
 #' names indicating the gene name/id. In case that \code{geneFeatures} 
 #' is a \code{GRanges} and contains
 #' a metadata column named \code{type}, only the elements with 
 #' \code{type} = \code{exon} are considered for the analysis. Then, exon
-#' counts are summarized to the gene level.
+#' counts are summarized to the gene level. If NULL, gene expression is
+#' not quantified.
 #'
 #' @param singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -134,7 +136,7 @@
 #' @rdname ERVmapParam-class
 ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                         ovMode="ovUnion",
-                        geneFeatures=NA,
+                        geneFeatures=NULL,
                         singleEnd=TRUE,
                         ignoreStrand=TRUE,
                         strandMode=1L,
