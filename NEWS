@@ -1,3 +1,26 @@
+CHANGES IN VERSION 1.6.0 (2023-04-20)
+-------------------------------------
+
+USER VISIBLE CHANGES
+
+    o Improvement of the accuracy of the atena expression quantification method.
+
+    o Fixed numerical instability in TEtranscripts method.
+
+    o Added function (.matchSeqinfo) to harmonize seqinfo() of object with alignments and object with feature annotations.
+
+    o Implemented 'OneCodeToFindThemAll' annotation parser for RepeatMasker annotations.
+
+    o Implemented 'atena' annotation parser for RepeatMasker annotations.
+
+    o Added examples in the vignettes of TE annotation preprocessing steps using the implemented parsers.
+
+    o Changed default value of geneFeatures to NULL in the parameters objects.
+
+BUG FIXES
+
+    o Fixed bug for not properly paired reads.
+
 CHANGES IN VERSION 1.4.0 (2022-11-31)
 ---------------------------------------
 
