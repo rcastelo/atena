@@ -155,7 +155,7 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures,deparse(substitute(geneFeatures)),
-                                aggregateby, aggregateexons = TRUE)
+                                aggregateby, aggregateexons=TRUE)
     .checkPriors(names(features), names(pi_prior), names(theta_prior))
     
     new("atenaParam", bfl=bfl, features=features,
@@ -225,8 +225,8 @@ setMethod("qtex", "atenaParam",
                                              whnofeat)
             # features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
             SummarizedExperiment(assays=list(counts=cnt),
-                                    rowRanges=c(features),
-                                    colData=colData)
+                                 rowRanges=c(features),
+                                 colData=colData)
         })
 
 

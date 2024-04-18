@@ -55,4 +55,21 @@ accurate estimation of transposable element expression.
 PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
 \url{https://doi.org/10.1371/journal.pcbi.1006453}
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/functionalgenomics/atena}
+  \item Report bugs at \url{https://github.com/functionalgenomics/atena/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Beatriz Calvo-Serra \email{beatriz.calvo@upf.edu}
+
+Authors:
+\itemize{
+  \item Robert Castelo \email{robert.castelo@upf.edu}
+}
+
+}
 \keyword{package}

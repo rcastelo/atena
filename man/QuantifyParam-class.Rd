@@ -5,15 +5,16 @@
 \alias{QuantifyParam-class}
 \alias{path,QuantifyParam-method}
 \alias{features,QuantifyParam-method}
-\alias{features}
 \title{Atena parameter class}
 \usage{
 \S4method{path}{QuantifyParam}(object)
 
-\S4method{features}{QuantifyParam}(object)
+\S4method{features}{QuantifyParam}(x)
 }
 \arguments{
 \item{object}{A \linkS4class{QuantifyParam} object.}
+
+\item{x}{A \linkS4class{QuantifyParam} object.}
 }
 \value{
 \code{path()}: Filesystem paths to the BAM files in the input

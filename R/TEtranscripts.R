@@ -129,9 +129,11 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
     if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
       stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
     
-    features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                                geneFeatures, deparse(substitute(geneFeatures)),
-                                aggregateby, aggregateexons = FALSE)
+    teFeaturesobjname <- deparse(substitute(teFeatures))
+    geneFeaturesobjname <- deparse(substitute(geneFeatures))
+    features <- .processFeatures(teFeatures, teFeaturesobjname,
+                                 geneFeatures, geneFeaturesobjname,
+                                 aggregateby, aggregateexons=TRUE)
 
     new("TEtranscriptsParam", bfl=bfl, features=features,
         aggregateby=aggregateby, ovMode=ovMode,
@@ -194,8 +196,8 @@ setMethod("qtex", "TEtranscriptsParam",
             features <- .consolidateFeatures(x, rownames(cnt))
 
             SummarizedExperiment(assays=list(counts=cnt),
-                                rowRanges=features,
-                                colData=colData)
+                                 rowRanges=features,
+                                 colData=colData)
         })
 
 #' @importFrom stats setNames aggregate median
@@ -239,7 +241,7 @@ setMethod("qtex", "TEtranscriptsParam",
         salnmask <- c(salnmask, any(.secondaryAlignmentMask(alnreads)))
         alnreadids <- c(alnreadids, names(alnreads))
         thisov <- mode(alnreads, ttpar@features,
-                        ignoreStrand=ttpar@ignoreStrand, inter.feature=FALSE)
+                       ignoreStrand=ttpar@ignoreStrand, inter.feature=FALSE)
         ov <- .appendHits(ov, thisov)
     }
     # close(bf)
@@ -260,7 +262,7 @@ setMethod("qtex", "TEtranscriptsParam",
     tx_idx <- sort(unique(subjectHits(ov)))
     
     cntvec <- .ttQuantExpress(ov, alnreadids, readids, tx_idx, ttpar, iste,
-                                maskuniqaln, avgreadlen)
+                              maskuniqaln, avgreadlen)
     ## Original TEtranscripts coerces fractional counts to integer
     setNames(as.integer(cntvec), names(cntvec))
 }
@@ -307,8 +309,8 @@ setMethod("qtex", "TEtranscriptsParam",
     if (!all(iste) & any(!maskuniqaln)) {
         ## Getting gene counts where a multimapping read maps to > 1 gene
         multigcnt <- .countMultiReadsGenes(ttpar, ovalnmat, maskuniqaln, mt,
-                                        iste, istex, tx_idx, readids, 
-                                        alnreadids, ov, uniqcnt)
+                                           iste, istex, tx_idx, readids, 
+                                           alnreadids, ov, uniqcnt)
     }
     
     # Adjusting 'ovalnmat' when alignment from multimapping read maps > 1 TE
@@ -329,7 +331,7 @@ setMethod("qtex", "TEtranscriptsParam",
 #' @importFrom SQUAREM squarem
 #' @importFrom IRanges ranges
 .ttEMstep <- function(maskuniqaln, mt, ovalnmat, istex, tx_idx, readids, ttpar,
-                        avgreadlen, cntvec) {
+                      avgreadlen, cntvec) {
 if (sum(!maskuniqaln[mt]) > 0) { ## multi-mapping reads
     ## TEtranscripts doesn't use uniquely-aligned reads to inform the
     ## procedure of distributing multiple-mapping reads, as explained in
@@ -509,8 +511,8 @@ cntvec
 ## Counts multi-mapping reads mapping to multiple genes by counting fraction
 ## counts
 .countMultiReadsGenes <- function(ttpar, ovalnmat, maskuniqaln, mt, iste,
-                                    istex, tx_idx, readids, alnreadids, ov,
-                                    uniqcnt) {
+                                  istex, tx_idx, readids, alnreadids, ov,
+                                  uniqcnt) {
     ovalnmat_multig <- ovalnmat[!maskuniqaln[mt], !istex, drop=FALSE]
     yesg <- rowSums2(ovalnmat_multig)>0
     

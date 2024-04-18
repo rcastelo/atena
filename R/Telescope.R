@@ -163,7 +163,7 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                 geneFeatures,deparse(substitute(geneFeatures)),
-                                aggregateby, aggregateexons = TRUE)
+                                aggregateby, aggregateexons=TRUE)
     
     new("TelescopeParam", bfl=bfl, features=features,
         aggregateby=aggregateby, ovMode=ovMode,

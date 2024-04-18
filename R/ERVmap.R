@@ -153,9 +153,11 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     readmapper <- .checkBamReadMapper(path(bfl))
     
-    features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                            geneFeatures, deparse(substitute(geneFeatures)),
-                            aggregateby, aggregateexons = FALSE)
+    teFeaturesobjname <- deparse(substitute(teFeatures))
+    geneFeaturesobjname <- deparse(substitute(geneFeatures))
+    features <- .processFeatures(teFeatures, teFeaturesobjname,
+                                 geneFeatures, geneFeaturesobjname,
+                                 aggregateby, aggregateexons=TRUE)
     
     new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
         ovMode=ovMode, singleEnd=singleEnd, ignoreStrand=ignoreStrand,

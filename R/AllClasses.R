@@ -68,20 +68,21 @@ setMethod("path", "QuantifyParam",
         })
 
 
-#' @param object A \linkS4class{QuantifyParam} object.
+#' @param x A \linkS4class{QuantifyParam} object.
+#'
+#' @importFrom GenomicFeatures features
 #'
 #' @return \code{features()}: The \code{GenomicRanges} or
 #' \code{GenomicRangesList} object with the features in the input parameter
 #' object.
 #'
 #' @export
-#' @aliases features
+#'
 #' @aliases features,QuantifyParam-method
 #' @rdname QuantifyParam-class
-#' @include AllGenerics.R
 setMethod("features", "QuantifyParam",
-        function(object) {
-            object@features
+        function(x) {
+            x@features
         })
 
 #' ERVmap parameter class

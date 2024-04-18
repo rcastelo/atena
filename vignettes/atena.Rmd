@@ -254,9 +254,9 @@ Finally, this filter is applied by comparing the difference between alignment an
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 empar <- ERVmapParam(bamfiles, 
-                     teFeatures = rmskLTR, 
-                     singleEnd = TRUE, 
-                     ignoreStrand = TRUE, 
+                     teFeatures=rmskLTR, 
+                     singleEnd=TRUE, 
+                     ignoreStrand=TRUE, 
                      suboptimalAlignmentCutoff=NA)
 empar
 ```
@@ -290,7 +290,7 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 tspar <- TelescopeParam(bfl=bamfiles, 
                         teFeatures=rmskLTR, 
-                        singleEnd = TRUE, 
+                        singleEnd=TRUE, 
                         ignoreStrand=TRUE)
 tspar
 ```
@@ -321,11 +321,11 @@ length(txdb_genes)
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 ttpar <- TEtranscriptsParam(bamfiles, 
-                            teFeatures = rmskLTR,
-                            geneFeatures = txdb_genes,
-                            singleEnd = TRUE, 
+                            teFeatures=rmskLTR,
+                            geneFeatures=txdb_genes,
+                            singleEnd=TRUE, 
                             ignoreStrand=TRUE, 
-                            aggregateby = c("repName"))
+                            aggregateby=c("repName"))
 
 ttpar
 ```
@@ -338,18 +338,18 @@ Following the gene annotation processing present in the TEtranscripts algorithm,
 
 ```{r}
 # Creating an example of gene annotations
-annot_gen <- GRanges(seqnames = rep("2L",8),
-                     ranges = IRanges(start = c(1,20,45,80,110,130,150,170),
-                                      width = c(10,20,35,10,5,15,10,25)),
-                     strand = "*", 
-                     type = rep("exon",8))
+annot_gen <- GRanges(seqnames=rep("2L",8),
+                     ranges=IRanges(start=c(1,20,45,80,110,130,150,170),
+                                    width=c(10,20,35,10,5,15,10,25)),
+                     strand="*", 
+                     type=rep("exon",8))
 # Setting gene ids
 names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,1)))
 annot_gen
 ttpar_gen <- TEtranscriptsParam(bamfiles, 
-                                teFeatures = rmskLTR, 
-                                geneFeatures = annot_gen, 
-                                singleEnd = TRUE, 
+                                teFeatures=rmskLTR, 
+                                geneFeatures=annot_gen, 
+                                singleEnd=TRUE, 
                                 ignoreStrand=TRUE)
 ttpar_gen
 ```
