@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 1.9.3
+Version: 1.9.4
 Authors@R: c(
   person("Beatriz", "Calvo-Serra", email = "beatriz.calvo@upf.edu", role = c("aut","cre")),
   person("Robert", "Castelo", email = "robert.castelo@upf.edu", role = c("aut")))
@@ -43,8 +43,8 @@ Suggests:
     RColorBrewer
 biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, Software, GeneExpression, Coverage, DifferentialExpression, FunctionalGenomics
 VignetteBuilder: knitr
-URL: https://github.com/functionalgenomics/atena
-BugReports: https://github.com/functionalgenomics/atena/issues
+URL: https://github.com/rcastelo/atena
+BugReports: https://github.com/rcastelo/atena/issues
 RoxygenNote: 7.3.1
 Collate: 
     'AllGenerics.R'
