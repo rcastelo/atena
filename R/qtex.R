@@ -2,17 +2,25 @@
 #'
 #' The \code{qtex()} method quantifies transposable element expression.
 #' 
-#' @param x An \code{AtenaParam} object of one of the following
+#' @param x An \code{QuantifyParam} object of one of the following
 #' subclasses:
 #' \itemize{
+#'   \item A \code{TEtranscriptsParam} object built using the constructor
+#'         function \code{\link{TEtranscriptsParam}()}. This object will
+#'         trigger \code{qtex()} to use the quantification algorithm by
+#'         Jin et al. (2015).
 #'   \item A \code{ERVmapParam} object built using the constructor
 #'         function \code{\link{ERVmapParam}()}. This object will
-#'         trigger \code{qtex()} to use the algorithm by
+#'         trigger \code{qtex()} to use the quantification algorithm by
 #'         Tokuyama et al. (2018).
 #'   \item A \code{TelescopeParam} object built using the constructor
 #'         function \code{\link{TelescopeParam}()}. This object will
-#'         trigger \code{qtex()} to use the algorithm by
+#'         trigger \code{qtex()} to use the quantification algorithm by
 #'         Bendall et al. (2019).
+#'   \item An \code{atenaParam} object built using the constructor
+#'         function \code{\link{atenaParam}()}. This object will
+#'         trigger \code{qtex()} to use a quantification algorithm
+#'         specifically developed in this package.
 #' }
 #'
 #' @param phenodata A \code{data.frame} or \code{DataFrame} object storing
@@ -36,6 +44,11 @@
 #'        file by chunks. \code{yieldSize} represents the number of records
 #'        (chunk size) to yield each time the file is read.
 #'
+#' @param auxiliaryFeatures (Default \code{FALSE}). It only applies when `x` is
+#'        a [`TelescopeParam`] or an [`atenaParam`] object. When \code{TRUE},
+#'        auxiliary features created during expression quantification are also
+#'        returned in the [`SummarizedExperiment`] object.
+#'
 #' @param verbose (Default 1). When \code{verbose} > 1, detailed information on
 #'        the quantification steps is provided. Warnings are always present
 #'        regardless of the value of \code{verbose}.
@@ -57,9 +70,16 @@
 #' \code{x} above.
 #'
 #' @seealso
+#' \code{\link{TEtranscriptsParam}}
 #' \code{\link{ERVmapParam}}
 #' \code{\link{TelescopeParam}}
-
+#'
+#' @references
+#' Jin Y et al. TEtranscripts: a package for including transposable elements
+#' in differential expression analysis of RNA-seq datasets.
+#' Bioinformatics. 2015;31(22):3593-3599. DOI:
+#' \url{https://doi.org/10.1093/bioinformatics/btv422}
+#'
 #' @references
 #' Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
 #' endogenous retroviruses. PNAS, 115(50):12565-12572, 2018.
@@ -79,16 +99,15 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-#'                     strict = FALSE, insert = 500)
-#' rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-#'                    full_length = TRUE, 
-#'                    partial = TRUE,
-#'                    otherLTR = TRUE)
-#' tspar <- TelescopeParam(bfl=bamfiles, 
-#'                         teFeatures=rmskLTR, 
-#'                         singleEnd = TRUE, 
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
+#'                     strict=FALSE, insert=500)
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8,
+#'                    full_length=TRUE,
+#'                    partial=TRUE,
+#'                    otherLTR=TRUE)
+#' tspar <- TelescopeParam(bfl=bamfiles,
+#'                         teFeatures=rmskLTR,
+#'                         singleEnd=TRUE,
 #'                         ignoreStrand=TRUE)
-#' tsquant <- qtex(tspar)
+#' qts <- qtex(tspar)
 NULL
-

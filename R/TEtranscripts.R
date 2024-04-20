@@ -87,21 +87,21 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-#'                     strict = FALSE, insert = 500)
-#' rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-#'                    full_length = TRUE, 
-#'                    partial = TRUE,
-#'                    otherLTR = TRUE)
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#'                     strict=FALSE, insert=500)
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
+#'                    full_length=TRUE, 
+#'                    partial=TRUE,
+#'                    otherLTR=TRUE)
 #' library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
 #' txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
 #' txdb_genes <- genes(txdb)
 #' ttpar <- TEtranscriptsParam(bamfiles, 
-#'                             teFeatures = rmskLTR,
-#'                             geneFeatures = txdb_genes,
-#'                             singleEnd = TRUE, 
+#'                             teFeatures=rmskLTR,
+#'                             geneFeatures=txdb_genes,
+#'                             singleEnd=TRUE, 
 #'                             ignoreStrand=TRUE, 
-#'                             aggregateby = c("repName"))
+#'                             aggregateby="repName")
 #' ttpar
 #'
 #' @references
@@ -115,14 +115,14 @@
 #' @export
 #' @rdname TEtranscriptsParam-class
 TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
-                                ovMode="ovUnion",
-                                geneFeatures=NULL,
-                                singleEnd=TRUE,
-                                ignoreStrand=FALSE,
-                                strandMode=1L,
-                                fragments=TRUE,
-                                tolerance=0.0001,
-                                maxIter=100L) {
+                               ovMode="ovUnion",
+                               geneFeatures=NULL,
+                               singleEnd=TRUE,
+                               ignoreStrand=FALSE,
+                               strandMode=1L,
+                               fragments=TRUE,
+                               tolerance=0.0001,
+                               maxIter=100L) {
 
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
 
@@ -190,14 +190,14 @@ setMethod("qtex", "TEtranscriptsParam",
             cnt <- bplapply(x@bfl, .qtex_tetranscripts, ttpar=x, mode=x@ovMode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
-            colData <- .createColumnData(cnt, phenodata)
-            colnames(cnt) <- rownames(colData)
+            cdata <- .createColumnData(cnt, phenodata)
+            colnames(cnt) <- rownames(cdata)
 
             features <- .consolidateFeatures(x, rownames(cnt))
 
             SummarizedExperiment(assays=list(counts=cnt),
                                  rowRanges=features,
-                                 colData=colData)
+                                 colData=cdata)
         })
 
 #' @importFrom stats setNames aggregate median
@@ -214,10 +214,11 @@ setMethod("qtex", "TEtranscriptsParam",
     sbflags <- .getScanBamFlag_tt(ttpar@singleEnd)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     
-    iste <- as.vector(attributes(ttpar@features)$isTE[,1])
-    if (any(duplicated(names(ttpar@features[iste])))) {
-        stop(".qtex_tetranscripts: transposable element annotations do not contain unique names for each element")
-    }
+    ## iste <- as.vector(attributes(ttpar@features)$isTE[,1])
+    iste <- mcols(features(ttpar))$isTE
+    if (any(duplicated(names(features(ttpar)[iste]))))
+        stop(".qtex_tetranscripts: duplicated names in TE annotations.")
+
     ov <- Hits(nLnode=0, nRnode=length(ttpar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     avgreadlen <- integer(0)

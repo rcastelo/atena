@@ -1,4 +1,4 @@
-#' Atena parameter class
+#' QuantifyParam parameter class
 #'
 #' This is a virtual class from which other classes are derived
 #' for storing parameters provided to quantification methods of
@@ -48,7 +48,7 @@
 #' @rdname QuantifyParam-class
 #' @exportClass QuantifyParam
 setClass("QuantifyParam",
-        representation(bfl="BamFileList",
+         representation(bfl="BamFileList",
                         features="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character", ovMode="character"))
 

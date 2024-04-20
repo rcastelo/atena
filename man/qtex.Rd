@@ -32,6 +32,7 @@
   phenodata = NULL,
   mode = ovUnion,
   yieldSize = 1000000L,
+  auxiliaryFeatures = FALSE,
   BPPARAM = SerialParam(progressbar = TRUE)
 )
 
@@ -40,21 +41,30 @@
   phenodata = NULL,
   mode = ovUnion,
   yieldSize = 1000000L,
+  auxiliaryFeatures = FALSE,
   BPPARAM = SerialParam(progressbar = TRUE)
 )
 }
 \arguments{
-\item{x}{An \code{AtenaParam} object of one of the following
+\item{x}{An \code{QuantifyParam} object of one of the following
 subclasses:
 \itemize{
+  \item A \code{TEtranscriptsParam} object built using the constructor
+        function \code{\link{TEtranscriptsParam}()}. This object will
+        trigger \code{qtex()} to use the quantification algorithm by
+        Jin et al. (2015).
   \item A \code{ERVmapParam} object built using the constructor
         function \code{\link{ERVmapParam}()}. This object will
-        trigger \code{qtex()} to use the algorithm by
+        trigger \code{qtex()} to use the quantification algorithm by
         Tokuyama et al. (2018).
   \item A \code{TelescopeParam} object built using the constructor
         function \code{\link{TelescopeParam}()}. This object will
-        trigger \code{qtex()} to use the algorithm by
+        trigger \code{qtex()} to use the quantification algorithm by
         Bendall et al. (2019).
+  \item An \code{atenaParam} object built using the constructor
+        function \code{\link{atenaParam}()}. This object will
+        trigger \code{qtex()} to use a quantification algorithm
+        specifically developed in this package.
 }}
 
 \item{phenodata}{A \code{data.frame} or \code{DataFrame} object storing
@@ -87,6 +97,11 @@ to configure the parallel execution of the code. By default,
 a \linkS4class{SerialParam} object is used, which does not use
 any parallelization, with the flag \code{progress=TRUE} to show
 progress through the calculations.}
+
+\item{auxiliaryFeatures}{(Default \code{FALSE}). It only applies when `x` is
+a [`TelescopeParam`] or an [`atenaParam`] object. When \code{TRUE},
+auxiliary features created during expression quantification are also
+returned in the [`SummarizedExperiment`] object.}
 }
 \value{
 A \linkS4class{SummarizedExperiment} object.
@@ -105,19 +120,24 @@ sub-class of input \code{AtenaParam} object, see argument
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-                    strict = FALSE, insert = 500)
-rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-                   full_length = TRUE, 
-                   partial = TRUE,
-                   otherLTR = TRUE)
-tspar <- TelescopeParam(bfl=bamfiles, 
-                        teFeatures=rmskLTR, 
-                        singleEnd = TRUE, 
+rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
+                    strict=FALSE, insert=500)
+rmskLTR <- getLTRs(rmskat, relLength=0.8,
+                   full_length=TRUE,
+                   partial=TRUE,
+                   otherLTR=TRUE)
+tspar <- TelescopeParam(bfl=bamfiles,
+                        teFeatures=rmskLTR,
+                        singleEnd=TRUE,
                         ignoreStrand=TRUE)
-tsquant <- qtex(tspar)
+qts <- qtex(tspar)
 }
 \references{
+Jin Y et al. TEtranscripts: a package for including transposable elements
+in differential expression analysis of RNA-seq datasets.
+Bioinformatics. 2015;31(22):3593-3599. DOI:
+\url{https://doi.org/10.1093/bioinformatics/btv422}
+
 Tokuyama M et al. ERVmap analysis reveals genome-wide transcription of human
 endogenous retroviruses. PNAS, 115(50):12565-12572, 2018.
 \url{https://doi.org/10.1073/pnas.1814589115}
@@ -128,6 +148,7 @@ PLOS Computational Biology, 15:e1006453, 2019.
 \url{https://doi.org/10.1371/journal.pcbi.1006453}
 }
 \seealso{
+\code{\link{TEtranscriptsParam}}
 \code{\link{ERVmapParam}}
 \code{\link{TelescopeParam}}
 }

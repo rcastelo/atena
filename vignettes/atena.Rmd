@@ -93,10 +93,11 @@ functions.
 As an example, let's retrieve TE annotations for *Drosophila melanogaster* 
 *dm6* genome version. By setting `rmskidentity()` as `parsefun`, the 
 RepeatMasker annotations are not modified:
+
 ```{r, message=FALSE, warning=FALSE}
 library(atena)
-library(GenomicRanges)
-rmskid <- annotaTEs(genome = "dm6", parsefun = rmskidentity)
+
+rmskid <- annotaTEs(genome="dm6", parsefun=rmskidentity)
 rmskid
 ```
 We get annotations with `r length(rmskid)` elements.
@@ -106,9 +107,10 @@ Now, let's obtain the same annotations but processes them using the
 applying a filter of minimum 80% identity with the consensus sequence and 
 minimum 80 bp length. The `insert` parameter is set to 500 meaning that two
 elements with the same name are merged if they are closer than 500 bp.
+
 ```{r}
-rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, strict = FALSE,
-                    insert = 500)
+rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, strict=FALSE,
+                    insert=500)
 rmskat[1]
 ```
 
@@ -128,19 +130,20 @@ two or more fragments were assembled together into a single TE).
 
 We can get more information of the parsed annotations by accessing the 
 metadata columns with `mcols()`:
+
 ```{r}
 mcols(rmskat)
 ```
 
-There is information about the reconstruction status of the TE (*status* 
-column), the relative length of the reconstructed TE (*Rel_length*) and the 
+There is information about the reconstruction status of the TE (*status*
+column), the relative length of the reconstructed TE (*Rel_length*) and the
 repeat class of the TE (*Class*). The relative length is computed by adding
-the length (in base pairs) of all fragments from the same assembled TE and 
-dividing the sum by the length (in base pairs) of the consensus sequence. For 
+the length (in base pairs) of all fragments from the same assembled TE and
+dividing the sum by the length (in base pairs) of the consensus sequence. For
 full-length and partially reconstructed LTR TEs, the consensus sequence length
-used is the one resulting from adding twice the consensus sequence length of 
-the long terminal repeat (LTR) and the one from the corresponding internal 
-region. For solo-LTRs, the consensus sequence length of the long terminal 
+used is the one resulting from adding twice the consensus sequence length of
+the long terminal repeat (LTR) and the one from the corresponding internal
+region. For solo-LTRs, the consensus sequence length of the long terminal
 repeat is used.
 
 We can get an insight into the composition of the assembled annotations using
@@ -175,36 +178,37 @@ par(xpd=FALSE)
 ```
 
 Here, *full-lengthLTR* are reconstructed LTR retrotransposons following the
-LTR - internal region (int) - LTR structure. Partially reconstructed LTR TEs are
-*partialLTR_down* (internal region followed by a downstream LTR) and
+LTR - internal region (int) - LTR structure. Partially reconstructed LTR TEs
+are *partialLTR_down* (internal region followed by a downstream LTR) and
 *partialLTR_up* (LTR upstream of an internal region). *int* and *LTR*
 correspond to internal and solo-LTR regions, respectively. Finally, the
 *noLTR* refers to TEs of other classes (not LTR), as well as TEs of class LTR
 which could not be identified as either internal or long terminal repeat
 regions based on their name.
 
+Moreover, the `atena` package provides useful functions to retrieve TEs of a
+specific class, using a specific relative length threshold. Those TEs with
+higher relative lengths are more likely to have intact open reading frames,
+making them more interesting for expression quantification and functional
+analyses. For example, to get LINEs with a minimum of 0.9 relative length, we
+can use the `getLINEs()` function. We use the previously obtained object
+`rmskat` with annotations parsed with the `rmskatenaparser()` function, and set
+the `relLength` to 0.9.
 
-Moreover, the `atena` package provides useful functions to retrieve
-TEs of a specific class, using a specific relative length threshold.
-Those TEs with higher relative lengths are more likely to have intact open
-reading frames, making them more interesting for expression quantification
-and functional analyses. For example, to get LINEs with a minimum of 0.9
-relative length, we can use the `getLINEs()` function. We use the previously
-obtained object (`rmskat`) with annotations parsed with the `rmskatenaparser()` 
-function, and set the `relLength` to 0.9.
 ```{r}
-rmskLINE <- getLINEs(rmskat, relLength = 0.9)
+rmskLINE <- getLINEs(rmskat, relLength=0.9)
 length(rmskLINE)
 rmskLINE[1]
 ```
 
-To get LTR retrotransposons, we can use the function `getLTRs()`. This
-function also allows to get one or more specific types of reconstructed TEs.
-To get full-length, partial LTRs and other fragments that could not be
-reconstructed, we can:
+To get LTR retrotransposons, we can use the function `getLTRs()`. This function
+also allows to get one or more specific types of reconstructed TEs. To get
+full-length, partial LTRs and other fragments that could not be reconstructed,
+we can:
+
 ```{r}
-rmskLTR <- getLTRs(rmskat, relLength = 0.8, full_length = TRUE, partial = TRUE,
-                   otherLTR = TRUE)
+rmskLTR <- getLTRs(rmskat, relLength=0.8, full_length=TRUE, partial=TRUE,
+                   otherLTR=TRUE)
 length(rmskLTR)
 rmskLTR[1]
 ```
@@ -217,38 +221,79 @@ To obtain DNA transposons and SINEs, one can use the `getDNAtransposons()` and
 Quantification of TE expression with `atena` consists in the following two
 steps:
 
-1. Building of a parameter object for one of the available quantification methods.
+1. Building of a parameter object for one of the available quantification
+   methods.
 
-2. Calling the TE expression quantification method `qtex()` using the previously
-   built parameter object.
+2. Calling the TE expression quantification method `qtex()` using the
+   previously built parameter object.
    
 The dataset that will be used to illustrate how to quantify TE expression with
 `atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available
 at the National Center for Biotechnology Information (NCBI) Gene Expression
-Omnibus (accession no. [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). 
+Omnibus (accession no.
+[GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). 
 The two selected samples are: a piwi knockdown and a piwi control (GSM1142845
-and GSM1142844). These files have been subsampled. The piwi-associated 
+and GSM1142844). These files have been subsampled. The piwi-associated
 silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the
-knockdown of piwi causes the de-repression of TEs. 
+knockdown of piwi causes the de-repression of TEs.
 
-Here, the expression of full-length LTR retrotransposons present in `rmskLTR` 
+Here, the expression of full-length LTR retrotransposons present in `rmskLTR`
 will be quantified.
 
 ## Building a parameter object for ERVmap
 
-To use the ERVmap method in `atena` we should first build an object of the class `ERVmapParam` using the function `ERVmapParam()`. The `singleEnd` parameter is set to `TRUE` since the example BAM files are single-end. The `ignoreStrand` parameter works analogously to the same parameter in the function `summarizeOverlaps()` from package `r Biocpkg("GenomicAlignments")` and should be set to `TRUE` whenever the RNA library preparation protocol was stranded.
+To use the ERVmap method in `atena` we should first build an object of the
+class `ERVmapParam` using the function `ERVmapParam()`. The `singleEnd`
+parameter is set to `TRUE` since the example BAM files are single-end. The
+`ignoreStrand` parameter works analogously to the same parameter in the
+function `summarizeOverlaps()` from package `r Biocpkg("GenomicAlignments")`
+and should be set to `TRUE` whenever the RNA library preparation protocol was
+stranded.
 
-One of the filters applied by the ERVmap method compares the alignment score of a given primary alignment, stored in the `AS` tag of a SAM record, to the largest alignment score among every other secondary alignment, known as the suboptimal alignment score. The original ERVmap software assumes that input BAM files are generated using the Burrows-Wheeler Aligner (BWA) software [@li2009fast], which stores suboptimal alignment scores in the `XS` tag. Although `AS` is an optional tag, most short-read aligners provide this tag with alignment scores in BAM files. However, the suboptimal alignment score, stored in the `XS` tag by BWA, is either stored in a different tag or not stored at all by other short-read aligner software, such as STAR [@dobin2013star].
+One of the filters applied by the ERVmap method compares the alignment score of
+a given primary alignment, stored in the `AS` tag of a SAM record, to the
+largest alignment score among every other secondary alignment, known as the
+suboptimal alignment score. The original ERVmap software assumes that input BAM
+files are generated using the Burrows-Wheeler Aligner (BWA) software
+[@li2009fast], which stores suboptimal alignment scores in the `XS` tag.
+Although `AS` is an optional tag, most short-read aligners provide this tag
+with alignment scores in BAM files. However, the suboptimal alignment score,
+stored in the `XS` tag by BWA, is either stored in a different tag or not
+stored at all by other short-read aligner software, such as STAR
+[@dobin2013star].
 
-To enable using ERVmap on BAM files produced by short-read aligner software other than BWA, `atena` allows the user to set the argument `suboptimalAlignmentTag` to one of the following three possible values:
+To enable using ERVmap on BAM files produced by short-read aligner software
+other than BWA, `atena` allows the user to set the argument
+`suboptimalAlignmentTag` to one of the following three possible values:
 
-* The name of a tag different to `XS` that stores the suboptimal alignment score.
+* The name of a tag different to `XS` that stores the suboptimal alignment
+  score.
 
-* The value "none", which will trigger the calculation of the suboptimal alignment score by searching for the largest value stored in the `AS` tag among all available secondary alignments.
+* The value "none", which will trigger the calculation of the suboptimal
+  alignment score by searching for the largest value stored in the `AS` tag
+  among all available secondary alignments.
 
-* The value "auto" (default), by which `atena` will first extract the name of the short-read aligner software from the BAM file and if that software is BWA, then suboptimal alignment scores will be obtained from the `XS` tag. Otherwise, it will trigger the calculation previously explained for `suboptimalAlignemntTag="none"`.
+* The value "auto" (default), by which `atena` will first extract the name of
+  the short-read aligner software from the BAM file and if that software is
+  BWA, then suboptimal alignment scores will be obtained from the `XS` tag.
+  Otherwise, it will trigger the calculation previously explained for
+  `suboptimalAlignemntTag="none"`.
 
-Finally, this filter is applied by comparing the difference between alignment and suboptimal alignment scores to a cutoff value, which by default is 5 but can be modified using the parameter `suboptimalAlignmentCutoff`. The default value 5 is the one employed in the original ERVmap software that assumes the BAM file was generated with BWA and for which lower values are interpreted as "equivalent to second best match has one or more mismatches than the best match" [@tokuyama2018ervmap, pg. 12571]. From a different perspective, in BWA the mismatch penalty has a value of 4 and therefore, a `suboptimalAlignmentCutoff` value of 5 only retains those reads where the suboptimal alignment has at least 1 mismatch more than the best match. Therefore, the `suboptimalAlignmentCutoff` value is specific to the short-read mapper software and we recommend to set this value according to the mismatch penalty of that software. Another option is to set `suboptimalAlignmentCutoff=NA`, which prevents the filtering of reads based on this criteria, as set in the following example.
+Finally, this filter is applied by comparing the difference between alignment
+and suboptimal alignment scores to a cutoff value, which by default is 5 but
+can be modified using the parameter `suboptimalAlignmentCutoff`. The default
+value 5 is the one employed in the original ERVmap software that assumes the
+BAM file was generated with BWA and for which lower values are interpreted as
+"equivalent to second best match has one or more mismatches than the best
+match" [@tokuyama2018ervmap, pg. 12571]. From a different perspective, in BWA
+the mismatch penalty has a value of 4 and therefore, a
+`suboptimalAlignmentCutoff` value of 5 only retains those reads where the
+suboptimal alignment has at least 1 mismatch more than the best match.
+Therefore, the `suboptimalAlignmentCutoff` value is specific to the short-read
+mapper software and we recommend to set this value according to the mismatch
+penalty of that software. Another option is to set
+`suboptimalAlignmentCutoff=NA`, which prevents the filtering of reads based on
+this criteria, as set in the following example.
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -261,29 +306,76 @@ empar <- ERVmapParam(bamfiles,
 empar
 ```
 
-In the case of paired-end BAM files (`singleEnd=FALSE`), two additional arguments can be specified, `strandMode` and `fragments`:
+In the case of paired-end BAM files (`singleEnd=FALSE`), two additional
+arguments can be specified, `strandMode` and `fragments`:
 
-* `strandMode` defines the behavior of the strand getter when internally reading the BAM files with the `GAlignmentPairs()` function. See the help page of `strandMode` in the `r Biocpkg("GenomicAlignments")` package for further details.
+* `strandMode` defines the behavior of the strand getter when internally
+  reading the BAM files with the `GAlignmentPairs()` function. See the help
+  page of `strandMode` in the `r Biocpkg("GenomicAlignments")` package for
+  further details.
  
-* `fragments` controls how read filtering and counting criteria are applied to the read mates in a paired-end read. To use the original ERVmap algorithm [@tokuyama2018ervmap] one should set `fragments=TRUE` (default when `singleEnd=FALSE`), which filters and counts each mate of a paired-end read independently (i.e., two read mates overlapping the same feature count twice on that feature, treating paired-end reads as if they were single-end). On the other hand, when `fragments=FALSE`, if the two read mates pass the filtering criteria and overlap the same feature, they count once on that feature. If either read mate fails to pass the filtering criteria, then both read mates are discarded.
+* `fragments` controls how read filtering and counting criteria are applied to
+  the read mates in a paired-end read. To use the original ERVmap algorithm
+  [@tokuyama2018ervmap] one should set `fragments=TRUE` (default when
+  `singleEnd=FALSE`), which filters and counts each mate of a paired-end read
+  independently (i.e., two read mates overlapping the same feature count twice
+  on that feature, treating paired-end reads as if they were single-end). On
+  the other hand, when `fragments=FALSE`, if the two read mates pass the
+  filtering criteria and overlap the same feature, they count once on that
+  feature. If either read mate fails to pass the filtering criteria, then both
+  read mates are discarded.
 
-An additional functionality with respect to the original ERVmap software is the integration of gene and TE expression quantification. The original ERVmap software doesn't quantify TE and gene expression coordinately and this can potentially lead to counting twice reads that simultaneously overlap a gene and a TE. In `atena`, gene expression is quantified based on the approach used in the TEtranscripts software [@jin2015tetranscripts]: unique reads are preferably assigned to genes, whereas multi-mapping reads are preferably assigned to TEs.
+An additional functionality with respect to the original ERVmap software is the
+integration of gene and TE expression quantification. The original ERVmap
+software doesn't quantify TE and gene expression coordinately and this can
+potentially lead to counting twice reads that simultaneously overlap a gene and
+a TE. In `atena`, gene expression is quantified based on the approach used in
+the TEtranscripts software [@jin2015tetranscripts]: unique reads are preferably
+assigned to genes, whereas multi-mapping reads are preferably assigned to TEs.
 
-In case that a unique read does not overlap a gene or a multi-mapping read does not overlap a TE, `atena` searches for overlaps with TEs or genes, respectively. Given the different treatment of unique and multi-mapping reads, `atena` requires the information regarding the _unique_ or _multi-mapping_ status of a read. This information is obtained from the presence of secondary alignments in the BAM file or, alternatively, from the `NH` tag in the BAM file (number of reported alignments that contain the query in the current SAM record). Therefore, either secondary alignments or the `NH` tag need to be present for gene expression quantification.
+In case that a unique read does not overlap a gene or a multi-mapping read does
+not overlap a TE, `atena` searches for overlaps with TEs or genes,
+respectively. Given the different treatment of unique and multi-mapping reads,
+`atena` requires the information regarding the _unique_ or _multi-mapping_
+status of a read. This information is obtained from the presence of secondary
+alignments in the BAM file or, alternatively, from the `NH` tag in the BAM file
+(number of reported alignments that contain the query in the current SAM
+record). Therefore, either secondary alignments or the `NH` tag need to be
+present for gene expression quantification.
 
-The original ERVmap approach does not discard any read overlapping gene annotations. However, this can be changed using the parameter `geneCountMode`, which by default `geneCountMode="all"` and follows the behavior in the original ERVmap method. On the contrary, by setting `geneCountMode="ervmap"`, `atena`  also applies the filtering criteria employed to quantify TE expression to the reads overlapping gene annotations.
+The original ERVmap approach does not discard any read overlapping gene
+annotations. However, this can be changed using the parameter `geneCountMode`,
+which by default `geneCountMode="all"` and follows the behavior in the original
+ERVmap method. On the contrary, by setting `geneCountMode="ervmap"`, `atena`
+also applies the filtering criteria employed to quantify TE expression to the
+reads overlapping gene annotations.
 
-Finally, `atena` also allows one to aggregate TE expression quantifications. By default, the names of the input `GRanges` or `GRangesList` object given in the `teFeatures` parameter are used to aggregate quantifications. However, the `aggregateby` parameter can be used to specify other column names in the feature annotations to be used to aggregate TE counts, for example at the sub-family level.
-
+Finally, `atena` also allows one to aggregate TE expression quantifications. By
+default, the names of the input `GRanges` or `GRangesList` object given in the
+`teFeatures` parameter are used to aggregate quantifications. However, the
+`aggregateby` parameter can be used to specify other column names in the
+feature annotations to be used to aggregate TE counts, for example at the
+sub-family level.
 
 ## Building a parameter object for Telescope
 
-To use the Telescope method for TE expression quantification, the `TelescopeParam()` function is used to build a parameter object of the class `TelescopeParam`.
+To use the Telescope method for TE expression quantification, the
+`TelescopeParam()` function is used to build a parameter object of the class
+`TelescopeParam`.
 
-As in the case of `ERVmapParam()`, the `aggregateby` argument, which should be a character vector of column names in the annotation, determines the columns to be used to aggregate TE expression quantifications. This way, `atena` provides not only quantifications at the subfamily level, but also allows to quantify TEs at the desired level (family, class, etc.), including locus based quantifications. For such a use case, the object with the TE annotations should include a column with unique identifiers for each TE locus and the `aggregateby` argument should specify the name of that column. When `aggregateby` is not specified, the `names()` of the object containing TE annotations are used to aggregate quantifications.
+As in the case of `ERVmapParam()`, the `aggregateby` argument, which should be
+a character vector of column names in the annotation, determines the columns to
+be used to aggregate TE expression quantifications. This way, `atena` provides
+not only quantifications at the subfamily level, but also allows to quantify
+TEs at the desired level (family, class, etc.), including locus based
+quantifications. For such a use case, the object with the TE annotations should
+include a column with unique identifiers for each TE locus and the
+`aggregateby` argument should specify the name of that column. When
+`aggregateby` is not specified, the `names()` of the object containing TE
+annotations are used to aggregate quantifications.
 
 Here, TE quantifications will be aggregated according to the `names()` of the
-`rmskLTR` object. 
+`rmskLTR` object.
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -295,19 +387,43 @@ tspar <- TelescopeParam(bfl=bamfiles,
 tspar
 ```
 
-In case of paired-end data (`singleEnd=FALSE`), the argument usage is similar to that of `ERVmapParam()`. In relation to the BAM file, Telescope follows the same approach as the ERVmap method: when `fragments=FALSE`, only _mated read pairs_ from opposite strands are considered, while when `fragments=TRUE`, same-strand pairs, singletons, reads with unmapped pairs and other fragments are also considered by the algorithm. However, there is one important difference with respect to the counting approach followed by ERVmap: when `fragments=TRUE` _mated read pairs_ mapping to the same element are counted once, whereas in the ERVmap method they are counted twice.
+In case of paired-end data (`singleEnd=FALSE`), the argument usage is similar
+to that of `ERVmapParam()`. In relation to the BAM file, Telescope follows the
+same approach as the ERVmap method: when `fragments=FALSE`, only _mated read
+pairs_ from opposite strands are considered, while when `fragments=TRUE`,
+same-strand pairs, singletons, reads with unmapped pairs and other fragments
+are also considered by the algorithm. However, there is one important
+difference with respect to the counting approach followed by ERVmap: when
+`fragments=TRUE` _mated read pairs_ mapping to the same element are counted
+once, whereas in the ERVmap method they are counted twice.
 
-As in the ERVmap method from `atena`, the gene expression quantification method in Telescope is based on the approach of the TEtranscripts software [@jin2015tetranscripts]. This way, `atena` provides the possibility to integrate TE expression quantification by Telescope with gene expression quantification. As in the case of the ERVmap method from `atena`, either secondary alignments or the `NH` tag are required for gene expression quantification.
-
+As in the ERVmap method from `atena`, the gene expression quantification method
+in Telescope is based on the approach of the TEtranscripts software
+[@jin2015tetranscripts]. This way, `atena` provides the possibility to
+integrate TE expression quantification by Telescope with gene expression
+quantification. As in the case of the ERVmap method from `atena`, either
+secondary alignments or the `NH` tag are required for gene expression
+quantification.
 
 ## Building a parameter object for TEtranscripts
 
-Finally, the third method available is TEtranscripts. First, the `TEtranscriptsParam()` function is called to build a parameter object of the class `TEtranscriptsParam`. The usage of the `aggregateby` argument is the same as in `TelescopeParam()` and `ERVmapParam()`. Locus based quantifications in the TEtranscripts method from `atena` is possible because the TEtranscripts algorithm actually computes TE quantifications at the locus level and then sums up all instances of each TE subfamily to provide expression at the subfamily level. By avoiding this last step, `atena` can provide TE expression quantification at the locus level using the TEtranscripts method. For such a use case, the object with the TE annotations should include a column with unique identifiers for each TE and the `aggregateby` argument should specify the name of that column.
+Finally, the third method available is TEtranscripts. First, the
+`TEtranscriptsParam()` function is called to build a parameter object of the
+class `TEtranscriptsParam`. The usage of the `aggregateby` argument is the same
+as in `TelescopeParam()` and `ERVmapParam()`. Locus based quantifications in
+the TEtranscripts method from `atena` is possible because the TEtranscripts
+algorithm actually computes TE quantifications at the locus level and then sums
+up all instances of each TE subfamily to provide expression at the subfamily
+level. By avoiding this last step, `atena` can provide TE expression
+quantification at the locus level using the TEtranscripts method. For such a
+use case, the object with the TE annotations should include a column with
+unique identifiers for each TE and the `aggregateby` argument should specify
+the name of that column.
 
 In this example, the `aggregateby` argument will be set to
-`aggregateby = "repName"` in order to aggregate quantifications at the repeat 
-name level. Moreover, gene expression will also be quantified. To do so,
-gene annotations are loaded from a *TxDb* object.
+`aggregateby="repName"` in order to aggregate quantifications at the repeat
+name level. Moreover, gene expression will also be quantified. To do so, gene
+annotations are loaded from a *TxDb* object.
 
 ```{r, message=FALSE}
 library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
@@ -315,7 +431,6 @@ txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
 txdb_genes <- exonsBy(txdb, by = "gene")
 length(txdb_genes)
 ```
-
 
 ```{r}
 bamfiles <- list.files(system.file("extdata", package="atena"),
@@ -326,15 +441,23 @@ ttpar <- TEtranscriptsParam(bamfiles,
                             singleEnd=TRUE, 
                             ignoreStrand=TRUE, 
                             aggregateby=c("repName"))
-
 ttpar
 ```
 
-For paired-end data (`singleEnd=FALSE`), the usage of the `fragments` argument is the same as in `TelescopeParam()`.
+For paired-end data (`singleEnd=FALSE`), the usage of the `fragments` argument
+is the same as in `TelescopeParam()`.
 
-Regarding gene expression quantification, `atena` has implemented the approach of the original TEtranscripts software [@jin2015tetranscripts]. As in the case of the ERVmap and Telescope methods from `atena`, either secondary alignments or the `NH` tag are required.
+Regarding gene expression quantification, `atena` has implemented the approach
+of the original TEtranscripts software [@jin2015tetranscripts]. As in the case
+of the ERVmap and Telescope methods from `atena`, either secondary alignments
+or the `NH` tag are required.
 
-Following the gene annotation processing present in the TEtranscripts algorithm, in case that `geneFeatures` contains a metadata column named "type", only the elements with "type" = "exon" are considered for the analysis. Then, exon counts are summarized to the gene level in a `GRangesList` object. This also applies to the ERVmap and Telescope methods for `atena` when gene features are present. Let's see an example of this processing:
+Following the gene annotation processing present in the TEtranscripts
+algorithm, in case that `geneFeatures` contains a metadata column named "type",
+only the elements with "type" = "exon" are considered for the analysis. Then,
+exon counts are summarized to the gene level in a `GRangesList` object. This
+also applies to the ERVmap and Telescope methods for `atena` when gene features
+are present. Let's see an example of this processing:
 
 ```{r}
 # Creating an example of gene annotations
@@ -357,17 +480,25 @@ ttpar_gen
 Let's see the result of the gene annotation processing:
 
 ```{r}
-features_tt <- atena::features(ttpar_gen)
-features_tt[!attributes(features_tt)$isTE$isTE]
+features_tt <- features(ttpar_gen)
+features_tt[!mcols(features_tt)$isTE]
 ```
-
-
 
 ## Quantify TE expression with `qtex()`
 
-Finally, to quantify TE expression we call the `qtex()` method using one of the previously defined parameter objects (`ERVmapParam`, `TEtranscriptsParam` or `TelescopeParam`) according to the quantification method we want to use. The `qtex()` method returns a `SummarizedExperiment` object containing the resulting quantification of expression in an assay slot. Additionally, when a `data.frame`, or `DataFrame`, object storing phenotypic data is passed to the `qtex()` function through the `phenodata` parameter, this will be included as column data in the resulting `SummarizedExperiment` object and the row names of these phenotypic data will be set as column names in the output `SummarizedExperiment` object.
+Finally, to quantify TE expression we call the `qtex()` method using one of the
+previously defined parameter objects (`ERVmapParam`, `TEtranscriptsParam` or
+`TelescopeParam`) according to the quantification method we want to use. The
+`qtex()` method returns a `SummarizedExperiment` object containing the
+resulting quantification of expression in an assay slot. Additionally, when a
+`data.frame`, or `DataFrame`, object storing phenotypic data is passed to the
+`qtex()` function through the `phenodata` parameter, this will be included as
+column data in the resulting `SummarizedExperiment` object and the row names of
+these phenotypic data will be set as column names in the output
+`SummarizedExperiment` object.
 
-In the current example, the call to quantify TE expression using the ERVmap method would be the following:
+In the current example, the call to quantify TE expression using the ERVmap
+method would be the following:
 
 ```{r, results='hide'}
 emq <- qtex(empar)
@@ -387,8 +518,8 @@ tsq
 colSums(assay(tsq))
 ```
 
-
-For the TEtranscripts method, TE expression is quantified by using the following call:
+For the TEtranscripts method, TE expression is quantified by using the
+following call:
 
 ```{r, results='hide'}
 ttq <- qtex(ttpar)
@@ -398,9 +529,8 @@ ttq
 colSums(assay(ttq))
 ```
 
-As mentioned, TE expression quantification is provided at the repeat name level.
-
-
+As mentioned, TE expression quantification is provided at the repeat name
+level.
 
 # Session information
 

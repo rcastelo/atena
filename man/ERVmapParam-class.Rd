@@ -212,16 +212,16 @@ case all primary alignments mapping to genes are counted.}
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-                    strict = FALSE, insert = 500)
-rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-                   full_length = TRUE, 
-                   partial = TRUE,
-                   otherLTR = TRUE)
+rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+                    strict=FALSE, insert=500)
+rmskLTR <- getLTRs(rmskat, relLength=0.8, 
+                   full_length=TRUE, 
+                   partial=TRUE,
+                   otherLTR=TRUE)
 empar <- ERVmapParam(bamfiles, 
-                     teFeatures = rmskLTR, 
-                     singleEnd = TRUE, 
-                     ignoreStrand = TRUE, 
+                     teFeatures=rmskLTR, 
+                     singleEnd=TRUE, 
+                     ignoreStrand=TRUE, 
                      suboptimalAlignmentCutoff=NA)
 empar
 

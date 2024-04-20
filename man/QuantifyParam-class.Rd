@@ -5,7 +5,7 @@
 \alias{QuantifyParam-class}
 \alias{path,QuantifyParam-method}
 \alias{features,QuantifyParam-method}
-\title{Atena parameter class}
+\title{QuantifyParam parameter class}
 \usage{
 \S4method{path}{QuantifyParam}(object)
 

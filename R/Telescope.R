@@ -116,15 +116,15 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-#'                     strict = FALSE, insert = 500)
-#' rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-#'                    full_length = TRUE, 
-#'                    partial = TRUE,
-#'                    otherLTR = TRUE)
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#'                     strict=FALSE, insert=500)
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
+#'                    full_length=TRUE, 
+#'                    partial=TRUE,
+#'                    otherLTR=TRUE)
 #' tspar <- TelescopeParam(bfl=bamfiles, 
 #'                         teFeatures=rmskLTR, 
-#'                         singleEnd = TRUE, 
+#'                         singleEnd=TRUE, 
 #'                         ignoreStrand=TRUE)
 #' tspar
 #'
@@ -217,19 +217,26 @@ setMethod("show", "TelescopeParam",
 #' @aliases qtex,TelescopeParam-method
 #' @rdname qtex
 setMethod("qtex", "TelescopeParam",
-        function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
-                    BPPARAM=SerialParam(progressbar=TRUE)) {
+          function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
+                   auxiliaryFeatures=FALSE,
+                   BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
             
             cnt <- bplapply(x@bfl, .qtex_telescope, tspar=x, mode=x@ovMode,
                             yieldSize=yieldSize, BPPARAM=BPPARAM)
             cnt <- do.call("cbind", cnt)
-            colData <- .createColumnData(cnt, phenodata)
-            colnames(cnt) <- rownames(colData)
-            features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
+            cdata <- .createColumnData(cnt, phenodata)
+            colnames(cnt) <- rownames(cdata)
+            fnames <- rownames(cnt)[-nrow(cnt)]
+            whnofeat <- 1L
+            if (!auxiliaryFeatures) {
+                cnt <- cnt[-nrow(cnt), ]
+                whnofeat <- integer(0)
+            }
+            features <- .consolidateFeatures(x, fnames, whnofeat)
             SummarizedExperiment(assays=list(counts=cnt),
-                                    rowRanges=c(features),
-                                    colData=colData)
+                                 rowRanges=features,
+                                 colData=cdata)
         })
 
 
@@ -238,7 +245,7 @@ setMethod("qtex", "TelescopeParam",
 #' @importFrom BiocGenerics path
 #' @importFrom GenomicAlignments readGAlignments readGAlignmentsList
 #' @importFrom GenomicAlignments readGAlignmentPairs
-#' @importFrom S4Vectors Hits queryHits subjectHits
+#' @importFrom S4Vectors mcols Hits queryHits subjectHits
 #' @importFrom Matrix Matrix t which
 #' @importFrom sparseMatrixStats rowSums2 colSums2
 #' @importFrom SQUAREM squarem
@@ -248,10 +255,11 @@ setMethod("qtex", "TelescopeParam",
     .checkreassignModes(tspar)
     sbflags <- .getScanBamFlag_ts(tspar@singleEnd, tspar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
-    iste <- as.vector(attributes(tspar@features)$isTE[,1])
-    if (any(duplicated(names(tspar@features[iste])))) {
-        stop(".qtex_telescope: transposable element annotations do not contain unique names for each element")
-    }
+    ## iste <- as.vector(attributes(tspar@features)$isTE[,1])
+    iste <- mcols(features(tspar))$isTE
+    if (any(duplicated(names(features(tspar)[iste]))))
+        stop(".qtex_telescope: duplicated names in TE annotations.")
+
     ov <- Hits(nLnode=0, nRnode=length(tspar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     asvalues <- integer()

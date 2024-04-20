@@ -214,15 +214,15 @@ assignment.}
 \examples{
 bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
-rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-                    strict = FALSE, insert = 500)
-rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-                   full_length = TRUE, 
-                   partial = TRUE,
-                   otherLTR = TRUE)
+rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+                    strict=FALSE, insert=500)
+rmskLTR <- getLTRs(rmskat, relLength=0.8, 
+                   full_length=TRUE, 
+                   partial=TRUE,
+                   otherLTR=TRUE)
 atpar <- atenaParam(bfl=bamfiles, 
                     teFeatures=rmskLTR,
-                    singleEnd = TRUE, 
+                    singleEnd=TRUE, 
                     ignoreStrand=TRUE)
 atpar
 

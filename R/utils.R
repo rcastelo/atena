@@ -42,10 +42,10 @@
         stop("argument 'bfl' is empty")
   
     if (is.character(bfl)) {
-        mask <- vapply(bfl, FUN = file.exists, FUN.VALUE = logical(1))
+        mask <- vapply(bfl, FUN=file.exists, FUN.VALUE=logical(1))
         if (any(!mask))
             stop(sprintf("The following input BAM files cannot be found:\n%s",
-                        paste(paste("  ", bfl[!mask]), collapse="\n")))
+                         paste(paste("  ", bfl[!mask]), collapse="\n")))
     }
     
     if (!is(bfl, "BamFileList"))
@@ -133,13 +133,11 @@
     
     if (is.null(names(teFeatures)) && length(aggregateby) == 0)
         stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
-                    teFeaturesobjname))
+                     teFeaturesobjname))
     
     features <- NULL
-    ## features <- teFeatures
     if (is(teFeatures, "GRangesList"))
         teFeatures <- unlist(teFeatures)
-        ## features <- unlist(teFeatures)
     
     if (length(aggregateby) > 0)
       if (any(!aggregateby %in% colnames(mcols(teFeatures))))
@@ -164,7 +162,7 @@
     if (!is.null(geneFeatures)) {
         if (!all(iste) && !is.null(mcols(geneFeatures)$type)) {
             if (is(features, "GRanges")) {
-                iste <- aggregate(iste, by = list(names(features)), unique)
+                iste <- aggregate(iste, by=list(names(features)), unique)
                 features <- .groupGeneExons(features, aggregateexons)
                 mtname <- match(names(features), iste$Group.1)
                 iste <- iste[mtname,"x"]
@@ -180,7 +178,7 @@
                 mcols(features_g)$isTE <- FALSE
                 mcols(features_g)$type <- "exon"
                 iste_g <- unlist(lapply(relist(iste[which(!iste)], features_g),
-                                        function(x) x[1]),  use.names = FALSE)
+                                        function(x) x[1]),  use.names=FALSE)
                 iste <- c(iste[which(iste)], iste_g)
                 features <- c(features[which(iste)], features_g)
             }
@@ -190,10 +188,10 @@
         iste <- aggregate(iste, by = list(names(features)), unique)
         features <- .groupGeneExons(features, aggregateexons)
         mtname <- match(names(features), iste$Group.1)
-        iste <- iste[mtname,"x"]
+        iste <- iste[mtname, "x"]
     }
-    
-    attr(features, "isTE") <- DataFrame("isTE" = iste)
+    mcols(features) <- DataFrame(isTE=iste)
+
     features
 }
 
@@ -240,62 +238,58 @@
 #' @importFrom S4Vectors split
 #' @importFrom GenomicRanges GRangesList GRanges
 #' @importFrom IRanges IRanges IRangesList
-.consolidateFeatures <- function(x, fnames, whnofeat=1L) {
+.consolidateFeatures <- function(x, fnames, whnofeat=integer(0)) {
     
-    iste <- as.vector(attributes(features(x))$isTE[,1])
-    teFeatures <- features(x)
-    if (!is.null(iste) && any(iste)) {
-        teFeatures <- features(x)[iste]
-    }
-    
+    if (length(whnofeat) > 0 && !is(x, "TelescopeParam") &&
+        !is(x, "atenaParam"))
+        stop(paste("internal error: call to .consolidateFeatures() with",
+                   "a non-empty whnofeat and the wrong parameter class."))
+
+    cfeatures <- features(x)
     if (length(x@aggregateby) > 0) {
+        iste <- mcols(features(x))$isTE
+        teFeatures <- features(x)
+        if (!is.null(iste) && any(iste)) {
+            teFeatures <- features(x)[iste]
+        }
+    
         f <- .factoraggregateby(teFeatures, x@aggregateby)
         if (is(teFeatures, "GRangesList")) {
-            f <- rep(f, times = lengths(teFeatures))
+            f <- rep(f, times=lengths(teFeatures))
             teFeatures <- unlist(teFeatures)
         }
-        teFeatures <- split(teFeatures, f)
-    }
+        cfeatures <- split(teFeatures, f)
     
-    cfeatures <- teFeatures
-    if (!is.null(iste) && any(!iste)) {
-        geneFeatures <- features(x)[!iste]
-        # if (is(cfeatures, "GRangesList")) ## otherwise is a GRanges object
-        #   geneFeatures <- split(geneFeatures, names(geneFeatures))
-        cfeatures <- c(cfeatures, geneFeatures)
+        if (!is.null(iste) && any(!iste)) {
+            geneFeatures <- features(x)[!iste]
+            cfeatures <- c(cfeatures, geneFeatures)
+        }
+        stopifnot(length(cfeatures) == length(fnames)) ## QC
     }
     
     stopifnot(length(cfeatures) == length(fnames)) ## QC
     mt <- match(fnames, names(cfeatures))
     cfeatures <- cfeatures[mt]
-    attributes(cfeatures)$isTE <- attributes(cfeatures)$isTE[mt, , drop=FALSE]
     
-    if (is(x, "TelescopeParam") | is(x, "atenaParam")) {
+    if (length(whnofeat) > 0) {
         nofeat_gr <- GRanges(seqnames="chrNofeature", 
                              ranges=IRanges(start=1, end=1),
-                             swScore=NA_integer_, milliDiv=NA_real_,
-                             milliIns=NA_real_, genoLeft=NA_integer_,
-                             repName=NA_character_, repClass=NA_character_,
-                             repFamily=NA_character_, repStart=NA_integer_,
-                             repEnd=NA_integer_, repLeft=NA_integer_,
-                             exon_id=NA_integer_, exon_name=NA_character_,
-                             type=NA_character_, isTE=FALSE)
+                             isTE=FALSE)
         if (length(whnofeat) == 1) {
             names(nofeat_gr) <- "no_feature"
             
-        } else if (length(whnofeat) > 1) {
+        } else {
             nofeat_gr <- rep(nofeat_gr, length(whnofeat))
             names(nofeat_gr) <- paste0("no_feature", seq_along(whnofeat))
-        } else {
-            stop(".consolidateFeatures: 'whnofeat' must be of length > 0")
         }
         
         seqlev <- unique(c(seqlevels(cfeatures), seqlevels(nofeat_gr)))
         seqlevels(cfeatures) <- seqlev
         seqlevels(nofeat_gr) <- seqlev
+        lencfeatwonofeat <- length(cfeatures)
         cfeatures <- c(cfeatures, nofeat_gr)
-        attributes(cfeatures)$isTE <- rbind(attributes(cfeatures)$isTE,
-                                            DataFrame(isTE=rep(FALSE, length(whnofeat))))
+        rng <- (lencfeatwonofeat+1):length(cfeatures)
+        mcols(cfeatures)$isTE[rng] <- FALSE
     }
     cfeatures
 }

@@ -1,3 +1,4 @@
+library(GenomicRanges)
 library(Rsamtools)
 library(Matrix)
 library(sparseMatrixStats)
@@ -20,8 +21,9 @@ test_new_TEtranscript_functions <- function(){
   sbflags <- scanBamFlag(isUnmappedQuery=FALSE, isDuplicate=FALSE,
                          isNotPassingQualityControls=FALSE)
   param <- ScanBamParam(flag=sbflags, tag="AS")
-  iste <- as.vector(attributes(ttpar@features)$isTE[,1])
-  if (any(duplicated(names(ttpar@features[iste])))) {
+  ## iste <- as.vector(attributes(ttpar@features)$isTE[,1])
+  iste <- mcols(features(ttpar))$isTE
+  if (any(duplicated(names(features(ttpar)[iste])))) {
     stop(".qtex_tetranscripts: transposable element annotations
          do not contain unique names for each element")
   }
@@ -84,14 +86,14 @@ test_new_TEtranscript_functions <- function(){
   
   ovalnmat <- atena:::.buildOvAlignmentsMatrix(ov, alnreadids, readids, tx_idx)
   mt <- match(readids, alnreadids)
-  istex <- as.vector(iste[tx_idx])
-  ovalnmat <- ovalnmat[!maskuniqaln[mt], istex]
+  ## istex <- as.vector(iste[tx_idx])
+  ovalnmat <- ovalnmat[!maskuniqaln[mt], iste]
   yesov <- rowSums2(ovalnmat)>0
   ovalnmat <- ovalnmat[yesov,]
   readids <- readids[!maskuniqaln[mt]][yesov]
   
   old_Qmat_generation <- function (){
-    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[istex]),
+    Qmat <- Matrix(0, nrow=length(readids), ncol=length(tx_idx[iste]),
                    dimnames=list(readids, NULL))
     Qmat[which(ovalnmat, arr.ind=TRUE)] <- 1
     Qmat
@@ -99,12 +101,12 @@ test_new_TEtranscript_functions <- function(){
   
   new_Qmat_generation <- function(){
     x <- as.integer(ovalnmat@x)
-    Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=x, index1 = FALSE,
-                         dimnames =  list(readids, NULL))
+    Qmat <- sparseMatrix(i=ovalnmat@i, p=ovalnmat@p, x=x, index1=FALSE,
+                         dimnames=list(readids, NULL))
   }
   
   checkEquals(old_Qmat_generation(), new_Qmat_generation(), 
-              msg = "Testing Qmat generation")
+              msg="Testing Qmat generation")
   
   ####################################################################
   ############################  TEST 3 ###############################

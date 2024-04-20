@@ -114,15 +114,15 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome = "dm6", parsefun = rmskatenaparser, 
-#'                     strict = FALSE, insert = 500)
-#' rmskLTR <- getLTRs(rmskat, relLength = 0.8, 
-#'                    full_length = TRUE, 
-#'                    partial = TRUE,
-#'                    otherLTR = TRUE)
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#'                     strict=FALSE, insert=500)
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
+#'                    full_length=TRUE, 
+#'                    partial=TRUE,
+#'                    otherLTR=TRUE)
 #' atpar <- atenaParam(bfl=bamfiles, 
 #'                     teFeatures=rmskLTR,
-#'                     singleEnd = TRUE, 
+#'                     singleEnd=TRUE, 
 #'                     ignoreStrand=TRUE)
 #' atpar
 #'
@@ -133,37 +133,30 @@
 #' @export
 #' @rdname atenaParam-class
 atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
-                            ovMode="ovUnion",
-                            geneFeatures=NULL,
-                            singleEnd=TRUE,
-                            strandMode=1L,
-                            ignoreStrand=FALSE,
-                            fragments=TRUE,
-                            pi_prior=0L,
-                            theta_prior=0L,
-                            em_epsilon=1e-7,
-                            maxIter=100L,
-                            reassign_mode="exclude",
-                            conf_prob=0.9) {
+                       ovMode="ovUnion", geneFeatures=NULL, singleEnd=TRUE,
+                       strandMode=1L, ignoreStrand=FALSE, fragments=TRUE,
+                       pi_prior=0L, theta_prior=0L, em_epsilon=1e-7,
+                       maxIter=100L, reassign_mode="exclude", conf_prob=0.9) {
+
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
-    if (!reassign_mode %in% c("exclude","choose","average","conf"))
+    if (!reassign_mode %in% c("exclude", "choose", "average", "conf"))
       stop("'reassign_mode' should be one of 'exclude', 'choose', 'average' or 'conf'")
     
     if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
       stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
     
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
-                                geneFeatures,deparse(substitute(geneFeatures)),
-                                aggregateby, aggregateexons=TRUE)
+                                 geneFeatures,deparse(substitute(geneFeatures)),
+                                 aggregateby, aggregateexons=TRUE)
+
     .checkPriors(names(features), names(pi_prior), names(theta_prior))
     
     new("atenaParam", bfl=bfl, features=features,
         aggregateby=aggregateby, ovMode=ovMode,
         singleEnd=singleEnd,ignoreStrand=ignoreStrand,
         strandMode=as.integer(strandMode), fragments=fragments,
-        pi_prior=pi_prior,
-        theta_prior=theta_prior, em_epsilon=em_epsilon,
+        pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
         maxIter=as.integer(maxIter), reassign_mode=reassign_mode,
         conf_prob=conf_prob)
 }
@@ -211,7 +204,8 @@ setMethod("show", "atenaParam",
 #' @rdname qtex
 setMethod("qtex", "atenaParam",
         function(x, phenodata=NULL, mode=ovUnion, yieldSize=1e6L,
-                    BPPARAM=SerialParam(progressbar=TRUE)) {
+                 auxiliaryFeatures=FALSE,
+                 BPPARAM=SerialParam(progressbar=TRUE)) {
             .checkPhenodata(phenodata, length(x@bfl))
             
             cnt <- bplapply(x@bfl, .qtex_atena, atpar=x, mode=x@ovMode,
@@ -220,12 +214,15 @@ setMethod("qtex", "atenaParam",
             cnt <- do.call("cbind", cnt)
             colData <- .createColumnData(cnt, phenodata)
             colnames(cnt) <- rownames(colData)
-            whnofeat <- grep(x = rownames(cnt), pattern = "no_feature")
-            features <- .consolidateFeatures(x, rownames(cnt)[-whnofeat],
-                                             whnofeat)
-            # features <- .consolidateFeatures(x, rownames(cnt)[-nrow(cnt)])
+            whnofeat <- grep(x=rownames(cnt), pattern = "no_feature")
+            fnames <- rownames(cnt)[-whnofeat]
+            if (!auxiliaryFeatures) {
+                cnt <- cnt[-whnofeat, ]
+                whnofeat <- integer(0)
+            }
+            features <- .consolidateFeatures(x, fnames, whnofeat)
             SummarizedExperiment(assays=list(counts=cnt),
-                                 rowRanges=c(features),
+                                 rowRanges=features,
                                  colData=colData)
         })
 
@@ -245,10 +242,11 @@ setMethod("qtex", "atenaParam",
     .checkreassignModes(atpar)
     sbflags <- .getScanBamFlag_ts(atpar@singleEnd, atpar@fragments)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
-    iste <- as.vector(attributes(atpar@features)$isTE[,1])
-    if (any(duplicated(names(atpar@features[iste])))) {
-        stop(".qtex_atena: transposable element annotations do not contain unique names for each element")
-    }
+    ## iste <- as.vector(attributes(atpar@features)$isTE[,1])
+    iste <- mcols(features(atpar))$isTE
+    if (any(duplicated(names(features(atpar)[iste]))))
+        stop(".qtex_atena: duplicated names in TE annotations.")
+
     ov <- Hits(nLnode=0, nRnode=length(atpar@features), sort.by.query=TRUE)
     alnreadids <- character(0)
     asvalues <- integer()
