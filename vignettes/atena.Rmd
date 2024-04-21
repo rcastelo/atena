@@ -135,8 +135,8 @@ metadata columns with `mcols()`:
 mcols(rmskat)
 ```
 
-There is information about the reconstruction status of the TE (*status*
-column), the relative length of the reconstructed TE (*Rel_length*) and the
+There is information about the reconstruction status of the TE (*Status*
+column), the relative length of the reconstructed TE (*RelLength*) and the
 repeat class of the TE (*Class*). The relative length is computed by adding
 the length (in base pairs) of all fragments from the same assembled TE and
 dividing the sum by the length (in base pairs) of the consensus sequence. For
@@ -157,18 +157,18 @@ pal1 <- brewer.pal(6, "Pastel2")
 pal2 <- brewer.pal(length(unique(mcols(rmskat)$Class)), "Set2")
 
 par(mfrow = c(1,2), mar = c(5,4,3,1))
-bp1 <- barplot(table(mcols(rmskat)$status), col = pal1, border = "black",
+bp1 <- barplot(table(mcols(rmskat)$Status), col = pal1, border = "black",
         main = "TEs by status", cex.axis=0.8, xaxt = "n")
 grid(nx=NA, ny=NULL)
 axis(1, at=bp1, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
 par(xpd=TRUE)
-text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(rmskat)$status)), 
+text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(rmskat)$Status)), 
      srt=40, offset = 1.7, cex = 0.8, pos = 1)
 par(xpd=FALSE)
 
 bp2 <- barplot(table(mcols(rmskat)$Class), col = pal2, border = "black",
         main = "TEs by class", cex.axis=0.8, xaxt = "n",
-        ylim = c(0,max(table(mcols(rmskat)$status))))
+        ylim = c(0,max(table(mcols(rmskat)$Status))))
 grid(nx=NA, ny=NULL)
 axis(1, at=bp2, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
 par(xpd=TRUE)

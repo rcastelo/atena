@@ -66,7 +66,7 @@ annotations (e.g. \code{rmskbasicparser} or a user-defined function). If no
 parsing is required, \code{parsefun} can be set to \code{rmskidentity}.
 }
 \examples{
-rmsk_gr <- annotaTEs(genome = "hg19", parsefun = rmskidentity)
+rmskid <- annotaTEs(genome="hg19", parsefun=rmskidentity)
 
 
 }

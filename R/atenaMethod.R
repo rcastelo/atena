@@ -179,10 +179,9 @@ setMethod("show", "atenaParam",
                                 paste("on",
                                     .pprintnames(seqlevels(object@features))),
                                 .pprintnames(names(object@features)))))
-            cat(sprintf("# aggregated by: %s\n",
-                        ifelse(length(object@aggregateby) > 0,
-                                paste(object@aggregateby, collapse=", "),
-                                paste(class(object@features), "names"))))
+            if (length(object@aggregateby) > 0)
+                cat(sprintf("# aggregated by: %s\n",
+                            paste(object@aggregateby, collapse=", ")))
             cat(sprintf("# %s; %s",
                         ifelse(object@singleEnd, "single-end", "paired-end"),
                         ifelse(object@ignoreStrand, "unstranded", "stranded")))

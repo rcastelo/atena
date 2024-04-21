@@ -20,6 +20,6 @@ Identity function: returns the \link[GenomicRanges:GRanges-class]{GRanges}
 object without any modification.
 }
 \examples{
-rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskidentity)
+rmskid <- annotaTEs(genome="dm6", parsefun=rmskidentity)
         
 }

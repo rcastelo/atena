@@ -25,6 +25,6 @@ as "Unknown" or "Other". Finally, assigns a unique id to each TE instance
 by adding the suffix "_dup" plus a number at the end of the "repName".
 }
 \examples{
-rmsk_gr <- annotaTEs(genome = "dm6", parsefun = rmskbasicparser)
+rmskba <- annotaTEs(genome="dm6", parsefun=rmskbasicparser)
 
 }

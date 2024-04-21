@@ -58,8 +58,8 @@ PLOS Comp. Biol. 2019;15(9):e1006453. DOI:
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/functionalgenomics/atena}
-  \item Report bugs at \url{https://github.com/functionalgenomics/atena/issues}
+  \item \url{https://github.com/rcastelo/atena}
+  \item Report bugs at \url{https://github.com/rcastelo/atena/issues}
 }
 
 }

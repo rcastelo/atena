@@ -64,8 +64,8 @@ for LTR - internal region equivalences.
 }
 \examples{
 \dontrun{
-rmsk_gr <- annotaTEs(genome = "dm6", parsefun = OneCodeToFindThemAll,
-                     fuzzy = FALSE, strict = FALSE)
+rmskoc <- annotaTEs(genome="dm6", parsefun=OneCodeToFindThemAll,
+                    fuzzy=FALSE, strict=FALSE)
 }
 
 }
