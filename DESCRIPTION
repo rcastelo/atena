@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 1.9.6
+Version: 1.9.7
 Authors@R: c(
     person("Beatriz", "Calvo-Serra", email="beatriz.calvo@upf.edu",
            role=c("aut", "cre")),
@@ -24,6 +24,7 @@ Imports:
     stats,
     Matrix,
     BiocGenerics,
+    MatrixGenerics,
     BiocParallel,
     S4Vectors,
     IRanges,

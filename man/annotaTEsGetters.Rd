@@ -25,10 +25,13 @@ getSINEs(annot, relLength = 0.9, returnMask = FALSE)
 getDNAtransposons(annot, relLength = 0.9, returnMask = FALSE)
 }
 \arguments{
-\item{annot}{A \link[GenomicRanges:GRangesList-class]{GRangesList} object
-obtained from parsing RepeatMasker annotations with
-\code{OneCodeToFindThemAll()} or \code{rmskatenaparser()}
-function.}
+\item{annot}{A [`GRanges`] or [`GRangesList`] object obtained with the
+function `annotaTES()`, using either [`OneCodeToFindThemAll`]
+or [`rmskatenaparser`] as RepeatMasker parser functions.
+Alternatively, if `annot` is a [`QuantifyParam`] or a
+[`SummarizedExperiment`] object produced by the `qtex()`
+function, this function will attempt to extract the
+corresponding annotations from inside those objects.}
 
 \item{relLength}{(Default 0.9) Numeric value that can take values between 0
 to 1. Sets the minimum relative length required for

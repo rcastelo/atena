@@ -298,10 +298,13 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 
 #' Getter functions of TE classes from parsed RepeatMasker annotations.
 #'
-#' @param annot A \link[GenomicRanges:GRangesList-class]{GRangesList} object
-#'              obtained from parsing RepeatMasker annotations with
-#'              \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()}
-#'              function.
+#' @param annot A [`GRanges`] or [`GRangesList`] object obtained with the
+#'              function `annotaTES()`, using either [`OneCodeToFindThemAll`]
+#'              or [`rmskatenaparser`] as RepeatMasker parser functions.
+#'              Alternatively, if `annot` is a [`QuantifyParam`] or a
+#'              [`SummarizedExperiment`] object produced by the `qtex()`
+#'              function, this function will attempt to extract the
+#'              corresponding annotations from inside those objects.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
@@ -365,6 +368,8 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 getLTRs <- function(annot, relLength=0.9, fullLength=TRUE, partial=FALSE,
                     soloLTR=FALSE, otherLTR=FALSE, returnMask=FALSE) {
     
+    annot <- .fetchAnnotationsFromObject(annot)
+
     cnames <- c("Status", "RelLength", "Class")
     mask <- cnames %in% colnames(mcols(annot))
     if (any(!mask))
@@ -409,6 +414,9 @@ getLTRs <- function(annot, relLength=0.9, fullLength=TRUE, partial=FALSE,
 #' @importFrom GenomicRanges mcols
 #' @export
 getLINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
+
+    annot <- .fetchAnnotationsFromObject(annot)
+
     cnames <- c("RelLength", "Class")
     mask <- cnames %in% colnames(mcols(annot))
     if (any(!mask))
@@ -446,6 +454,9 @@ getLINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
 #' @importFrom GenomicRanges mcols
 #' @export
 getSINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
+
+    annot <- .fetchAnnotationsFromObject(annot)
+
     cnames <- c("RelLength", "Class")
     mask <- cnames %in% colnames(mcols(annot))
     if (any(!mask))
@@ -483,6 +494,9 @@ getSINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
 #' @importFrom GenomicRanges mcols
 #' @export
 getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
+
+    annot <- .fetchAnnotationsFromObject(annot)
+
     cnames <- c("RelLength", "Class")
     mask <- cnames %in% colnames(mcols(annot))
     if (any(!mask))
@@ -509,6 +523,20 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
         res <- annot[keep]
 
     res
+}
+
+#' @importFrom MatrixGenerics rowRanges
+.fetchAnnotationsFromObject <- function(object) {
+    annot <- object
+
+    if (is(object, "QuantifyParam"))
+        annot <- features(object)
+    else if (is(object, "SummarizedExperiment"))
+        annot <- rowRanges(object)
+    else if (!is(object, "GRangesList") && !is(object, "GRanges"))
+        stop(paste("input annotations should be either a 'GenomicRanges',",
+                   "'QuantifyParam' or a 'SummarizedExperiment' object."))
+    annot
 }
 
 #' @importFrom stats setNames
