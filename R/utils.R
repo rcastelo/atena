@@ -113,7 +113,7 @@
 ##                           to be used later for aggregating estimated
 ##                           counts.
 
-#' @importFrom S4Vectors mcols Rle DataFrame
+#' @importFrom S4Vectors mcols Rle decode DataFrame
 #' @importFrom GenomeInfoDb seqlevels<- seqlevels
 #' @importFrom GenomicRanges mcols<- mcols
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
@@ -123,18 +123,15 @@
     if (missing(teFeatures))
         stop("missing 'teFeatures' argument.")
     
-    # if (!exists(teFeaturesobjname))
-    #     stop(sprintf("input TE features object '%s' is not defined.",
-    #                 teFeaturesobjname))
-    
     if (!is(teFeatures, "GRanges") && !is(teFeatures, "GRangesList"))
         stop(sprintf("TE features object '%s' should be either a 'GRanges' or a 'GRangesList' object.",
-                    teFeaturesobjname))
+                     teFeaturesobjname))
     
     if (is.null(names(teFeatures)) && length(aggregateby) == 0)
         stop(sprintf("the TE features object '%s' has no names and no aggregation metadata columns have been specified.",
                      teFeaturesobjname))
     
+    mdteFeatures <- mcols(teFeatures)
     features <- NULL
     if (is(teFeatures, "GRangesList"))
         teFeatures <- unlist(teFeatures)
@@ -157,7 +154,7 @@
         mcols(features)$isTE <- rep(TRUE, length(features))
     }
     
-    iste <- as.vector(mcols(features)$isTE)
+    iste <- decode(mcols(features)$isTE)
     
     if (!is.null(geneFeatures)) {
         if (!all(iste) && !is.null(mcols(geneFeatures)$type)) {
@@ -190,7 +187,12 @@
         mtname <- match(names(features), iste$Group.1)
         iste <- iste[mtname, "x"]
     }
-    mcols(features) <- DataFrame(isTE=iste)
+    mdat <- DataFrame(ids=names(features), isTE=iste)
+    mdteFeatures$ids <- rownames(mdteFeatures)
+    mdat <- merge(mdteFeatures, mdat, all=TRUE)
+    mt <- match(names(features), mdat$ids)
+    stopifnot(all(!is.na(mt))) ## QC
+    mcols(features) <- mdat[mt, -match("ids", colnames(mdat))]
 
     features
 }
@@ -435,15 +437,19 @@
 }
 
 ## private function .matchSeqinfo()
-#' @importFrom GenomeInfoDb seqlengths keepSeqlevels seqlevelsStyle seqlevelsStyle<-
-#' @importFrom GenomeInfoDb seqinfo seqinfo<-
+#' @importFrom GenomeInfoDb seqlengths keepSeqlevels seqlevelsStyle
+#' @importFrom GenomeInfoDb seqlevelsStyle<- seqinfo seqinfo<- seqlevels
+#' @importFrom GenomeInfoDb genome genome<-
 .matchSeqinfo <- function(gal, features, verbose=TRUE) {
   stopifnot("GAlignments" %in% class(gal) ||
-              "GAlignmentPairs" %in% class(gal) ||
-              "GAlignmentsList" %in% class(gal) ||
-              "GRanges" %in% class(features) || 
-              "GRangesList" %in% class(features)) ## QC
+            "GAlignmentPairs" %in% class(gal) ||
+            "GAlignmentsList" %in% class(gal) ||
+            "GRanges" %in% class(features) || 
+            "GRangesList" %in% class(features)) ## QC
   
+  if (length(intersect(seqlevelsStyle(gal), seqlevelsStyle(features))) > 0)
+    return(gal)
+
   seqlevelsStyle(gal) <- seqlevelsStyle(features)[1]
   slengal <- seqlengths(gal)
   slenf <- seqlengths(features)
@@ -466,8 +472,6 @@
                             "These chromosomes",
                             "will be discarded from further analysis",
                             sep=" "),
-                      # paste(commonChr[which(slenVcf != slenBSgenome)],
-                      #       collapse=", "),
                       paste(commonchr[which(slengal != slenf)],
                             collapse=", ")))
     }
@@ -486,4 +490,3 @@
   
   gal
 }
-

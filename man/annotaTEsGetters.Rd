@@ -9,25 +9,26 @@
 \title{Getter functions of TE classes from parsed RepeatMasker annotations.}
 \usage{
 getLTRs(
-  parsed_ann,
+  annot,
   relLength = 0.9,
-  full_length = TRUE,
+  fullLength = TRUE,
   partial = FALSE,
   soloLTR = FALSE,
-  otherLTR = FALSE
+  otherLTR = FALSE,
+  returnMask = FALSE
 )
 
-getLINEs(parsed_ann, relLength = 0.9)
+getLINEs(annot, relLength = 0.9, returnMask = FALSE)
 
-getSINEs(parsed_ann, relLength = 0.9)
+getSINEs(annot, relLength = 0.9, returnMask = FALSE)
 
-getDNAtransposons(parsed_ann, relLength = 0.9)
+getDNAtransposons(annot, relLength = 0.9, returnMask = FALSE)
 }
 \arguments{
-\item{parsed_ann}{A \link[GenomicRanges:GRangesList-class]{GRangesList} 
-object obtained from parsing RepeatMasker annotations
-with \code{OneCodeToFindThemAll()} or 
-\code{rmskatenaparser()} function.}
+\item{annot}{A \link[GenomicRanges:GRangesList-class]{GRangesList} object
+obtained from parsing RepeatMasker annotations with
+\code{OneCodeToFindThemAll()} or \code{rmskatenaparser()}
+function.}
 
 \item{relLength}{(Default 0.9) Numeric value that can take values between 0
 to 1. Sets the minimum relative length required for
@@ -37,25 +38,32 @@ used is the one obtained by \code{OneCodeToFindThemAll()}
 or \code{rmskatenaparser()}.
 (length of the reconstructed TE / length of the reference).}
 
-\item{full_length}{(Default TRUE) A logical. Should reconstructed 
+\item{fullLength}{(Default TRUE) Logical value on whether reconstructed
 full-length LTR TEs (elements with structure 
-LTR - internal region - LTR) be reported?}
+LTR - internal region - LTR) should be selected.}
 
-\item{partial}{(Default FALSE) A logical. Should partially reconstructed
-LTR TEs be reported (structure LTR - internal region or 
-internal region - LTR)?}
+\item{partial}{(Default FALSE) Logical value on whether partially
+reconstructed LTR TEs should be selected (structure LTR -
+internal region or internal region - LTR).}
 
-\item{soloLTR}{(Default FALSE) A logical. Should solo LTRs be reported?
-Note that only fragments unambiguously identified as LTRs
-thanks to the identification of their equivalent internal
-region are considered as LTRs.}
+\item{soloLTR}{(Default FALSE) Logical value on whether solo LTRs should be
+selected. Note that only fragments unambiguously identified
+as LTRs thanks to the identification of their equivalent
+internal region are considered as LTRs.}
 
-\item{otherLTR}{(Default FALSE) A logical. Should other TEs from the LTR
-class, not included in any of the previous three categories,  
-be reported? These include TEs from LTR class that cannot be
-unambiguously identified as LTR o internal region, and thus
-cannot be reconstructed into partial or full-length 
-elements; as well as solo internal regions.}
+\item{otherLTR}{(Default FALSE) Logical value on whether other TEs from the
+LTR class, not included in any of the previous three
+categories, should be selected. These include TEs from LTR
+class that cannot be unambiguously identified as LTR o
+internal region, and thus cannot be reconstructed into
+partial or full-length elements; as well as solo internal
+regions.}
+
+\item{returnMask}{(Default FALSE) Logical value indicating whether a subset
+of the input annotations should be returned (default) or
+a logical mask of the same length as the input annotations
+where \code{TRUE} values indicate what annotations belong
+to the TE class we want to obtain with the getter function.}
 }
 \value{
 A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
@@ -77,7 +85,7 @@ elements to be reported.
 rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
                     strict=FALSE)
 
-rmskat_ltr <- getLTRs(rmskat, relLength=0.95, full_length=TRUE,
+rmskat_ltr <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
                       partial=TRUE)
  
 rmskat_line <- getLINEs(rmskat, relLength=0.95)

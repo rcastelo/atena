@@ -119,29 +119,29 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, AHid = NULL, ...) {
 #' @importFrom GenomicRanges strand
 #' @export
 rmskbasicparser <- function(gr) {
-  to_discard <- c("Low_complexity", "Simple_repeat", "Satellite", "rRNA",
-                  "scRNA", "snRNA", "srpRNA", "tRNA")
-  gr <- gr[!(gr$repClass %in% to_discard),]
-  gr <- gr[strand(gr) == "+" | strand(gr) == "-",]
-  # removing '?' from name, class or family
-  gr$repName <- gsub(pattern ="?", x =gr$repName, replacement="", fixed =TRUE)
-  gr$repClass <- gsub(pattern ="?", x=gr$repClass, replacement="", fixed=TRUE)
-  gr$repFamily <- gsub(pattern ="?", x =gr$repFamily, replacement="", 
-                       fixed =TRUE)
-  gr <- unlist(split(gr, f = gr$repName))
-  dupl_te <- duplicated(gr$repName) | duplicated(gr$repName, fromLast = TRUE)
-  ndup <- lengths(split(gr, f = gr$repName))
-  dup <- unlist(lapply(ndup, FUN=function(x) seq_len(x)))
-  repName <- paste(gr$repName, "_dup", dup, sep ="")
-  repName[!dupl_te] <- gr$repName[!dupl_te]
-  names(gr) <- repName
-  gr <- sort(gr)
+    to_discard <- c("Low_complexity", "Simple_repeat", "Satellite", "rRNA",
+                    "scRNA", "snRNA", "srpRNA", "tRNA")
+    gr <- gr[!(gr$repClass %in% to_discard),]
+    gr <- gr[strand(gr) == "+" | strand(gr) == "-",]
+    # removing '?' from name, class or family
+    gr$repName <- gsub(pattern="?", x=gr$repName, replacement="", fixed =TRUE)
+    gr$repClass <- gsub(pattern="?", x=gr$repClass, replacement="", fixed=TRUE)
+    gr$repFamily <- gsub(pattern="?", x=gr$repFamily, replacement="", 
+                         fixed =TRUE)
+    gr <- unlist(split(gr, f=gr$repName))
+    dupl_te <- duplicated(gr$repName) | duplicated(gr$repName, fromLast = TRUE)
+    ndup <- lengths(split(gr, f=gr$repName))
+    dup <- unlist(lapply(ndup, FUN=function(x) seq_len(x)))
+    repName <- paste(gr$repName, "_dup", dup, sep="")
+    repName[!dupl_te] <- gr$repName[!dupl_te]
+    names(gr) <- repName
+    gr <- sort(gr)
 
-  i <- gr$repFamily %in% c("Unknown", "Other")
-  if (any(i)) {
-    gr$repFamily[i] <- gr$repName[i]
-  }
-  gr
+    i <- gr$repFamily %in% c("Unknown", "Other")
+    if (any(i)) {
+      gr$repFamily[i] <- gr$repName[i]
+    }
+    gr
 }
 
 #' Identity function for parsefun
@@ -232,6 +232,7 @@ rmskidentity <- function(gr) {
 OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
                                  strict = FALSE, insert = -1, 
                                  BPPARAM = SerialParam(progressbar=TRUE)) {
+
   if (!is.integer(insert) & !is.numeric(insert))
     stop("'insert' must be an integer value")
   
@@ -250,10 +251,10 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   if (is.null(dictionary)) {
     inout <- .builDictionary(gr, fuzzy)
   } else {
-    inside <- dictionary[,2]
-    names(inside) <- dictionary[,1]
-    outsidesp <- strsplit(dictionary[,2], split = ":")
-    outside <- rep(dictionary[,1], lengths(outsidesp))
+    inside <- dictionary[, 2]
+    names(inside) <- dictionary[, 1]
+    outsidesp <- strsplit(dictionary[, 2], split = ":")
+    outside <- rep(dictionary[, 1], lengths(outsidesp))
     names(outside) <- unlist(outsidesp)
     inout <- list(inside = inside, outside = outside)
   }
@@ -297,10 +298,10 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 
 #' Getter functions of TE classes from parsed RepeatMasker annotations.
 #'
-#' @param parsed_ann A \link[GenomicRanges:GRangesList-class]{GRangesList} 
-#'                   object obtained from parsing RepeatMasker annotations
-#'                   with \code{OneCodeToFindThemAll()} or 
-#'                   \code{rmskatenaparser()} function.
+#' @param annot A \link[GenomicRanges:GRangesList-class]{GRangesList} object
+#'              obtained from parsing RepeatMasker annotations with
+#'              \code{OneCodeToFindThemAll()} or \code{rmskatenaparser()}
+#'              function.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
@@ -310,25 +311,32 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #'                  or \code{rmskatenaparser()}.
 #'                  (length of the reconstructed TE / length of the reference).
 #' 
-#' @param full_length (Default TRUE) A logical. Should reconstructed 
-#'                    full-length LTR TEs (elements with structure 
-#'                    LTR - internal region - LTR) be reported?
+#' @param fullLength (Default TRUE) Logical value on whether reconstructed
+#'                   full-length LTR TEs (elements with structure 
+#'                   LTR - internal region - LTR) should be selected.
 #' 
-#' @param partial (Default FALSE) A logical. Should partially reconstructed
-#'                LTR TEs be reported (structure LTR - internal region or 
-#'                internal region - LTR)?
+#' @param partial (Default FALSE) Logical value on whether partially
+#'                reconstructed LTR TEs should be selected (structure LTR -
+#'                internal region or internal region - LTR).
 #'                               
-#' @param soloLTR (Default FALSE) A logical. Should solo LTRs be reported?
-#'                Note that only fragments unambiguously identified as LTRs
-#'                thanks to the identification of their equivalent internal
-#'                region are considered as LTRs.
+#' @param soloLTR (Default FALSE) Logical value on whether solo LTRs should be
+#'                selected. Note that only fragments unambiguously identified
+#'                as LTRs thanks to the identification of their equivalent
+#'                internal region are considered as LTRs.
 #' 
-#' @param otherLTR (Default FALSE) A logical. Should other TEs from the LTR
-#'                 class, not included in any of the previous three categories,  
-#'                 be reported? These include TEs from LTR class that cannot be
-#'                 unambiguously identified as LTR o internal region, and thus
-#'                 cannot be reconstructed into partial or full-length 
-#'                 elements; as well as solo internal regions. 
+#' @param otherLTR (Default FALSE) Logical value on whether other TEs from the
+#'                 LTR class, not included in any of the previous three
+#'                 categories, should be selected. These include TEs from LTR
+#'                 class that cannot be unambiguously identified as LTR o
+#'                 internal region, and thus cannot be reconstructed into
+#'                 partial or full-length elements; as well as solo internal
+#'                 regions. 
+#'
+#' @param returnMask (Default FALSE) Logical value indicating whether a subset
+#'                   of the input annotations should be returned (default) or
+#'                   a logical mask of the same length as the input annotations
+#'                   where \code{TRUE} values indicate what annotations belong
+#'                   to the TE class we want to obtain with the getter function.
 #'
 #' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
 #'         annotations from class corresponding to the getter function (LTRs,
@@ -346,7 +354,7 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE)
 #'
-#' rmskat_ltr <- getLTRs(rmskat, relLength=0.95, full_length=TRUE,
+#' rmskat_ltr <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
 #'                       partial=TRUE)
 #'  
 #' @aliases getLTRs
@@ -354,19 +362,42 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
 #' @name annotateTEsGetters
 #' @importFrom GenomicRanges mcols
 #' @export
-getLTRs <- function(parsed_ann, relLength=0.9, full_length=TRUE, partial=FALSE,
-                    soloLTR=FALSE, otherLTR=FALSE) {
-  if(!any(c(full_length, partial, soloLTR, otherLTR)))
-    stop("at least one of these arguments should be TRUE: 'full_length',",
-         " 'partial', 'soloLTR', 'otherLTR'")
+getLTRs <- function(annot, relLength=0.9, fullLength=TRUE, partial=FALSE,
+                    soloLTR=FALSE, otherLTR=FALSE, returnMask=FALSE) {
+    
+    cnames <- c("Status", "RelLength", "Class")
+    mask <- cnames %in% colnames(mcols(annot))
+    if (any(!mask))
+        stop(sprintf("column(s) %s missing from input annotations.",
+                     paste(cnames[!mask], collapse=", ")))
+    if (!any(c(fullLength, partial, soloLTR, otherLTR)))
+        stop("at least one of these arguments should be TRUE: 'fullLength',",
+             " 'partial', 'soloLTR', 'otherLTR'")
+
+    mask <- rep(TRUE, length(annot))
+    if ("isTE" %in% colnames(mcols(annot))) {
+        mask <- mcols(annot)$isTE
+        annot <- annot[mcols(annot)$isTE]
+    }
   
-  tokeep <- mcols(parsed_ann)$Class == "LTR" & 
-    mcols(parsed_ann)$RelLength > relLength
-  LTRtypes <- c("full-lengthLTR"[full_length], "partialLTR_up"[partial], 
-                "partialLTR_down"[partial], "LTR"[soloLTR],
-                "int"[otherLTR], "noLTR"[otherLTR])
-  tokeep2 <- mcols(parsed_ann)$Status %in% LTRtypes
-  parsed_ann[tokeep & tokeep2]
+    keep <- mcols(annot)$Class == "LTR" & 
+            mcols(annot)$RelLength > relLength
+    LTRtypes <- c("full-lengthLTR"[fullLength], "partialLTR_up"[partial], 
+                  "partialLTR_down"[partial], "LTR"[soloLTR],
+                  "int"[otherLTR], "noLTR"[otherLTR])
+    keep2 <- mcols(annot)$Status %in% LTRtypes
+
+    res <- mask
+    if ("isTE" %in% colnames(mcols(annot))) {
+        res[mask] <- keep & keep2
+        mcols(annot)$isTE <- NULL
+    } else
+        res <- keep & keep2
+
+    if (!returnMask)
+        res <- annot[keep & keep2]
+
+    res
 }
 
 #' @examples
@@ -377,10 +408,33 @@ getLTRs <- function(parsed_ann, relLength=0.9, full_length=TRUE, partial=FALSE,
 #' @name annotateTEsGetters
 #' @importFrom GenomicRanges mcols
 #' @export
-getLINEs <- function(parsed_ann, relLength=0.9) {
-    keep <- mcols(parsed_ann)$Class == "LINE" &
-            mcols(parsed_ann)$RelLength > relLength
-    parsed_ann[keep]
+getLINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
+    cnames <- c("RelLength", "Class")
+    mask <- cnames %in% colnames(mcols(annot))
+    if (any(!mask))
+        stop(sprintf("column(s) %s missing from input annotations.",
+                     paste(cnames[!mask], collapse=", ")))
+
+    mask <- rep(TRUE, length(annot))
+    if ("isTE" %in% colnames(mcols(annot))) {
+        mask <- mcols(annot)$isTE
+        annot <- annot[mcols(annot)$isTE]
+    }
+  
+    keep <- mcols(annot)$Class == "LINE" &
+            mcols(annot)$RelLength > relLength
+
+    res <- mask
+    if ("isTE" %in% colnames(mcols(annot))) {
+        res[mask] <- keep
+        mcols(annot)$isTE <- NULL
+    } else
+        res <- keep
+
+    if (!returnMask)
+        res <- annot[keep]
+
+    res
 }
 
 #' @examples
@@ -391,10 +445,33 @@ getLINEs <- function(parsed_ann, relLength=0.9) {
 #' @name annotateTEsGetters
 #' @importFrom GenomicRanges mcols
 #' @export
-getSINEs <- function(parsed_ann, relLength=0.9) {
-    keep <- mcols(parsed_ann)$Class == "SINE" &
-            mcols(parsed_ann)$RelLength > relLength
-    parsed_ann[keep]
+getSINEs <- function(annot, relLength=0.9, returnMask=FALSE) {
+    cnames <- c("RelLength", "Class")
+    mask <- cnames %in% colnames(mcols(annot))
+    if (any(!mask))
+        stop(sprintf("column(s) %s missing from input annotations.",
+                     paste(cnames[!mask], collapse=", ")))
+
+    mask <- rep(TRUE, length(annot))
+    if ("isTE" %in% colnames(mcols(annot))) {
+        mask <- mcols(annot)$isTE
+        annot <- annot[mcols(annot)$isTE]
+    }
+  
+    keep <- mcols(annot)$Class == "SINE" &
+            mcols(annot)$RelLength > relLength
+
+    res <- mask
+    if ("isTE" %in% colnames(mcols(annot))) {
+        res[mask] <- keep
+        mcols(annot)$isTE <- NULL
+    } else
+        res <- keep
+
+    if (!returnMask)
+        res <- annot[keep]
+
+    res
 }
 
 #' @examples
@@ -405,10 +482,33 @@ getSINEs <- function(parsed_ann, relLength=0.9) {
 #' @name annotateTEsGetters
 #' @importFrom GenomicRanges mcols
 #' @export
-getDNAtransposons <- function(parsed_ann, relLength=0.9) {
-    keep <- mcols(parsed_ann)$Class == "DNA" & 
-            mcols(parsed_ann)$RelLength > relLength
-    parsed_ann[keep]
+getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
+    cnames <- c("RelLength", "Class")
+    mask <- cnames %in% colnames(mcols(annot))
+    if (any(!mask))
+        stop(sprintf("column(s) %s missing from input annotations.",
+                     paste(cnames[!mask], collapse=", ")))
+
+    mask <- rep(TRUE, length(annot))
+    if ("isTE" %in% colnames(mcols(annot))) {
+        mask <- mcols(annot)$isTE
+        annot <- annot[mcols(annot)$isTE]
+    }
+  
+    keep <- mcols(annot)$Class == "DNA" & 
+            mcols(annot)$RelLength > relLength
+
+    res <- mask
+    if ("isTE" %in% colnames(mcols(annot))) {
+        res[mask] <- keep
+        mcols(annot)$isTE <- NULL
+    } else
+        res <- keep
+
+    if (!returnMask)
+        res <- annot[keep]
+
+    res
 }
 
 #' @importFrom stats setNames
@@ -777,8 +877,8 @@ getDNAtransposons <- function(parsed_ann, relLength=0.9) {
     # the end position +1 as start 
     disc_start <- startcons > unlist(annchr)$repEnd
     startcons[disc_start] <- unlist(annchr)$repEnd[disc_start] +1
-    grcons <- relist(IRanges(start = startcons, 
-                             end = unlist(annchr)$repEnd), annchr)
+    grcons <- relist(IRanges(start=startcons, 
+                             end=unlist(annchr)$repEnd), annchr)
     # Splitting when start/end in chr and consensus sequence of the 1st is not
     # before the 2nd, and elements that are not close enough
     if (minusStrand) {
@@ -840,10 +940,11 @@ getDNAtransposons <- function(parsed_ann, relLength=0.9) {
   # yesltrdown <- namef[whintdo] == ltr
   yesltrup <- .checkEquivalentLTR(namef[whintup], ltr)
   yesltrdown <- .checkEquivalentLTR(namef[whintdo], ltr)
-  yesdistup <- (min(start(annchrltrint[whint])) - max(end(annchrltrint[whintup]))) <
-    cons_length[namef[whintup]]/2
-  yesdistdown <- (min(start(annchrltrint[whintdo])) - max(end(annchrltrint[whint]))) <
-    cons_length[namef[whintup]]/2 # original code uses consensus length of 1st LTR
+  yesdistup <- (min(start(annchrltrint[whint])) -
+                max(end(annchrltrint[whintup]))) < cons_length[namef[whintup]]/2
+  # original code uses consensus length of 1st LTR
+  yesdistdown <- (min(start(annchrltrint[whintdo])) -
+                  max(end(annchrltrint[whint]))) < cons_length[namef[whintup]]/2
   
   # Addressing cases where an LTR is simultaneously a downstream LTR of int1
   # and an upstream LTR of int2. Preference is given to int1.
@@ -1153,8 +1254,8 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   } else {
     anngrl <- ann2
   }
-  chr <- do.call("rbind", strsplit(names(anngrl), ";", fixed=TRUE))[,2]
-  opos <- order(chr, min(start(anngrl)), decreasing = FALSE)
+  chr <- do.call("rbind", strsplit(names(anngrl), ";", fixed=TRUE))[, 2]
+  opos <- order(chr, min(start(anngrl)), decreasing=FALSE)
   anngrl[opos]
 }
 
@@ -1253,10 +1354,11 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   partial <- whup | whdown
   partial[fulllength] <- FALSE
   
-  anngrlERVs <- .getFulllength_Partial_ERVs(fulllength, partial, annltrint, 
-                                      whintup, whint, whintdo, yesltrup,
-                                      yesdistup, yesltrdown, yesdistdown,
-                                      annltrsp2, annintsp2, ltrtorec,inttorec)
+  anngrlERVs <- .getFulllength_Partial_ERVs(fulllength, partial, annltrint,
+                                            whintup, whint, whintdo, yesltrup,
+                                            yesdistup, yesltrdown, yesdistdown,
+                                            annltrsp2, annintsp2, ltrtorec,
+                                            inttorec)
   anngrlERVs
 }
 

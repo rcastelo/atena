@@ -87,20 +87,20 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE, insert=500)
-#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
-#'                    full_length=TRUE, 
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8,
+#'                    fullLength=TRUE,
 #'                    partial=TRUE,
 #'                    otherLTR=TRUE)
 #' library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
 #' txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
 #' txdb_genes <- genes(txdb)
-#' ttpar <- TEtranscriptsParam(bamfiles, 
+#' ttpar <- TEtranscriptsParam(bamfiles,
 #'                             teFeatures=rmskLTR,
 #'                             geneFeatures=txdb_genes,
-#'                             singleEnd=TRUE, 
-#'                             ignoreStrand=TRUE, 
+#'                             singleEnd=TRUE,
+#'                             ignoreStrand=TRUE,
 #'                             aggregateby="repName")
 #' ttpar
 #'

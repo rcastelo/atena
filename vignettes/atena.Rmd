@@ -102,8 +102,8 @@ rmskid
 ```
 We get annotations with `r length(rmskid)` elements.
 
-Now, let's obtain the same annotations but processes them using the 
-`rmskatenaparser` function. We set parameter `strict = FALSE` to avoid
+Now, let's fetch the same annotations but process them using the 
+`rmskatenaparser` parser function. We set the parameter `strict=FALSE` to avoid
 applying a filter of minimum 80% identity with the consensus sequence and 
 minimum 80 bp length. The `insert` parameter is set to 500 meaning that two
 elements with the same name are merged if they are closer than 500 bp.
@@ -207,7 +207,7 @@ full-length, partial LTRs and other fragments that could not be reconstructed,
 we can:
 
 ```{r}
-rmskLTR <- getLTRs(rmskat, relLength=0.8, full_length=TRUE, partial=TRUE,
+rmskLTR <- getLTRs(rmskat, relLength=0.8, fullLength=TRUE, partial=TRUE,
                    otherLTR=TRUE)
 length(rmskLTR)
 rmskLTR[1]
@@ -428,7 +428,7 @@ annotations are loaded from a *TxDb* object.
 ```{r, message=FALSE}
 library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
 txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
-txdb_genes <- exonsBy(txdb, by = "gene")
+txdb_genes <- exonsBy(txdb, by="gene")
 length(txdb_genes)
 ```
 

@@ -113,16 +113,16 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE, insert=500)
-#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
-#'                    full_length=TRUE, 
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8,
+#'                    fullLength=TRUE,
 #'                    partial=TRUE,
 #'                    otherLTR=TRUE)
-#' empar <- ERVmapParam(bamfiles, 
-#'                      teFeatures=rmskLTR, 
-#'                      singleEnd=TRUE, 
-#'                      ignoreStrand=TRUE, 
+#' empar <- ERVmapParam(bamfiles,
+#'                      teFeatures=rmskLTR,
+#'                      singleEnd=TRUE,
+#'                      ignoreStrand=TRUE,
 #'                      suboptimalAlignmentCutoff=NA)
 #' empar
 #'
@@ -299,9 +299,9 @@ setMethod("qtex", "ERVmapParam",
                                 verbose, avtags) {
 open(bf)
 while (length(alnreads <- do.call(readfun,
-                                c(list(file = bf), list(param=param),
-                                list(strandMode=empar@strandMode)[strand_arg],
-                                list(use.names=(!avsoas || avgene)))))) {
+                                  c(list(file = bf), list(param=param),
+                                  list(strandMode=empar@strandMode)[strand_arg],
+                                  list(use.names=(!avsoas || avgene)))))) {
     alnreads <- .matchSeqinfo(alnreads, features(empar))
     n <- n + length(alnreads)
     thissalnmask <- .secondaryAlignmentMask(alnreads) #secondary alignment mask

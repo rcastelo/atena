@@ -114,15 +114,15 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
-#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, 
+#' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE, insert=500)
-#' rmskLTR <- getLTRs(rmskat, relLength=0.8, 
-#'                    full_length=TRUE, 
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8,
+#'                    fullLength=TRUE,
 #'                    partial=TRUE,
 #'                    otherLTR=TRUE)
-#' atpar <- atenaParam(bfl=bamfiles, 
+#' atpar <- atenaParam(bfl=bamfiles,
 #'                     teFeatures=rmskLTR,
-#'                     singleEnd=TRUE, 
+#'                     singleEnd=TRUE,
 #'                     ignoreStrand=TRUE)
 #' atpar
 #'

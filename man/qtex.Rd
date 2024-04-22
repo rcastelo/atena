@@ -123,7 +123,7 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
 rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
                     strict=FALSE, insert=500)
 rmskLTR <- getLTRs(rmskat, relLength=0.8,
-                   full_length=TRUE,
+                   fullLength=TRUE,
                    partial=TRUE,
                    otherLTR=TRUE)
 tspar <- TelescopeParam(bfl=bamfiles,
