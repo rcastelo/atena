@@ -35,6 +35,9 @@
 #'         objects.
 #' }
 #' 
+#' @param verbose (Default \code{TRUE}) Logical value indicating whether to
+#'                report progress.
+#'
 #' @param AHid AnnotationHub unique identifier, of the form AH12345, of an
 #'             object with TE annotations. This is an optional argument to
 #'             specify a concrete AnnotationHub resource, for instance
@@ -69,8 +72,12 @@
 #' @rdname annotaTEs
 #' @name annotaTEs
 #' @importFrom AnnotationHub AnnotationHub query
+#' @importFrom cli cli_alert_info cli_alert_success
 #' @export
-annotaTEs <- function(genome="hg38", parsefun=rmskidentity, AHid = NULL, ...) {
+annotaTEs <- function(genome="hg38", parsefun=rmskidentity, verbose=TRUE,
+                      AHid=NULL, ...) {
+    if (verbose)
+        cli_alert_info("Connecting to the AnnotationHub")
     suppressMessages(ah <- AnnotationHub())
     if (!is.null(AHid))
         qah <- ah[AHid]
@@ -78,11 +85,17 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, AHid = NULL, ...) {
         suppressMessages(qah <- query(ah, c(genome, "RepeatMasker", "UCSC")))
     
     if (length(qah) == 0) {
-        stop(sprintf("UCSC RepeatMasker tracks for genome %s not found", 
-                     genome))
-    }
-    else if (length(qah) > 1) {
-        message(sprintf("more than one UCSC RepeatMasker track for genome %s found, using the latest one", genome))
+        if (is.null(AHid))
+            stop(sprintf("UCSC RepeatMasker tracks for genome %s not found",
+                         genome))
+        else
+            stop(sprintf("AnnotationHub resource %s not found", AHid))
+    } else if (length(qah) > 1) {
+        if (verbose) {
+            fstr <- paste("%d UCSC RepeatMasker tracks found for genome %s,",
+                          "using the latest one")
+            cli_alert_info(sprintf(fstr, length(qah), genome))
+        }
         mt <- gregexpr(pattern=" \\([A-Za-z0-9]+\\) ", qah$title)
         qahdates <- substr(qah$title, unlist(mt)+2,
                              unlist(mt)+sapply(mt, attr, "match.length")-3)
@@ -90,10 +103,17 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, AHid = NULL, ...) {
         ## in case > 1 RM annotations available, pick the most recent one
         suppressMessages(qah <- qah[which.max(qahdates)])
     }
-    
+
+    if (verbose)
+        cli_alert_info("Downloading annotations")
     id <- names(qah)
-    gr <- ah[[id]]
-    parsefun(gr, ...)
+    suppressMessages(gr <- ah[[id]])
+    if (verbose)
+        cli_alert_info("Parsing annotations")
+    annot <- parsefun(gr, ...)
+    if (verbose)
+        cli_alert_success("Annotations successfully downloaded and parsed")
+    annot
 }
 
 #' Parser of RepeatMasker annotations
@@ -192,7 +212,7 @@ rmskidentity <- function(gr) {
 #' are assembled if they are in contact next to each other.
 #' 
 #' @param BPPARAM See \code{?\link[BiocParallel:bplapply]{bplapply}} in the 
-#' BiocParallel package. Can be used to run function in parallel.
+#' BiocParallel package. Can be used to run calculations in parallel.
 #'
 #' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
 #'         
@@ -229,9 +249,9 @@ rmskidentity <- function(gr) {
 #' @importFrom S4Vectors runValue
 #' @importFrom IRanges mean
 #' @export
-OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
-                                 strict = FALSE, insert = -1, 
-                                 BPPARAM = SerialParam(progressbar=TRUE)) {
+OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy=FALSE,
+                                 strict=FALSE, insert=-1, 
+                                 BPPARAM=SerialParam(progressbar=TRUE)) {
 
   if (!is.integer(insert) & !is.numeric(insert))
     stop("'insert' must be an integer value")
@@ -253,10 +273,10 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy = FALSE,
   } else {
     inside <- dictionary[, 2]
     names(inside) <- dictionary[, 1]
-    outsidesp <- strsplit(dictionary[, 2], split = ":")
+    outsidesp <- strsplit(dictionary[, 2], split=":")
     outside <- rep(dictionary[, 1], lengths(outsidesp))
     names(outside) <- unlist(outsidesp)
-    inout <- list(inside = inside, outside = outside)
+    inout <- list(inside = inside, outside=outside)
   }
   
   gr <- .filterNonTEs(gr)
@@ -755,14 +775,14 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
   # stopifnot(all(unlist(lapply(annchrn, function(gr) length(unique(gr$family)) == 1))))
   
   # Calling .reconstructTEs() to reconstruct TEs
-  if (length(annchrp)>0) {
-    annchrp_rec <- .reconstructTEs(annchr = annchrp, outside, inside, 
+  if (length(annchrp) > 0) {
+    annchrp_rec <- .reconstructTEs(annchr=annchrp, outside, inside, 
                                    cons_length, insert, minusStrand=FALSE)
   } else {
     annchrp_rec <- annchrp
   }
-  if (length(annchrn)>0) {
-    annchrn_rec <- .reconstructTEs(annchr = annchrn, outside, inside,
+  if (length(annchrn) > 0) {
+    annchrn_rec <- .reconstructTEs(annchr=annchrn, outside, inside,
                                    cons_length, insert, minusStrand=TRUE)
   } else {
     annchrn_rec <- annchrn
@@ -770,8 +790,8 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
   annrec <- c(annchrp_rec, annchrn_rec)
   
   if (any(strand(gr) == "*")) {
-    if (length(annchru)>0) {
-      annchru_rec <- .reconstructTEs(annchr = annchru, outside, inside, 
+    if (length(annchru) > 0) {
+      annchru_rec <- .reconstructTEs(annchr=annchru, outside, inside, 
                                      cons_length, insert, minusStrand=FALSE)
     } else {
       annchru_rec <- annchru
@@ -1150,7 +1170,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   ann <- split(gr, fsplit)
   mcols(ann)$repName <- do.call("rbind", strsplit(names(ann), split = ";", 
                                                   fixed =TRUE))[,1]
-  annrec <- .reconstructTEs_at(ann = ann, inout$outside, inout$inside,
+  annrec <- .reconstructTEs_at(ann=ann, inout$outside, inout$inside,
                                cons_length, insert)
   # -- Filtering based on 'strict' option
   if (strict) {
@@ -1223,7 +1243,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   inside[aginside$Group.1] <- aginside$x
   outside <- outside[outside != ""]
   
-  list(inside = inside, outside = outside)
+  list(inside=inside, outside=outside)
 }
 
 #' @importFrom GenomicRanges start mcols "mcols<-"
@@ -1235,7 +1255,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   # (e.g. LTR23) using the start of the corresponding internal region
   # (LTR23-int) as flanking regions.
   
-  # Selecting only cases where both the ltr and internal region are in the
+  # Selecting only cases where both the LTR and internal region are in the
   # chromosome
   stchr <- c(paste(seqlevels(ann), c("+"), sep =";"),
              paste(seqlevels(ann), c("-"), sep =";"))
@@ -1247,7 +1267,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
                                 (names(outside_stchr) %in% names(ann))]
   whint <- which(names(ann) %in% outsidechr)
   whltr <- which(names(ann) %in% names(outsidechr))
-  # We extract coordinates of int and corresponding ltr (same order)
+  # We extract coordinates of int and corresponding LTR (same order)
   annint <- ann[whint]
   annltr <- ann[whltr]
   
@@ -1256,7 +1276,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
     annltrsp <- split(unlist(annltr, use.names = FALSE), splitf2$splitfltr2)
     annintsp <- split(unlist(annint, use.names = FALSE), splitf2$splitfint2)
     ann <- ann[-c(whint, whltr)]
-    # We keep ltr and int separated from the rest of TEs to later perform the
+    # We keep LTR and int separated from the rest of TEs to later perform the
     # reconstruction of full-length or partial ERVs
     
     # Now, features with the same repName, strand and chromosome are merged
@@ -1389,4 +1409,3 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
                                             inttorec)
   anngrlERVs
 }
-

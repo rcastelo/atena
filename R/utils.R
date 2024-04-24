@@ -102,7 +102,8 @@
 }
 
 ## private function .processFeatures()
-## builds a single 'GRanges' object from input TE and gene features.
+## builds a single 'GRanges' or 'GRangesList' object from input TE and gene
+## features.
 ## parameters: teFeatures - a 'GRanges' or 'GRangesList' object with
 ##                          TE annotations
 ##             teFeaturesobjname - the name of 'teFeatures'
@@ -136,10 +137,19 @@
     if (is(teFeatures, "GRangesList"))
         teFeatures <- unlist(teFeatures)
     
-    if (length(aggregateby) > 0)
-      if (any(!aggregateby %in% colnames(mcols(teFeatures))))
-        stop(sprintf("%s not in metadata columns of the TE features object.",
-                     aggregateby[!aggregateby %in% colnames(mcols(teFeatures))]))
+    if (length(aggregateby) > 0) {
+        mask <- !aggregateby %in% colnames(mcols(teFeatures))
+        if (any(mask)) {
+            fstr <- sprintf(paste("%%s not in metadata columns of the TE",
+                                  "features object %s."), teFeaturesobjname)
+            stop(sprintf(fstr, paste(aggregateby[mask], collapse=", ")))
+        }
+        mask <- aggregateby %in% c("Status", "RelLength", "Class")
+        if (any(mask))
+            stop(sprintf("%s cannot be used to aggregate quantifications.",
+                         paste(aggregateby[mask], collapse=", ")))
+
+    }
     
     if (!is.null(geneFeatures)) {
         if (is(geneFeatures, "GRangesList"))
@@ -181,18 +191,21 @@
             }
         }
       
-    } else if (aggregateexons && is(features, "GRanges")) {
-        iste <- aggregate(iste, by = list(names(features)), unique)
+    } else if (aggregateexons && is(features, "GRanges") &&
+               !is.null(names(features))) {
+        iste <- aggregate(iste, by=list(names(features)), unique)
         features <- .groupGeneExons(features, aggregateexons)
         mtname <- match(names(features), iste$Group.1)
         iste <- iste[mtname, "x"]
     }
-    mdat <- DataFrame(ids=names(features), isTE=iste)
-    mdteFeatures$ids <- rownames(mdteFeatures)
-    mdat <- merge(mdteFeatures, mdat, all=TRUE)
-    mt <- match(names(features), mdat$ids)
-    stopifnot(all(!is.na(mt))) ## QC
-    mcols(features) <- mdat[mt, -match("ids", colnames(mdat))]
+    if (!is.null(names(features))) {
+      mdat <- DataFrame(ids=names(features), isTE=iste)
+      mdteFeatures$ids <- rownames(mdteFeatures)
+      mdat <- merge(mdteFeatures, mdat, all=TRUE)
+      mt <- match(names(features), mdat$ids)
+      stopifnot(all(!is.na(mt))) ## QC
+      mcols(features) <- mdat[mt, -match("ids", colnames(mdat))]
+    }
 
     features
 }
@@ -238,8 +251,8 @@
 
 #' @importFrom methods is
 #' @importFrom S4Vectors split
+#' @importFrom IRanges IRanges IRangesList CharacterList unique
 #' @importFrom GenomicRanges GRangesList GRanges
-#' @importFrom IRanges IRanges IRangesList
 .consolidateFeatures <- function(x, fnames, whnofeat=integer(0)) {
     
     if (length(whnofeat) > 0 && !is(x, "TelescopeParam") &&
@@ -251,16 +264,31 @@
     if (length(x@aggregateby) > 0) {
         iste <- mcols(features(x))$isTE
         teFeatures <- features(x)
-        if (!is.null(iste) && any(iste)) {
+        if (!is.null(iste) && any(iste))
             teFeatures <- features(x)[iste]
-        }
     
         f <- .factoraggregateby(teFeatures, x@aggregateby)
+        md <- mcols(teFeatures)
+        if (all(c("Status", "RelLength", "Class") %in% colnames(md))) {
+            astatus <- unique(CharacterList(split(md$Status, f)))
+            if (max(lengths(astatus)) == 1)
+              astatus <- unlist(astatus)
+            arlen <- sapply(split(md$RelLength, f), mean)
+            aclass <- unique(CharacterList(split(md$Class, f)))
+            if (max(lengths(aclass)) == 1)
+              aclass <- unlist(aclass)
+            md <- DataFrame(Status=astatus, RelLength=arlen, Class=aclass)
+        } else
+            md <- DataFrame(matrix(character(0), nrow=length(unique(f))))
+        
+        md$isTE <- rep(TRUE, nrow(md))
+
         if (is(teFeatures, "GRangesList")) {
             f <- rep(f, times=lengths(teFeatures))
             teFeatures <- unlist(teFeatures)
         }
         cfeatures <- split(teFeatures, f)
+        mcols(cfeatures) <- md
     
         if (!is.null(iste) && any(!iste)) {
             geneFeatures <- features(x)[!iste]
@@ -271,6 +299,7 @@
     
     stopifnot(length(cfeatures) == length(fnames)) ## QC
     mt <- match(fnames, names(cfeatures))
+    stopifnot(all(!is.na(mt))) ## QC
     cfeatures <- cfeatures[mt]
     
     if (length(whnofeat) > 0) {

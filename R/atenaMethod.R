@@ -98,6 +98,8 @@
 #' @param conf_prob (Default 0.9) Minimum probability for high confidence
 #' assignment.
 #'
+#' @param verbose (Default \code{TRUE}) Logical value indicating whether to
+#' report progress.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -130,14 +132,18 @@
 #' @importFrom methods is new
 #' @importFrom Rsamtools BamFileList
 #' @importFrom S4Vectors mcols
+#' @importFrom cli cli_alert_info cli_alert_success
 #' @export
 #' @rdname atenaParam-class
 atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
                        ovMode="ovUnion", geneFeatures=NULL, singleEnd=TRUE,
                        strandMode=1L, ignoreStrand=FALSE, fragments=TRUE,
                        pi_prior=0L, theta_prior=0L, em_epsilon=1e-7,
-                       maxIter=100L, reassign_mode="exclude", conf_prob=0.9) {
+                       maxIter=100L, reassign_mode="exclude", conf_prob=0.9,
+                       verbose=TRUE) {
 
+    if (verbose)
+        cli_alert_info("Locating BAM files")
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
     if (!reassign_mode %in% c("exclude", "choose", "average", "conf"))
@@ -146,19 +152,24 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
     if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
       stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
     
+    if (verbose)
+        cli_alert_info("Processing features")
     features <- .processFeatures(teFeatures, deparse(substitute(teFeatures)),
                                  geneFeatures,deparse(substitute(geneFeatures)),
                                  aggregateby, aggregateexons=TRUE)
 
     .checkPriors(names(features), names(pi_prior), names(theta_prior))
     
-    new("atenaParam", bfl=bfl, features=features,
-        aggregateby=aggregateby, ovMode=ovMode,
-        singleEnd=singleEnd,ignoreStrand=ignoreStrand,
-        strandMode=as.integer(strandMode), fragments=fragments,
-        pi_prior=pi_prior, theta_prior=theta_prior, em_epsilon=em_epsilon,
-        maxIter=as.integer(maxIter), reassign_mode=reassign_mode,
-        conf_prob=conf_prob)
+    obj <- new("atenaParam", bfl=bfl, features=features,
+               aggregateby=aggregateby, ovMode=ovMode,
+               singleEnd=singleEnd,ignoreStrand=ignoreStrand,
+               strandMode=as.integer(strandMode), fragments=fragments,
+               pi_prior=pi_prior, theta_prior=theta_prior,
+               em_epsilon=em_epsilon, maxIter=as.integer(maxIter),
+               reassign_mode=reassign_mode, conf_prob=conf_prob)
+    if (verbose)
+        cli_alert_success("Parameter object successfully created")
+    obj
 }
 
 #' @param object A \linkS4class{atenaParam} object.

@@ -4,7 +4,13 @@
 \alias{annotaTEs}
 \title{Get RepeatMasker UCSC annotations}
 \usage{
-annotaTEs(genome = "hg38", parsefun = rmskidentity, AHid = NULL, ...)
+annotaTEs(
+  genome = "hg38",
+  parsefun = rmskidentity,
+  verbose = TRUE,
+  AHid = NULL,
+  ...
+)
 }
 \arguments{
 \item{genome}{The genome version of the desired RepeatMasker annotations
@@ -37,6 +43,9 @@ annotaTEs(genome = "hg38", parsefun = rmskidentity, AHid = NULL, ...)
   \item User-defined function. Input and output should be \code{GRanges}
         objects.
 }}
+
+\item{verbose}{(Default \code{TRUE}) Logical value indicating whether to
+report progress.}
 
 \item{AHid}{AnnotationHub unique identifier, of the form AH12345, of an
 object with TE annotations. This is an optional argument to

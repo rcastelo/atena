@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 1.9.7
+Version: 1.9.8
 Authors@R: c(
     person("Beatriz", "Calvo-Serra", email="beatriz.calvo@upf.edu",
            role=c("aut", "cre")),
@@ -36,7 +36,8 @@ Imports:
     SQUAREM,
     sparseMatrixStats,
     AnnotationHub,
-    matrixStats
+    matrixStats,
+    cli
 Suggests:
     covr,
     BiocStyle,

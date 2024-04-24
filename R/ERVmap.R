@@ -99,6 +99,9 @@
 #' (\code{"all"}), in which case all primary alignments mapping to genes are 
 #' counted.
 #'
+#' @param verbose (Default \code{TRUE}) Logical value indicating whether to
+#' report progress.
+#'
 #' @details
 #' This is the constructor function for objects of the class
 #' \code{ERVmapParam-class}. This type of object is the input to the
@@ -132,6 +135,8 @@
 #' \url{https://doi.org/10.1073/pnas.1814589115}
 #'
 #' @importFrom methods is new
+#' @importFrom BiocGenerics path
+#' @importFrom cli cli_alert_info cli_alert_success
 #' @export
 #' @rdname ERVmapParam-class
 ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
@@ -144,8 +149,11 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
                         maxMismatchRate=0.02,
                         suboptimalAlignmentTag="auto",
                         suboptimalAlignmentCutoff=5,
-                        geneCountMode="all") {
+                        geneCountMode="all",
+                        verbose=TRUE) {
     
+    if (verbose)
+        cli_alert_info("Locating BAM files")
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
     
     if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
@@ -153,19 +161,25 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
     
     readmapper <- .checkBamReadMapper(path(bfl))
     
+    if (verbose)
+        cli_alert_info("Processing features")
     teFeaturesobjname <- deparse(substitute(teFeatures))
     geneFeaturesobjname <- deparse(substitute(geneFeatures))
     features <- .processFeatures(teFeatures, teFeaturesobjname,
                                  geneFeatures, geneFeaturesobjname,
                                  aggregateby, aggregateexons=TRUE)
     
-    new("ERVmapParam", bfl=bfl, features=features, aggregateby=aggregateby,
-        ovMode=ovMode, singleEnd=singleEnd, ignoreStrand=ignoreStrand,
-        strandMode=as.integer(strandMode), fragments=fragments,
-        maxMismatchRate=maxMismatchRate, readMapper=readmapper,
-        suboptimalAlignmentTag=suboptimalAlignmentTag,
-        suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff),
-        geneCountMode=geneCountMode)
+    obj <- new("ERVmapParam", bfl=bfl, features=features,
+               aggregateby=aggregateby, ovMode=ovMode,
+               singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+               strandMode=as.integer(strandMode), fragments=fragments,
+               maxMismatchRate=maxMismatchRate, readMapper=readmapper,
+               suboptimalAlignmentTag=suboptimalAlignmentTag,
+               suboptimalAlignmentCutoff=as.numeric(suboptimalAlignmentCutoff),
+               geneCountMode=geneCountMode)
+    if (verbose)
+        cli_alert_success("Parameter object successfully created")
+    obj
 }
 
 #' @param object A \linkS4class{ERVmapParam} object.
@@ -279,10 +293,10 @@ setMethod("qtex", "ERVmapParam",
     strand_arg <- "strandMode" %in% formalArgs(readfun)
     yieldSize(bf) <- yieldSize
     cntvec <- .ervmapQuantExpress(bf, empar, mode, readfun, iste, param,avsoas,
-                                strand_arg, avgene, n, ov, ovdiscard, salnmask,
-                                salnbestAS, alnAS, alnNH, readids, alnreadidx,
-                                readidx, thisalnAS, alnreadids, nfiltered,
-                                verbose, avtags)
+                                  strand_arg, avgene, n, ov, ovdiscard,
+                                  salnmask, salnbestAS, alnAS, alnNH, readids,
+                                  alnreadidx, readidx, thisalnAS, alnreadids,
+                                  nfiltered, verbose, avtags)
     cntvec
 }
 
@@ -297,76 +311,75 @@ setMethod("qtex", "ERVmapParam",
                                 salnbestAS, alnAS, alnNH, readids, alnreadidx,
                                 readidx, thisalnAS, alnreadids, nfiltered,
                                 verbose, avtags) {
-open(bf)
-while (length(alnreads <- do.call(readfun,
-                                  c(list(file = bf), list(param=param),
-                                  list(strandMode=empar@strandMode)[strand_arg],
-                                  list(use.names=(!avsoas || avgene)))))) {
-    alnreads <- .matchSeqinfo(alnreads, features(empar))
-    n <- n + length(alnreads)
-    thissalnmask <- .secondaryAlignmentMask(alnreads) #secondary alignment mask
-    mask <- .pass2Filters(alnreads, empar) #which alignments pass filters 1 & 2
+    open(bf)
+    while (length(alnreads <- do.call(readfun,
+                                c(list(file=bf), list(param=param),
+                                 list(strandMode=empar@strandMode)[strand_arg],
+                                 list(use.names=(!avsoas || avgene)))))) {
+        alnreads <- .matchSeqinfo(alnreads, features(empar))
+        n <- n + length(alnreads)
+        thissalnmask <- .secondaryAlignmentMask(alnreads) ## second. aln mask
+        mask <- .pass2Filters(alnreads, empar) ## which alignments pass flt 1&2
     
-    if (!is.na(empar@suboptimalAlignmentCutoff)) {
-        thisalnAS <- .getAlignmentTagScore(alnreads, tag="AS")
-        mask <- .pass3Filter(mask, alnreads, empar, thisalnAS, thissalnmask,
-                            avsoas)
+        if (!is.na(empar@suboptimalAlignmentCutoff)) {
+            thisalnAS <- .getAlignmentTagScore(alnreads, tag="AS")
+            mask <- .pass3Filter(mask, alnreads, empar, thisalnAS, thissalnmask,
+                                avsoas)
+        }
+    
+        if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
+            alnreadids <- .getAlnreadids(alnreads, empar@fragments)
+        }
+    
+        mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
+        alnreadsdiscard <- .getreadsdiscard(empar, alnreads, mask, thissalnmask)
+        alnreads <- .filteralnreads(empar,alnreads,mask,thissalnmask,avsoas,avgene)
+        thisov <- mode(alnreads, features(empar), ignoreStrand=empar@ignoreStrand,
+                       inter.feature=FALSE)
+        ov <- .appendHits(ov, thisov)
+    
+        if (avgene && empar@geneCountMode == "all") {
+            ## calculate and store overlaps between the discarded reads & genes
+            thisovdiscard <- mode(alnreadsdiscard, features(empar)[!iste],
+                                  ignoreStrand=empar@ignoreStrand, 
+                                  inter.feature=FALSE)
+            ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
+        }
+    
+        ## Reading NH tag if secondary alignments are not available
+        alnNH <- .fetchNHtag(thissalnmask, avgene, avtags, alnreads)
+        salnmask <- c(salnmask, thissalnmask[mask]) # secondary alignment mask
+    
+        if (!avsoas && !is.na(empar@suboptimalAlignmentCutoff)) {
+            ## store best secondary alignment score
+            salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, 
+                                                alnreadids, salnbestAS)
+            ## filter and store alignment scores 
+            alnAS <- c(alnAS, thisalnAS[mask])
+        }
+    
+        ## filter now read identifiers
+        listreadids <- .filterReadIDs(avgene, empar, avsoas, alnreadids,
+                                      readids, readidx, alnreadidx, mask)
+        readids <- listreadids$readids
+        readidx <- listreadids$readidx
+        alnreadidx <- listreadids$alnreadidx
+    
+        if (verbose > 1) {
+            nfiltered <- nfiltered + sum(mask & !thissalnmask)
+            message(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
+                            basename(path(bf)), n, nfiltered))
+        }
     }
-    
-    if (avgene || (!is.na(empar@suboptimalAlignmentCutoff) & !avsoas)) {
-        alnreadids <- .getAlnreadids(alnreads, empar@fragments)
+    on.exit(close(bf))
+    if (length(ov) == 0) {
+        stop(".ervmapQuantExpress: no overlaps were found between reads and features")
     }
-    
-    mask[thissalnmask] <- TRUE # Setting TRUE in mask to secondary alignments
-    alnreadsdiscard <- .getreadsdiscard(empar, alnreads, mask, thissalnmask)
-    alnreads <- .filteralnreads(empar,alnreads,mask,thissalnmask,avsoas,avgene)
-    thisov <- mode(alnreads, features(empar), ignoreStrand=empar@ignoreStrand,
-                   inter.feature=FALSE)
-    ov <- .appendHits(ov, thisov)
-    
-    if (avgene && empar@geneCountMode == "all") {
-        ## calculate and store overlaps between the discarded reads and genes
-        thisovdiscard <- mode(alnreadsdiscard, features(empar)[!iste],
-                              ignoreStrand=empar@ignoreStrand, 
-                              inter.feature=FALSE)
-        ovdiscard <- .appendHits(ovdiscard, thisovdiscard)
-    }
-    
-    ## Reading NH tag if secondary alignments are not available
-    alnNH <- .fetchNHtag(thissalnmask, avgene, avtags, alnreads)
-    salnmask <- c(salnmask, thissalnmask[mask]) # secondary alignment mask 
-    
-    if (!avsoas && !is.na(empar@suboptimalAlignmentCutoff)) {
-        ## store best secondary alignment score
-        salnbestAS <- .findSuboptAlignScore(thisalnAS, thissalnmask, 
-                                            alnreadids, salnbestAS)
-        ## filter and store alignment scores 
-        alnAS <- c(alnAS, thisalnAS[mask])
-    }
-    
-    ## filter now read identifiers
-    listreadids <- .filterReadIDs(avgene, empar, avsoas, alnreadids,
-                                    readids, readidx, alnreadidx, mask)
-    readids <- listreadids$readids
-    readidx <- listreadids$readidx
-    alnreadidx <- listreadids$alnreadidx
-    
-    if (verbose > 1) {
-        nfiltered <- nfiltered + sum(mask & !thissalnmask)
-        message(sprintf("%s: %d alignments processed (%d are primary and pass filters).\n",
-                    basename(path(bf)), n, nfiltered))
-    }
-}
-#close(bf)
-on.exit(close(bf))
-if (length(ov) == 0) {
-    stop(".ervmapQuantExpress: no overlaps were found between reads and features")
-}
-## Expression quantification
-cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
-                            alnAS, salnbestAS, readidx, mask, alnNH, readids,
-                            bf, ovdiscard, n, verbose, iste)
-cntvec
+    ## Expression quantification
+    cntvec <- .ervmapGetCounts(avsoas, salnmask, empar, avgene, ov, alnreadidx,
+                               alnAS, salnbestAS, readidx, mask, alnNH, readids,
+                               bf, ovdiscard, n, verbose, iste)
+    cntvec
 }
 
 
@@ -1007,7 +1020,7 @@ cntvec
         ## and the suboptimal alignment score from BWA (field XS) >= 5,
         mask <- mask & (thisalnAS - sas >= empar@suboptimalAlignmentCutoff)
     } else if (!any(thissalnmask)) {
-        stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff = NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
+        stop("The BAM file does not contain secondary alignments nor suboptimal alignment scores. Either set suboptimalAlignmentCutoff=NA or provide a BAM file with secondary alignments or suboptimal alignment scores.")
     }
     
     mask

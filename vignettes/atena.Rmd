@@ -35,111 +35,169 @@ knitr::opts_chunk$set(
 
 # What are transposable elements
 
-Transposable elements (TEs) are autonomous mobile genetic elements. They are DNA sequences that have, or once had, the ability to mobilize within the genome either directly or through an RNA intermediate [@payer2019transposable]. TEs can be categorized into two classes based on the intermediate substrate propagating insertions (RNA or DNA). Class I TEs, also called retrotransposons, first transcribe an RNA copy that is then reverse transcribed to cDNA before inserting in the genome. In turn, these can be divided into long terminal repeat (LTR) retrotransposons, which refer to endogenous retroviruses (ERVs), and non-LTR retrotransposons, which include long interspersed element class 1 (LINE-1 or L1) and short interspersed elements (SINEs). Class II TEs, also known as DNA transposons, directly excise themselves from one location before reinsertion. TEs are further split into families and subfamilies depending on various structural features [@goerner2018computational; @guffanti2018novel].
+Transposable elements (TEs) are autonomous mobile genetic elements. They are
+DNA sequences that have, or once had, the ability to mobilize within the genome
+either directly or through an RNA intermediate [@payer2019transposable]. TEs
+can be categorized into two classes based on the intermediate substrate
+propagating insertions (RNA or DNA). Class I TEs, also called retrotransposons,
+first transcribe an RNA copy that is then reverse transcribed to cDNA before
+inserting in the genome. In turn, these can be divided into long terminal repeat
+(LTR) retrotransposons, which refer to endogenous retroviruses (ERVs), and
+non-LTR retrotransposons, which include long interspersed element class 1
+(LINE-1 or L1) and short interspersed elements (SINEs). Class II TEs, also known
+as DNA transposons, directly excise themselves from one location before
+reinsertion. TEs are further split into families and subfamilies depending on
+various structural features [@goerner2018computational; @guffanti2018novel].
 
-Most TEs have lost the capacity for generating new insertions over their evolutionary history and are now fixed in the human population. Their insertions have resulted in a complex distribution of interspersed repeats comprising almost half (50%) of the human genome [@payer2019transposable].
+Most TEs have lost the capacity for generating new insertions over their
+evolutionary history and are now fixed in the human population. Their insertions
+have resulted in a complex distribution of interspersed repeats comprising
+almost half (50%) of the human genome [@payer2019transposable].
 
-TE expression has been observed in association with physiological processes in a wide range of species, including humans where it has been described to be important in early embryonic pluripotency and development. Moreover, aberrant TE expression has been associated with diseases such as cancer, neurodegenerative disorders, and infertility [@payer2019transposable].
+TE expression has been observed in association with physiological processes in
+a wide range of species, including humans where it has been described to be
+important in early embryonic pluripotency and development. Moreover, aberrant TE
+expression has been associated with diseases such as cancer, neurodegenerative
+disorders, and infertility [@payer2019transposable].
 
 # Currently available methods for quantifying TE expression
 
-The study of TE expression faces one main challenge: given their repetitive nature, the majority of TE-derived reads map to multiple regions of the genome and these multi-mapping reads are consequently discarded in standard RNA-seq data processing pipelines. For this reason, specific software packages for the quantification of TE expression have been developed [@goerner2018computational], such as TEtranscripts [@jin2015tetranscripts], ERVmap [@tokuyama2018ervmap] and Telescope [@bendall2019telescope]. The main differences between these three methods are the following: 
+The study of TE expression faces one main challenge: given their repetitive
+nature, the majority of TE-derived reads map to multiple regions of the genome
+and these multi-mapping reads are consequently discarded in standard RNA-seq
+data processing pipelines. For this reason, specific software packages for the
+quantification of TE expression have been developed [@goerner2018computational],
+such as TEtranscripts [@jin2015tetranscripts], ERVmap [@tokuyama2018ervmap] and
+Telescope [@bendall2019telescope]. The main differences between these three
+methods are the following: 
 
-* [TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts) [@jin2015tetranscripts] reassigns multi-mapping reads to TEs proportionally to their relative abundance, which is estimated using an expectation-maximization (EM) algorithm.
+* [TEtranscripts](https://github.com/mhammell-laboratory/TEtranscripts)
+  [@jin2015tetranscripts] reassigns multi-mapping reads to TEs proportionally
+  to their relative abundance, which is estimated using an
+  expectation-maximization (EM) algorithm.
 
-* [ERVmap](https://github.com/mtokuyama/ERVmap) [@tokuyama2018ervmap] is based on selective filtering of multi-mapping reads. It applies filters that consist in discarding reads when the ratio of sum of hard and soft clipping to the length of the read (base pair) is greater than or equal to 0.02, the ratio of the edit distance to the sequence read length (base pair) is greater or equal to 0.02 and/or the difference between the alignment score from BWA (field AS) and the suboptimal alignment score from BWA (field XS) is less than 5.
+* [ERVmap](https://github.com/mtokuyama/ERVmap) [@tokuyama2018ervmap] is based
+  on selective filtering of multi-mapping reads. It applies filters that consist
+  in discarding reads when the ratio of sum of hard and soft clipping to the
+  length of the read (base pair) is greater than or equal to 0.02, the ratio of
+  the edit distance to the sequence read length (base pair) is greater or equal
+  to 0.02 and/or the difference between the alignment score from BWA (field AS)
+  and the suboptimal alignment score from BWA (field XS) is less than 5.
 
-* [Telescope](https://github.com/mlbendall/telescope) [@bendall2019telescope] reassigns multi-mapping reads to TEs using their relative abundance, which like in TEtranscripts, is also estimated using an EM algorithm. The main differences with respect to TEtranscripts are: (1) Telescope works with an additional parameter for each TE that estimates the proportion of multi-mapping reads that need to be reassigned to that TE; (2) that reassignment parameter is optimized during the EM algorithm jointly with the TE relative abundances, using a Bayesian maximum a posteriori (MAP) estimate that allows one to use prior values on these two parameters; and (3) using the final estimates on these two parameters, multi-mapping reads can be flexibly reassigned to TEs using different strategies, where the default one is to assign a multi-mapping read to the TE with largest estimated abundance and discard those multi-mapping reads with ties on those largest abundances.
+* [Telescope](https://github.com/mlbendall/telescope) [@bendall2019telescope]
+  reassigns multi-mapping reads to TEs using their relative abundance, which
+  like in TEtranscripts, is also estimated using an EM algorithm. The main
+  differences with respect to TEtranscripts are: (1) Telescope works with an
+  additional parameter for each TE that estimates the proportion of
+  multi-mapping reads that need to be reassigned to that TE; (2) that
+  reassignment parameter is optimized during the EM algorithm jointly with the
+  TE relative abundances, using a Bayesian maximum a posteriori (MAP) estimate
+  that allows one to use prior values on these two parameters; and (3) using
+  the final estimates on these two parameters, multi-mapping reads can be
+  flexibly reassigned to TEs using different strategies, where the default one
+  is to assign a multi-mapping read to the TE with largest estimated abundance
+  and discard those multi-mapping reads with ties on those largest abundances.
 
-Because these tools were only available outside R and Bioconductor, the `atena` package provides a complete re-implementation in R of these three methods to facilitate the integration of TE expression quantification into Bioconductor workflows for the analysis of RNA-seq data.
+Because these tools were only available outside R and Bioconductor, the `atena`
+package provides a complete re-implementation in R of these three methods to
+facilitate the integration of TE expression quantification into Bioconductor
+workflows for the analysis of RNA-seq data.
 
 # TEs annotations
 
-Another challenge in TE expression quantification is the lack of complete TE 
-annotations due to the difficulty to correctly place TEs in genome assemblies [@goerner2018computational]. The gold standard for TE annotations are
-RepeatMasker annotations, available through the RepeatMasker track in UCSC 
-Genome Browser. `atena` can fetch RepeatMasker annotations with the function
-`annotaTEs()`. Moreover, this function can parse TE annotations by applying 
-`parsefun`. Examples of `parsefun` included in `atena` are:
+Another challenge in TE expression quantification is the lack of complete TE
+annotations due to the difficulty to correctly place TEs in genome assemblies
+[@goerner2018computational]. One of the main sources of TE annotations are
+RepeatMasker annotations, available for instance at the RepeatMasker track of
+the UCSC Genome Browser. `atena` can fetch RepeatMasker annotations with the
+function `annotaTEs()` and flexibly parse them by using a parsing function
+provided through the parameter `parsefun`. Examples of `parsefun` included in
+`atena` are:
 
 * `rmskidentity()`: returns RepeatMasker annotations without any modification.
 * `rmskbasicparser()`: filters out non-TE repeats and elements without strand
-information from RepeatMasker annotations. Then assigns a unique id to each 
-elements based on their repeat name.
+  information from RepeatMasker annotations. Then assigns a unique id to each 
+  elements based on their repeat name.
+* `OneCodeToFindThemAll()`: implementation of the "One Code To Find Them All"
+  algorithm by @bailly2014one, for parsing RepeatMasker output files.
 * `rmskatenaparser()`: attempts to reconstruct fragmented TEs by assembling 
-together fragments from the same TE that are close enough. For LTR class TEs,
-tries to reconstruct full-length and partial TEs following the LTR - internal
-region - LTR structure.
-* `OneCodeToFindThemAll()`: implementation of the 
-`OneCodeToFindThemAll.pl` [@bailly2014one] tool for parsing RepeatMasker 
-output files.
+  together fragments from the same TE that are close enough. For LTR class TEs,
+  tries to reconstruct full-length and partial TEs following the LTR - internal
+  region - LTR structure.
 
-Both `rmskatenaparser()` and `OneCodeToFindThemAll()` functions try to address
-the annotation fragmentation present in the output file of the RepeatMasker 
-software (i.e. presence of multiple hits (homology-based matches) corresponding
-to a unique copy of an element). This is highly frequent for LTR class TEs,
-where the consensus sequences are split into LTR and internal regions
-separately, causing RepeatMasker to also report these two regions of a TE as
-separate elements. These two functions attempt to identify these and other 
-cases of fragmented annotations and assemble them together into single 
-elements. To do so, the assembled elements must satisfy certain criteria. 
-Differences in these criteria, as
-well as different approaches for finding equivalences between LTR and internal
-regions to reconstruct LTR retrotransposons, is what differences these two
-functions.
+Both, the `rmskatenaparser()` and `OneCodeToFindThemAll()` parser functions
+attempt to address the annotation fragmentation present in the output files of
+the RepeatMasker software (i.e. presence of multiple hits, such as
+homology-based matches, corresponding to a unique copy of an element). This is
+highly frequent for TEs of the LTR class, where the consensus sequences are
+split separately into the LTR and internal regions, causing RepeatMasker to
+also report these two regions of the TE as two separate elements. These two
+functions try to identify these and other cases of fragmented annotations and
+assemble them together into single elements. To do so, the assembled elements
+must satisfy certain criteria. These two parser functions differ in those
+criteria, as well as in the approach for finding equivalences between LTR and
+internal regions to reconstruct LTR retrotransposons. The `rmskatenaparser()`
+function is also much faster than `OneCodeToFindThemAll()`.
 
 ## Retrieving and parsing TE annotations
 
 As an example, let's retrieve TE annotations for *Drosophila melanogaster* 
-*dm6* genome version. By setting `rmskidentity()` as `parsefun`, the 
-RepeatMasker annotations are not modified:
+*dm6* genome version. By setting `rmskidentity()` as argument to the
+`parsefun` parameter, RepeatMasker annotations are retrieved intact as a
+`GRanges` object.
 
 ```{r, message=FALSE, warning=FALSE}
 library(atena)
+library(BiocParallel)
 
-rmskid <- annotaTEs(genome="dm6", parsefun=rmskidentity)
-rmskid
-```
-We get annotations with `r length(rmskid)` elements.
-
-Now, let's fetch the same annotations but process them using the 
-`rmskatenaparser` parser function. We set the parameter `strict=FALSE` to avoid
-applying a filter of minimum 80% identity with the consensus sequence and 
-minimum 80 bp length. The `insert` parameter is set to 500 meaning that two
-elements with the same name are merged if they are closer than 500 bp.
-
-```{r}
-rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser, strict=FALSE,
-                    insert=500)
-rmskat[1]
+rmskann <- annotaTEs(genome="dm6", parsefun=rmskidentity)
+rmskann
 ```
 
-How many elements are present in the annotations?
-```{r}
-length(rmskat)
+We can see that we obtained annotations for `r length(rmskann)` elements. Now,
+let's fetch the same RepeatMasker annotations, but process them using the
+`OneCodeToFindThemAll` parser function [@bailly2014one]. We set the parameter
+`strict=FALSE` to avoid applying a filter of minimum 80% identity with the
+consensus sequence and minimum 80 bp length. The `insert` parameter is set to
+500, meaning that two elements with the same name are merged if they are closer
+than 500 bp in the annotations. The `BPPARAM` parameter allows one to run
+calculations in parallel using the functionality of the
+[BiocParallel](https://bioconductor.org/packages/BiocParallel) Bioconductor
+package. In this particular example, we are setting the `BPPARAM` parameter
+to `SerialParam(progress=FALSE)` to disable parallel calculations and progress
+reporting, but a common setting if we want to run calculations in parallel
+would be `BPPARAM=Multicore(workers=ncores, progress=TRUE)`, which would use
+`ncores` parallel threads of execution and report progress on the calculations.
+
+```{r, message=FALSE, warning=FALSE}
+teann <- annotaTEs(genome="dm6", parsefun=OneCodeToFindThemAll, strict=FALSE,
+                   insert=500, BPPARAM=SerialParam(progress=FALSE))
+length(teann)
+teann[1]
 ```
 
-As expected, we get a lower number of elements in the annotations because 
-repeats that are not TEs have been removed. Furthermore, some fragmented 
+As expected, we get a lower number of elements in the annotations, because
+repeats that are not TEs have been removed. Furthermore, some fragmented
 regions of TEs have been assembled together.
 
-The resulting `rmskat` object is of class `GRangesList`. Each element of the
-list represents an assembled TE containing a `GRanges` object of length 1
-(when the TE was not assembled with another element) or length > 1 (when
-two or more fragments were assembled together into a single TE).
+This time, the resulting `teann` object is of class `GRangesList`. Each
+element of the list represents an assembled TE containing a `GRanges` object of
+length one, if the TE could not be not assembled with another element, or of
+length greater than one, if two or more fragments were assembled together into a
+single TE.
 
 We can get more information of the parsed annotations by accessing the 
 metadata columns with `mcols()`:
 
 ```{r}
-mcols(rmskat)
+mcols(teann)
 ```
 
 There is information about the reconstruction status of the TE (*Status*
 column), the relative length of the reconstructed TE (*RelLength*) and the
-repeat class of the TE (*Class*). The relative length is computed by adding
-the length (in base pairs) of all fragments from the same assembled TE and
-dividing the sum by the length (in base pairs) of the consensus sequence. For
+repeat class of the TE (*Class*). The relative length is calculated by adding
+the length (in base pairs) of all fragments from the same assembled TE, and
+dividing that sum by the length (in base pairs) of the consensus sequence. For
 full-length and partially reconstructed LTR TEs, the consensus sequence length
 used is the one resulting from adding twice the consensus sequence length of
 the long terminal repeat (LTR) and the one from the corresponding internal
@@ -154,25 +212,25 @@ frequencies of the status and class of TEs in the annotations.
 library(RColorBrewer)
 
 pal1 <- brewer.pal(6, "Pastel2")
-pal2 <- brewer.pal(length(unique(mcols(rmskat)$Class)), "Set2")
+pal2 <- brewer.pal(length(unique(mcols(teann)$Class)), "Set2")
 
 par(mfrow = c(1,2), mar = c(5,4,3,1))
-bp1 <- barplot(table(mcols(rmskat)$Status), col = pal1, border = "black",
+bp1 <- barplot(table(mcols(teann)$Status), col = pal1, border = "black",
         main = "TEs by status", cex.axis=0.8, xaxt = "n")
 grid(nx=NA, ny=NULL)
 axis(1, at=bp1, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
 par(xpd=TRUE)
-text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(rmskat)$Status)), 
+text(x= bp1[, 1] - 0.3, y = 10, labels=names(table(mcols(teann)$Status)), 
      srt=40, offset = 1.7, cex = 0.8, pos = 1)
 par(xpd=FALSE)
 
-bp2 <- barplot(table(mcols(rmskat)$Class), col = pal2, border = "black",
+bp2 <- barplot(table(mcols(teann)$Class), col = pal2, border = "black",
         main = "TEs by class", cex.axis=0.8, xaxt = "n",
-        ylim = c(0,max(table(mcols(rmskat)$Status))))
+        ylim = c(0,max(table(mcols(teann)$Status))))
 grid(nx=NA, ny=NULL)
 axis(1, at=bp2, labels = FALSE, las=1, line=0, lwd = 0, lwd.ticks = 1) 
 par(xpd=TRUE)
-text(x= bp2[, 1] - 0.1, y = 10, labels=names(table(mcols(rmskat)$Class)), 
+text(x= bp2[, 1] - 0.1, y = 10, labels=names(table(mcols(teann)$Class)), 
      srt=35, offset = 1.2, cex = 0.8, pos = 1)
 par(xpd=FALSE)
 ```
@@ -186,17 +244,16 @@ correspond to internal and solo-LTR regions, respectively. Finally, the
 which could not be identified as either internal or long terminal repeat
 regions based on their name.
 
-Moreover, the `atena` package provides useful functions to retrieve TEs of a
+Moreover, the `atena` package provides getter functions to retrieve TEs of a
 specific class, using a specific relative length threshold. Those TEs with
 higher relative lengths are more likely to have intact open reading frames,
 making them more interesting for expression quantification and functional
 analyses. For example, to get LINEs with a minimum of 0.9 relative length, we
-can use the `getLINEs()` function. We use the previously obtained object
-`rmskat` with annotations parsed with the `rmskatenaparser()` function, and set
-the `relLength` to 0.9.
+can use the `getLINEs()` function. We use the TE annotations in `teann` we
+obtained before and set the `relLength` to 0.9.
 
 ```{r}
-rmskLINE <- getLINEs(rmskat, relLength=0.9)
+rmskLINE <- getLINEs(teann, relLength=0.9)
 length(rmskLINE)
 rmskLINE[1]
 ```
@@ -207,7 +264,7 @@ full-length, partial LTRs and other fragments that could not be reconstructed,
 we can:
 
 ```{r}
-rmskLTR <- getLTRs(rmskat, relLength=0.8, fullLength=TRUE, partial=TRUE,
+rmskLTR <- getLTRs(teann, relLength=0.8, fullLength=TRUE, partial=TRUE,
                    otherLTR=TRUE)
 length(rmskLTR)
 rmskLTR[1]
@@ -216,7 +273,7 @@ rmskLTR[1]
 To obtain DNA transposons and SINEs, one can use the `getDNAtransposons()` and
 `getSINEs()` functions, respectively.
 
-# Using atena to quantify TE expression
+# TE expression quantification
 
 Quantification of TE expression with `atena` consists in the following two
 steps:
@@ -230,17 +287,23 @@ steps:
 The dataset that will be used to illustrate how to quantify TE expression with
 `atena` is a published RNA-seq dataset of _Drosophila melanogaster_ available
 at the National Center for Biotechnology Information (NCBI) Gene Expression
-Omnibus (accession no.
+Omnibus (GEO) under accession
 [GSE47006](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE47006)). 
 The two selected samples are: a piwi knockdown and a piwi control (GSM1142845
 and GSM1142844). These files have been subsampled. The piwi-associated
-silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, thus, the
-knockdown of piwi causes the de-repression of TEs.
+silencing complex (piRISC) silences TEs in the _Drosophila_ ovary, hence the
+knockdown of piwi causes the de-repression of TEs. Here we show how the
+expression of full-length LTR retrotransposons present in `rmskLTR` can be
+easily quantified using `atena`.
 
-Here, the expression of full-length LTR retrotransposons present in `rmskLTR`
-will be quantified.
+## Building a parameter object
 
-## Building a parameter object for ERVmap
+A parameter object is build calling a specific function for the quantification
+method we want to use. Independenty of each method, all parameter object
+constructor functions require that the first two arguments specify the BAM
+files and the TE annotation, respectively.
+
+### ERVmap
 
 To use the ERVmap method in `atena` we should first build an object of the
 class `ERVmapParam` using the function `ERVmapParam()`. The `singleEnd`
@@ -357,7 +420,7 @@ default, the names of the input `GRanges` or `GRangesList` object given in the
 feature annotations to be used to aggregate TE counts, for example at the
 sub-family level.
 
-## Building a parameter object for Telescope
+### Telescope
 
 To use the Telescope method for TE expression quantification, the
 `TelescopeParam()` function is used to build a parameter object of the class
@@ -401,11 +464,11 @@ As in the ERVmap method from `atena`, the gene expression quantification method
 in Telescope is based on the approach of the TEtranscripts software
 [@jin2015tetranscripts]. This way, `atena` provides the possibility to
 integrate TE expression quantification by Telescope with gene expression
-quantification. As in the case of the ERVmap method from `atena`, either
-secondary alignments or the `NH` tag are required for gene expression
+quantification. As in the case of the ERVmap method implemented in `atena`,
+either secondary alignments or the `NH` tag are required for gene expression
 quantification.
 
-## Building a parameter object for TEtranscripts
+### TEtranscripts
 
 Finally, the third method available is TEtranscripts. First, the
 `TEtranscriptsParam()` function is called to build a parameter object of the
@@ -427,9 +490,10 @@ annotations are loaded from a *TxDb* object.
 
 ```{r, message=FALSE}
 library(TxDb.Dmelanogaster.UCSC.dm6.ensGene)
+
 txdb <- TxDb.Dmelanogaster.UCSC.dm6.ensGene
-txdb_genes <- exonsBy(txdb, by="gene")
-length(txdb_genes)
+gannot <- exonsBy(txdb, by="gene")
+length(gannot)
 ```
 
 ```{r}
@@ -437,15 +501,24 @@ bamfiles <- list.files(system.file("extdata", package="atena"),
                        pattern="*.bam", full.names=TRUE)
 ttpar <- TEtranscriptsParam(bamfiles, 
                             teFeatures=rmskLTR,
-                            geneFeatures=txdb_genes,
+                            geneFeatures=gannot,
                             singleEnd=TRUE, 
                             ignoreStrand=TRUE, 
-                            aggregateby=c("repName"))
+                            aggregateby="repName")
 ttpar
 ```
 
-For paired-end data (`singleEnd=FALSE`), the usage of the `fragments` argument
-is the same as in `TelescopeParam()`.
+For paired-end data, where would set `singleEnd=FALSE`, the `fragments`
+parameter has the same purpose as in `TelescopeParam()`. We can also
+extract the TEs and gene combined feature set using the `features()`
+function on the parameter object. A metadata column called `isTE` is added
+to enable distinguishing TEs from gene annotations.
+
+```{r}
+features(ttpar)
+mcols(features(ttpar))
+table(mcols(features(ttpar))$isTE)
+```
 
 Regarding gene expression quantification, `atena` has implemented the approach
 of the original TEtranscripts software [@jin2015tetranscripts]. As in the case
@@ -454,42 +527,40 @@ or the `NH` tag are required.
 
 Following the gene annotation processing present in the TEtranscripts
 algorithm, in case that `geneFeatures` contains a metadata column named "type",
-only the elements with "type" = "exon" are considered for the analysis. Then,
-exon counts are summarized to the gene level in a `GRangesList` object. This
-also applies to the ERVmap and Telescope methods for `atena` when gene features
-are present. Let's see an example of this processing:
+only the elements with `type="exon"` are considered for quantification. If
+those elements are grouped through a `GRangesList` object, then counts are
+aggregated at the level of those `GRangesList` elements, such as genes or
+transcripts. This also applies to the ERVmap and Telescope methods implemented
+in `atena` when gene features are present. Let's see an example of this
+processing:
 
 ```{r}
-# Creating an example of gene annotations
-annot_gen <- GRanges(seqnames=rep("2L",8),
+## Create a toy example of gene annotations
+geneannot <- GRanges(seqnames=rep("2L", 8),
                      ranges=IRanges(start=c(1,20,45,80,110,130,150,170),
                                     width=c(10,20,35,10,5,15,10,25)),
                      strand="*", 
                      type=rep("exon",8))
-# Setting gene ids
-names(annot_gen) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,1)))
-annot_gen
-ttpar_gen <- TEtranscriptsParam(bamfiles, 
-                                teFeatures=rmskLTR, 
-                                geneFeatures=annot_gen, 
-                                singleEnd=TRUE, 
-                                ignoreStrand=TRUE)
-ttpar_gen
+names(geneannot) <- paste0("gene",c(rep(1,3),rep(2,4),rep(3,1)))
+geneannot
+ttpar2 <- TEtranscriptsParam(bamfiles, 
+                             teFeatures=rmskLTR, 
+                             geneFeatures=geneannot, 
+                             singleEnd=TRUE, 
+                             ignoreStrand=TRUE)
+mcols(features(ttpar2))
+features(ttpar2)[!mcols(features(ttpar2))$isTE]
 ```
 
-Let's see the result of the gene annotation processing:
-
-```{r}
-features_tt <- features(ttpar_gen)
-features_tt[!mcols(features_tt)$isTE]
-```
-
-## Quantify TE expression with `qtex()`
+### Quantifying expression
 
 Finally, to quantify TE expression we call the `qtex()` method using one of the
 previously defined parameter objects (`ERVmapParam`, `TEtranscriptsParam` or
-`TelescopeParam`) according to the quantification method we want to use. The
-`qtex()` method returns a `SummarizedExperiment` object containing the
+`TelescopeParam`) according to the quantification method we want to use. As with
+the `OneCodeToFindThemAll()` function described before, here we can also use the
+`BPPARAM` parameter to perform calculations in parallel.
+
+The `qtex()` method returns a `SummarizedExperiment` object containing the
 resulting quantification of expression in an assay slot. Additionally, when a
 `data.frame`, or `DataFrame`, object storing phenotypic data is passed to the
 `qtex()` function through the `phenodata` parameter, this will be included as
@@ -531,6 +602,51 @@ colSums(assay(ttq))
 
 As mentioned, TE expression quantification is provided at the repeat name
 level.
+
+# Accesing expression quantifications and metadata
+
+The `qtex()` function returns a `SummarizedExperiment` object that, on the
+one hand, stores the quantified expression in its assay data.
+
+```{r}
+head(assay(ttq))
+```
+
+On the other hand, it contains metadata about the features that may be useful
+to select subsets of the quantified data and extract and explore the feature
+annotations, using the function `rowData()` on this `SummarizedExperiment`
+object.
+
+```{r}
+rowData(ttq)
+```
+
+Because we have aggregated quantifications by `RepName` the number of TE
+quantified features has been substantially reduced with respect to the original
+number of TE features.
+
+```{r}
+table(rowData(ttq)$isTE)
+```
+
+Let's say we want to select full-length LTRs features, this could be a way of
+doing it.
+
+```{r}
+temask <- rowData(ttq)$isTE
+fullLTRs <- rowData(ttq)$Status == "full-lengthLTR"
+fullLTRs <- (sapply(fullLTRs, sum, na.rm=TRUE) == 1) &
+            (lengths(rowData(ttq)$Status) == 1)
+sum(fullLTRs)
+rowData(ttq)[fullLTRs, ]
+```
+
+Note also that since we restricted expression quantification to LTRs, we do
+have only quantification for that TE class.
+
+```{r}
+table(rowData(ttq)$Class[temask])
+```
 
 # Session information
 

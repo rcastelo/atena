@@ -18,7 +18,8 @@ TEtranscriptsParam(
   strandMode = 1L,
   fragments = TRUE,
   tolerance = 1e-04,
-  maxIter = 100L
+  maxIter = 100L,
+  verbose = TRUE
 )
 
 \S4method{show}{TEtranscriptsParam}(object)
@@ -59,7 +60,7 @@ NULL, gene expression is not quantified.}
 \item{singleEnd}{(Default TRUE) Logical value indicating if reads are single
 (\code{TRUE}) or paired-end (\code{FALSE}).}
 
-\item{ignoreStrand}{(Default FALSE) A logical which defines if the strand
+\item{ignoreStrand}{(Default FALSE) Logical value that defines if the strand
 should be taken into consideration when computing the overlap between reads
 and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
 is considered to be overlapping an annotated feature as long as they
@@ -75,8 +76,8 @@ objects that controls the behavior of the strand getter. See
 class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 is ignored.}
 
-\item{fragments}{(Default TRUE) A logical; applied to paired-end data only.
-In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+\item{fragments}{(Default TRUE) Logical value applied to paired-end data
+only. In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
 read-counting method discards not properly paired reads. Moreover,
 when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
 counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
@@ -94,6 +95,9 @@ of the \code{\link[SQUAREM]{squarem}()} function.}
 iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
 is 100 and this value is passed to the \code{maxiter} parameter of the
 \code{\link[SQUAREM]{squarem}()} function.}
+
+\item{verbose}{(Default \code{TRUE}) Logical value indicating whether to
+report progress.}
 
 \item{object}{A \linkS4class{TEtranscriptsParam} object.}
 }

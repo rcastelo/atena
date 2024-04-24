@@ -22,7 +22,8 @@ atenaParam(
   em_epsilon = 1e-07,
   maxIter = 100L,
   reassign_mode = "exclude",
-  conf_prob = 0.9
+  conf_prob = 0.9,
+  verbose = TRUE
 )
 
 \S4method{show}{atenaParam}(object)
@@ -123,6 +124,9 @@ proportionally divided among the assignments above \code{conf_prob}).}
 
 \item{conf_prob}{(Default 0.9) Minimum probability for high confidence
 assignment.}
+
+\item{verbose}{(Default \code{TRUE}) Logical value indicating whether to
+report progress.}
 
 \item{object}{A \linkS4class{atenaParam} object.}
 }

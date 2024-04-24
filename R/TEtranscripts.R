@@ -46,15 +46,15 @@
 #' class for further detail. If \code{singleEnd = TRUE}, then \code{strandMode}
 #' is ignored.
 #'
-#' @param ignoreStrand (Default FALSE) A logical which defines if the strand
+#' @param ignoreStrand (Default FALSE) Logical value that defines if the strand
 #' should be taken into consideration when computing the overlap between reads
 #' and annotated features. When \code{ignoreStrand = FALSE}, an aligned read
 #' is considered to be overlapping an annotated feature as long as they
 #' have a non-empty intersecting genomic range on the same strand, while when
 #' \code{ignoreStrand = TRUE} the strand is not considered.
 #'
-#' @param fragments (Default TRUE) A logical; applied to paired-end data only.
-#' In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
+#' @param fragments (Default TRUE) Logical value applied to paired-end data
+#' only. In both cases (\code{fragments=FALSE} and \code{fragments=TRUE}), the
 #' read-counting method discards not properly paired reads. Moreover,
 #' when \code{fragments=FALSE}, only non-ambiguous properly paired reads are
 #' counted. When \code{fragments=TRUE}, ambiguous reads are also counted 
@@ -72,6 +72,9 @@
 #' iterations of the SQUAREM algorithm (Du and Varadhan, 2020). Default
 #' is 100 and this value is passed to the \code{maxiter} parameter of the
 #' \code{\link[SQUAREM]{squarem}()} function.
+#'
+#' @param verbose (Default \code{TRUE}) Logical value indicating whether to
+#' report progress.
 #'
 #' @details
 #' This is the constructor function for objects of the class
@@ -112,6 +115,7 @@
 #'
 #' @importFrom methods is new
 #' @importFrom Rsamtools BamFileList
+#' @importFrom cli cli_alert_info cli_alert_success
 #' @export
 #' @rdname TEtranscriptsParam-class
 TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
@@ -122,24 +126,32 @@ TEtranscriptsParam <- function(bfl, teFeatures, aggregateby=character(0),
                                strandMode=1L,
                                fragments=TRUE,
                                tolerance=0.0001,
-                               maxIter=100L) {
+                               maxIter=100L,
+                               verbose=TRUE) {
 
+    if (verbose)
+        cli_alert_info("Locating BAM files")
     bfl <- .checkBamFileListArgs(bfl, singleEnd, fragments)
 
     if (!ovMode %in% c("ovUnion","ovIntersectionStrict"))
       stop("'ovMode' should be one of 'ovUnion', 'ovIntersectionStrict'")
     
+    if (verbose)
+        cli_alert_info("Processing features")
     teFeaturesobjname <- deparse(substitute(teFeatures))
     geneFeaturesobjname <- deparse(substitute(geneFeatures))
     features <- .processFeatures(teFeatures, teFeaturesobjname,
                                  geneFeatures, geneFeaturesobjname,
                                  aggregateby, aggregateexons=TRUE)
 
-    new("TEtranscriptsParam", bfl=bfl, features=features,
-        aggregateby=aggregateby, ovMode=ovMode,
-        singleEnd=singleEnd, ignoreStrand=ignoreStrand,
-        strandMode=as.integer(strandMode), fragments=fragments,
-        tolerance=tolerance, maxIter=as.integer(maxIter))
+    obj <- new("TEtranscriptsParam", bfl=bfl, features=features,
+               aggregateby=aggregateby, ovMode=ovMode,
+               singleEnd=singleEnd, ignoreStrand=ignoreStrand,
+               strandMode=as.integer(strandMode), fragments=fragments,
+               tolerance=tolerance, maxIter=as.integer(maxIter))
+    if (verbose)
+        cli_alert_success("Parameter object successfully created")
+    obj
 }
 
 #' @param object A \linkS4class{TEtranscriptsParam} object.
@@ -213,7 +225,6 @@ setMethod("qtex", "TEtranscriptsParam",
     sbflags <- .getScanBamFlag_tt(ttpar@singleEnd)
     param <- ScanBamParam(flag=sbflags, what="flag", tag="AS")
     
-    ## iste <- as.vector(attributes(ttpar@features)$isTE[,1])
     iste <- mcols(features(ttpar))$isTE
     if (any(duplicated(names(features(ttpar)[iste]))))
         stop(".qtex_tetranscripts: duplicated names in TE annotations.")
@@ -244,7 +255,6 @@ setMethod("qtex", "TEtranscriptsParam",
                        ignoreStrand=ttpar@ignoreStrand, inter.feature=FALSE)
         ov <- .appendHits(ov, thisov)
     }
-    # close(bf)
     on.exit(close(bf))
     .checkOvandsaln(ov, salnmask)
     ## get uniquely aligned-reads

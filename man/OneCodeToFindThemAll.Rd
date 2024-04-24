@@ -41,7 +41,7 @@ is equal or less than \code{insert}. When \code{insert} = 0, two fragments
 are assembled if they are in contact next to each other.}
 
 \item{BPPARAM}{See \code{?\link[BiocParallel:bplapply]{bplapply}} in the 
-BiocParallel package. Can be used to run function in parallel.}
+BiocParallel package. Can be used to run calculations in parallel.}
 }
 \value{
 A \link[GenomicRanges:GRangesList-class]{GRangesList} object.

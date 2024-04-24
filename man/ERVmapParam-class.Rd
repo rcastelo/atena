@@ -20,7 +20,8 @@ ERVmapParam(
   maxMismatchRate = 0.02,
   suboptimalAlignmentTag = "auto",
   suboptimalAlignmentCutoff = 5,
-  geneCountMode = "all"
+  geneCountMode = "all",
+  verbose = TRUE
 )
 
 \S4method{show}{ERVmapParam}(object)
@@ -122,6 +123,9 @@ the ERVmap read filters applied to quantify TEs expression should also be
 applied when quantifying gene expression (\code{"ervmap"}) or not 
 (\code{"all"}), in which case all primary alignments mapping to genes are 
 counted.}
+
+\item{verbose}{(Default \code{TRUE}) Logical value indicating whether to
+report progress.}
 
 \item{object}{A \linkS4class{ERVmapParam} object.}
 }

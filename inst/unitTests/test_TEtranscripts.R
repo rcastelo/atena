@@ -4,15 +4,12 @@ test_TEtranscripts <- function() {
     TE_annot <- readRDS(file=system.file("extdata", "Top28TEs.rds",
                                          package="atena"))
     ttpar <- TEtranscriptsParam(bamfiles, teFeatures=TE_annot,
-                                    singleEnd=TRUE, ignoreStrand=TRUE,
-                                    aggregateby="repName")
+                                singleEnd=TRUE, ignoreStrand=TRUE,
+                                aggregateby="repName")
     ttSE <- qtex(ttpar)
     
     checkEqualsNumeric(dim(ttSE), c(1, 2))
-    print(class(sort(assay(ttSE), decreasing=TRUE)))
-    print(sort(assay(ttSE), decreasing=TRUE))
-    checkEqualsNumeric(head(sort(assay(ttSE), decreasing=TRUE)),
-                       c(150, 123))
+    checkEqualsNumeric(sort(assay(ttSE), decreasing=TRUE), c(150, 123))
 }
 
 
