@@ -21,5 +21,6 @@ object without any modification.
 }
 \examples{
 rmskid <- annotaTEs(genome="dm6", parsefun=rmskidentity)
+rmskid
         
 }

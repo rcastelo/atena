@@ -76,6 +76,7 @@ parsing is required, \code{parsefun} can be set to \code{rmskidentity}.
 }
 \examples{
 rmskid <- annotaTEs(genome="hg19", parsefun=rmskidentity)
+rmskid
 
 
 }

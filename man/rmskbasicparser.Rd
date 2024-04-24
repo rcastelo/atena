@@ -26,5 +26,6 @@ by adding the suffix "_dup" plus a number at the end of the "repName".
 }
 \examples{
 rmskba <- annotaTEs(genome="dm6", parsefun=rmskbasicparser)
+rmskba
 
 }

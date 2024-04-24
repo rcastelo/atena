@@ -41,5 +41,6 @@ of equal consecutive characters.
 \examples{
 rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
                     strict=FALSE)
+rmskat
 
 }

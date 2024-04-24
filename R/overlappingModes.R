@@ -50,16 +50,28 @@
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),
 #'                        pattern="*.bam", full.names=TRUE)
+#' \dontrun{
+#' ## use the following two instructions to fetch annotations, they are here
+#' ## commented out to enable running this example quickly when building and
+#' ## checking the package
 #' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE, insert=500)
-#' rmskLTR <- getLTRs(rmskat, relLength=0.8,
-#'                    fullLength=TRUE,
-#'                    partial=TRUE,
+#' rmskLTR <- getLTRs(rmskat, relLength=0.8, fullLength=TRUE, partial=TRUE,
 #'                    otherLTR=TRUE)
+#' }
+#'
+#' ## DO NOT TYPE THIS INSTRUCTION, WHICH JUST LOADS A PRE-COMPUTED ANNOTATION
+#' ## YOU SHOULD USE THE INSTRUCTIONS ABOVE TO FETCH ANNOTATIONS
+#' rmskLTR <- readRDS(system.file("extdata", "rmskatLTRrlen80flenpartoth.rds",
+#'                                package="atena"))
+#'
+#' ## build a parameter object for Telescope
 #' tspar <- TelescopeParam(bfl=bamfiles,
 #'                         teFeatures=rmskLTR,
 #'                         singleEnd=TRUE,
 #'                         ignoreStrand=TRUE)
+#'
+#' ## quantify expression using the 'ovIntersectionStrict()' mode function
 #' tsquant <- qtex(tspar, mode=ovIntersectionStrict)
 #'
 #' @importFrom GenomicAlignments findOverlaps

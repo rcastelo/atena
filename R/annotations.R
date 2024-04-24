@@ -66,6 +66,7 @@
 #'
 #' @examples
 #' rmskid <- annotaTEs(genome="hg19", parsefun=rmskidentity)
+#' rmskid
 #' 
 #' 
 #' @aliases annotaTEs
@@ -132,6 +133,7 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, verbose=TRUE,
 #'
 #' @examples
 #' rmskba <- annotaTEs(genome="dm6", parsefun=rmskbasicparser)
+#' rmskba
 #' 
 #' @aliases rmskbasicparser
 #' @rdname rmskbasicparser
@@ -175,6 +177,7 @@ rmskbasicparser <- function(gr) {
 #' 
 #' @examples
 #' rmskid <- annotaTEs(genome="dm6", parsefun=rmskidentity)
+#' rmskid
 #'         
 #' @aliases rmskidentity
 #' @rdname rmskidentity
@@ -377,8 +380,9 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy=FALSE,
 #' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE)
 #'
-#' rmskat_ltr <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
-#'                       partial=TRUE)
+#' rmskatLTR <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
+#'                      partial=TRUE)
+#' rmskatLTR
 #'  
 #' @aliases getLTRs
 #' @rdname annotaTEsGetters
@@ -1141,6 +1145,7 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
 #' @examples
 #' rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
 #'                     strict=FALSE)
+#' rmskat
 #' 
 #' @aliases rmskatenaparser
 #' @rdname rmskatenaparser

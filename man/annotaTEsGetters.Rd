@@ -88,8 +88,9 @@ elements to be reported.
 rmskat <- annotaTEs(genome="dm6", parsefun=rmskatenaparser,
                     strict=FALSE)
 
-rmskat_ltr <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
-                      partial=TRUE)
+rmskatLTR <- getLTRs(rmskat, relLength=0.95, fullLength=TRUE,
+                     partial=TRUE)
+rmskatLTR
  
 rmskat_line <- getLINEs(rmskat, relLength=0.95)
  
