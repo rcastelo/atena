@@ -1,12 +1,12 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 1.9.9
+Version: 1.9.10
 Authors@R: c(
     person("Beatriz", "Calvo-Serra", email="beatriz.calvo@upf.edu",
-           role=c("aut", "cre")),
+           role=c("aut")),
     person("Robert", "Castelo", email="robert.castelo@upf.edu",
-           role=c("aut")))
+           role=c("aut", "cre")))
 Description: Quantify expression of transposable elements (TEs) from RNA-seq
     data through different methods, including ERVmap, TEtranscripts and
     Telescope. A common interface is provided to use each of these methods,
