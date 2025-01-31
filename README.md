@@ -78,3 +78,8 @@ If you want to contribute to the development of GenomicScores please open an
 [issue](https://github.com/rcastelo/atena/issues) to start discussing your
 suggestion or, in case of a bugfix or a straightforward feature, directly a
 [pull request](https://github.com/rcastelo/atena/pulls).
+
+## Funding
+
+This software project is supported in part by the Spanish
+[Ministry of Science, Innovation and Universities](https://www.ciencia.gob.es).
