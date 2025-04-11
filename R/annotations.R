@@ -77,6 +77,8 @@
 #' @export
 annotaTEs <- function(genome="hg38", parsefun=rmskidentity, verbose=TRUE,
                       AHid=NULL, ...) {
+    parsefun <- match.fun(parsefun)
+
     if (verbose)
         cli_alert_info("Connecting to the AnnotationHub")
     suppressMessages(ah <- AnnotationHub())
