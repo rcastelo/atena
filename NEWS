@@ -1,3 +1,10 @@
+CHANGES IN VERSION 1.14.0 (2024-04-14)
+--------------------------------------
+
+USER VISIBLE CHANGES
+
+    o In the call to 'annotaTEs()' the user may provide ther parser function to the parameter 'parsefun' as a function name in a character string without triggering an error.
+
 CHANGES IN VERSION 1.10.0 (2024-04-27)
 --------------------------------------
 
