@@ -7,7 +7,7 @@
 rmskatenaparser(gr, strict = FALSE, insert = 1000)
 }
 \arguments{
-\item{gr}{A \link[GenomicRanges:GRanges-class]{GRanges} object with
+\item{gr}{A [`GRanges`][GenomicRanges::GRanges-class] object with
 RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}}
 
 \item{strict}{(Default FALSE) A logical; if TRUE, the 80-80 rule is applied,
@@ -20,7 +20,7 @@ is equal or less than \code{insert}. When \code{insert} = 0, two fragments
 are assembled if they are in contact next to each other.}
 }
 \value{
-A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
+A [`GRangesList`][GenomicRanges::GRangesList-class] object.
 }
 \description{
 atena annotation parser of RepeatMasker annotations

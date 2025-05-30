@@ -131,11 +131,11 @@ report progress.}
 \item{object}{A \linkS4class{atenaParam} object.}
 }
 \value{
-A \linkS4class{atenaParam} object.
+A [`atenaParam`] object.
 }
 \description{
 This is a class for storing parameters to quantify TE (and gene) expression
-using the atena method. It is a subclass of the 'QuantifyParam-class'.
+using the atena method. It is a subclass of the [`QuantifyParam`].
 
 Build an object of the class \code{atenaParam}.
 }

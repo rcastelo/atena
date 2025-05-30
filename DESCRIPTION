@@ -50,7 +50,7 @@ biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, So
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/atena
 BugReports: https://github.com/rcastelo/atena/issues
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Collate: 
     'AllGenerics.R'
     'AllClasses.R'

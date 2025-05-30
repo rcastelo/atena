@@ -48,7 +48,7 @@
 #' @param ... Arguments passed to \code{parsefun}.
 #'        
 #'
-#' @return A \link[GenomicRanges:GRanges-class]{GRanges} object with
+#' @return A [`GRanges`][GenomicRanges::GRanges-class] object with
 #'         transposable element annotations.
 #'
 #' @details
@@ -102,7 +102,12 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, verbose=TRUE,
         mt <- gregexpr(pattern=" \\([A-Za-z0-9]+\\) ", qah$title)
         qahdates <- substr(qah$title, unlist(mt)+2,
                              unlist(mt)+sapply(mt, attr, "match.length")-3)
+        ## non-English locales do not identify, e.g., 1Sep2021, and give NAs
+        ## set momentarily LC_TIME locale to 'C'
+        lct <- Sys.getlocale("LC_TIME")
+        Sys.setlocale("LC_TIME", "C")
         qahdates <- as.Date(paste0("1", qahdates), "%d%b%Y")
+        Sys.setlocale("LC_TIME", lct)
         ## in case > 1 RM annotations available, pick the most recent one
         suppressMessages(qah <- qah[which.max(qahdates)])
     }
@@ -120,10 +125,10 @@ annotaTEs <- function(genome="hg38", parsefun=rmskidentity, verbose=TRUE,
 }
 
 #' Parser of RepeatMasker annotations
-#' @param gr A \link[GenomicRanges:GRanges-class]{GRanges} object with
+#' @param gr A [`GRanges`][GenomicRanges::GRanges-class] object with
 #'           RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}
 #'
-#' @return A \link[GenomicRanges:GRanges-class]{GRanges} object.
+#' @return A [`GRanges`][GenomicRanges::GRanges-class] object.
 #'         
 #' @details 
 #' Parses annotations by removing low complexity regions, simple repeats,
@@ -169,12 +174,12 @@ rmskbasicparser <- function(gr) {
 }
 
 #' Identity function for parsefun
-#' @param gr A \link[GenomicRanges:GRanges-class]{GRanges} object.
+#' @param gr A [`GRanges`][GenomicRanges::GRanges-class] object.
 #'
-#' @return A \link[GenomicRanges:GRanges-class]{GRanges} object.
+#' @return A [`GRanges`][GenomicRanges::GRanges-class] object.
 #'
 #' @details 
-#' Identity function: returns the \link[GenomicRanges:GRanges-class]{GRanges}
+#' Identity function: returns the [`GRanges`][GenomicRanges::GRanges-class]
 #' object without any modification.
 #' 
 #' @examples
@@ -190,7 +195,7 @@ rmskidentity <- function(gr) {
 }
 
 #' OneCodeToFindThemAll parser of RepeatMasker annotations
-#' @param gr A \link[GenomicRanges:GRanges-class]{GRanges} object with
+#' @param gr A [`GRanges`][GenomicRanges::GRanges-class] object with
 #' RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}
 #' 
 #' @param dictionary (Default NULL) When NULL, a dictionary is built based 
@@ -219,7 +224,7 @@ rmskidentity <- function(gr) {
 #' @param BPPARAM See \code{?\link[BiocParallel:bplapply]{bplapply}} in the 
 #' BiocParallel package. Can be used to run calculations in parallel.
 #'
-#' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
+#' @return A [`GRangesList`][GenomicRanges::GRangesList-class] object.
 #'         
 #' @details 
 #' Implementation of One code to find them all 
@@ -249,7 +254,7 @@ rmskidentity <- function(gr) {
 #' @rdname OneCodeToFindThemAll
 #' @name OneCodeToFindThemAll
 #' @importFrom GenomicRanges strand width mcols "mcols<-"
-#' @importFrom BiocParallel bplapply
+#' @importFrom BiocParallel bplapply SerialParam
 #' @importFrom GenomeInfoDb seqnames
 #' @importFrom S4Vectors runValue
 #' @importFrom IRanges mean
@@ -323,13 +328,15 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy=FALSE,
 
 #' Getter functions of TE classes from parsed RepeatMasker annotations.
 #'
-#' @param annot A [`GRanges`] or [`GRangesList`] object obtained with the
-#'              function `annotaTES()`, using either [`OneCodeToFindThemAll`]
+#' @param annot A [`GRanges`][GenomicRanges::GRanges-class] or
+#'              [`GRangesList`][GenomicRanges::GRangesList-class] object obtained
+#'              with the function `annotaTES()`, using either [`OneCodeToFindThemAll`]
 #'              or [`rmskatenaparser`] as RepeatMasker parser functions.
 #'              Alternatively, if `annot` is a [`QuantifyParam`] or a
-#'              [`SummarizedExperiment`] object produced by the `qtex()`
-#'              function, this function will attempt to extract the
-#'              corresponding annotations from inside those objects.
+#'              [`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+#'              object produced by the `qtex()` function, this function will
+#'              attempt to extract the corresponding annotations from inside
+#'              those objects.
 #' 
 #' @param relLength (Default 0.9) Numeric value that can take values between 0
 #'                  to 1. Sets the minimum relative length required for
@@ -366,7 +373,7 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy=FALSE,
 #'                   where \code{TRUE} values indicate what annotations belong
 #'                   to the TE class we want to obtain with the getter function.
 #'
-#' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
+#' @return A [`GRangesList`][GenomicRanges::GRangesList-class] object with
 #'         annotations from class corresponding to the getter function (LTRs,
 #'         LINEs, SINEs or DNA transposons).
 #'         
@@ -1117,7 +1124,7 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
 
 
 #' atena annotation parser of RepeatMasker annotations
-#' @param gr A \link[GenomicRanges:GRanges-class]{GRanges} object with
+#' @param gr A [`GRanges`][GenomicRanges::GRanges-class] object with
 #' RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}
 #' 
 #' @param strict (Default FALSE) A logical; if TRUE, the 80-80 rule is applied,
@@ -1129,7 +1136,7 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
 #' is equal or less than \code{insert}. When \code{insert} = 0, two fragments
 #' are assembled if they are in contact next to each other.
 #'
-#' @return A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
+#' @return A [`GRangesList`][GenomicRanges::GRangesList-class] object.
 #'         
 #' @details 
 #' atena annotation parser of RepeatMasker annotations.

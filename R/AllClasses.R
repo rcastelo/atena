@@ -4,9 +4,9 @@
 #' for storing parameters provided to quantification methods of
 #' transposable elements from RNA-seq data.
 #'
-#' @slot bfl A \linkS4class{BamFileList} object.
+#' @slot bfl A [`BamFileList`][Rsamtools::BamFileList-class] object.
 #'
-#' @slot features A \linkS4class{GRanges} object.
+#' @slot features A [`GRanges`][GenomicRanges::GRanges-class] object.
 #'
 #' @slot aggregateby Character vector with column names in the annotation
 #'       to be used to aggregate quantifications.
@@ -66,7 +66,7 @@ setClass("QuantifyParam",
                         features="GenomicRanges_OR_GenomicRangesList",
                         aggregateby="character", ovMode="character"))
 
-#' @param object A \linkS4class{QuantifyParam} object.
+#' @param object A [`QuantifyParam`] object.
 #'
 #' @importFrom BiocGenerics path
 #'
@@ -82,7 +82,7 @@ setMethod("path", "QuantifyParam",
         })
 
 
-#' @param x A \linkS4class{QuantifyParam} object.
+#' @param x A [`QuantifyParam`] object.
 #'
 #' @importFrom GenomicFeatures features
 #'
@@ -102,7 +102,7 @@ setMethod("features", "QuantifyParam",
 #' ERVmap parameter class
 #'
 #' This is a class for storing parameters provided to the ERVmap algorithm.
-#' It is a subclass of the 'QuantifyParam-class'.
+#' It is a subclass of the [`QuantifyParam`] class.
 #'
 #' @slot readMapper The name of the software used to align reads, obtained from
 #' the BAM file header.
@@ -277,7 +277,7 @@ setClass("TelescopeParam", contains="QuantifyParam",
 #' TEtranscripts parameter class
 #'
 #' This is a class for storing parameters provided to the TEtranscripts
-#' algorithm. It is a subclass of the 'QuantifyParam-class'.
+#' algorithm. It is a subclass of the [`QuantifyParam`].
 #'
 #' @slot singleEnd (Default FALSE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).
@@ -337,7 +337,7 @@ setClass("TEtranscriptsParam", contains="QuantifyParam",
 #' atena parameter class
 #'
 #' This is a class for storing parameters to quantify TE (and gene) expression
-#' using the atena method. It is a subclass of the 'QuantifyParam-class'.
+#' using the atena method. It is a subclass of the [`QuantifyParam`].
 #'
 #' @slot singleEnd (Default TRUE) Logical value indicating if reads are single
 #' (\code{TRUE}) or paired-end (\code{FALSE}).

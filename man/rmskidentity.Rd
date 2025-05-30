@@ -7,16 +7,16 @@
 rmskidentity(gr)
 }
 \arguments{
-\item{gr}{A \link[GenomicRanges:GRanges-class]{GRanges} object.}
+\item{gr}{A [`GRanges`][GenomicRanges::GRanges-class] object.}
 }
 \value{
-A \link[GenomicRanges:GRanges-class]{GRanges} object.
+A [`GRanges`][GenomicRanges::GRanges-class] object.
 }
 \description{
 Identity function for parsefun
 }
 \details{
-Identity function: returns the \link[GenomicRanges:GRanges-class]{GRanges}
+Identity function: returns the [`GRanges`][GenomicRanges::GRanges-class]
 object without any modification.
 }
 \examples{

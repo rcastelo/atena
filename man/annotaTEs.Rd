@@ -57,7 +57,7 @@ not specified, the latest RepeatMasker annotation is be used.}
 \item{...}{Arguments passed to \code{parsefun}.}
 }
 \value{
-A \link[GenomicRanges:GRanges-class]{GRanges} object with
+A [`GRanges`][GenomicRanges::GRanges-class] object with
         transposable element annotations.
 }
 \description{

@@ -111,7 +111,7 @@
 #' reads in the overlapping matrix are used to represent alignments mapping
 #' outside annotations.
 #'
-#' @return A \linkS4class{atenaParam} object.
+#' @return A [`atenaParam`] object.
 #'
 #' @examples
 #' bamfiles <- list.files(system.file("extdata", package="atena"),

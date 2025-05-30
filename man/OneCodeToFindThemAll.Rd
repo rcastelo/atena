@@ -14,7 +14,7 @@ OneCodeToFindThemAll(
 )
 }
 \arguments{
-\item{gr}{A \link[GenomicRanges:GRanges-class]{GRanges} object with
+\item{gr}{A [`GRanges`][GenomicRanges::GRanges-class] object with
 RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}}
 
 \item{dictionary}{(Default NULL) When NULL, a dictionary is built based 
@@ -44,7 +44,7 @@ are assembled if they are in contact next to each other.}
 BiocParallel package. Can be used to run calculations in parallel.}
 }
 \value{
-A \link[GenomicRanges:GRangesList-class]{GRangesList} object.
+A [`GRangesList`][GenomicRanges::GRangesList-class] object.
 }
 \description{
 OneCodeToFindThemAll parser of RepeatMasker annotations

@@ -69,9 +69,11 @@ subclasses:
 
 \item{phenodata}{A \code{data.frame} or \code{DataFrame} object storing
 phenotypic data to include in the resulting
-\code{SummarizedExperiment} object. If \code{phenodata} is set,
+[`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+object. If \code{phenodata} is set,
 its row names will become the column names of the resulting
-\linkS4class{SummarizedExperiment} object.}
+[`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+object.}
 
 \item{mode}{One of the pre-defined overlapping methods such as
 \code{ovUnion()}, \code{ovIntersectionStrict} or a user-supplied
@@ -92,19 +94,24 @@ file by chunks. \code{yieldSize} represents the number of records
 the quantification steps is provided. Warnings are always present
 regardless of the value of \code{verbose}.}
 
-\item{BPPARAM}{An object of a \linkS4class{BiocParallelParam} subclass
+\item{BPPARAM}{An object of a
+[`BiocParallelParam`][BiocParallel::BiocParallelParam-class] subclass
 to configure the parallel execution of the code. By default,
-a \linkS4class{SerialParam} object is used, which does not use
-any parallelization, with the flag \code{progress=TRUE} to show
-progress through the calculations.}
+[`BiocParallelParam`][BiocParallel::SerialParam-class] object is used,
+which does not use any parallelization, with the flag
+\code{progress=TRUE} to show progress through the calculations.}
 
 \item{auxiliaryFeatures}{(Default \code{FALSE}). It only applies when `x` is
 a [`TelescopeParam`] or an [`atenaParam`] object. When \code{TRUE},
 auxiliary features created during expression quantification are also
-returned in the [`SummarizedExperiment`] object.}
+returned in the [`SummarizedExperiment`]
+[`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+object.}
 }
 \value{
-A \linkS4class{SummarizedExperiment} object.
+A
+       [`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+       object.
 }
 \description{
 The \code{qtex()} method quantifies transposable element expression.

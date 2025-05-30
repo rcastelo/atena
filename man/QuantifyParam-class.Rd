@@ -12,9 +12,9 @@
 \S4method{features}{QuantifyParam}(x)
 }
 \arguments{
-\item{object}{A \linkS4class{QuantifyParam} object.}
+\item{object}{A [`QuantifyParam`] object.}
 
-\item{x}{A \linkS4class{QuantifyParam} object.}
+\item{x}{A [`QuantifyParam`] object.}
 }
 \value{
 \code{path()}: Filesystem paths to the BAM files in the input
@@ -32,9 +32,9 @@ transposable elements from RNA-seq data.
 \section{Slots}{
 
 \describe{
-\item{\code{bfl}}{A \linkS4class{BamFileList} object.}
+\item{\code{bfl}}{A [`BamFileList`][Rsamtools::BamFileList-class] object.}
 
-\item{\code{features}}{A \linkS4class{GRanges} object.}
+\item{\code{features}}{A [`GRanges`][GenomicRanges::GRanges-class] object.}
 
 \item{\code{aggregateby}}{Character vector with column names in the annotation
 to be used to aggregate quantifications.}
