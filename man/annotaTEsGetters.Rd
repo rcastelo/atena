@@ -25,13 +25,15 @@ getSINEs(annot, relLength = 0.9, returnMask = FALSE)
 getDNAtransposons(annot, relLength = 0.9, returnMask = FALSE)
 }
 \arguments{
-\item{annot}{A [`GRanges`] or [`GRangesList`] object obtained with the
-function `annotaTES()`, using either [`OneCodeToFindThemAll`]
+\item{annot}{A [`GRanges`][GenomicRanges::GRanges-class] or
+[`GRangesList`][GenomicRanges::GRangesList-class] object obtained
+with the function `annotaTES()`, using either [`OneCodeToFindThemAll`]
 or [`rmskatenaparser`] as RepeatMasker parser functions.
 Alternatively, if `annot` is a [`QuantifyParam`] or a
-[`SummarizedExperiment`] object produced by the `qtex()`
-function, this function will attempt to extract the
-corresponding annotations from inside those objects.}
+[`SummarizedExperiment`][SummarizedExperiment::SummarizedExperiment-class]
+object produced by the `qtex()` function, this function will
+attempt to extract the corresponding annotations from inside
+those objects.}
 
 \item{relLength}{(Default 0.9) Numeric value that can take values between 0
 to 1. Sets the minimum relative length required for
@@ -69,7 +71,7 @@ where \code{TRUE} values indicate what annotations belong
 to the TE class we want to obtain with the getter function.}
 }
 \value{
-A \link[GenomicRanges:GRangesList-class]{GRangesList} object with
+A [`GRangesList`][GenomicRanges::GRangesList-class] object with
         annotations from class corresponding to the getter function (LTRs,
         LINEs, SINEs or DNA transposons).
 }

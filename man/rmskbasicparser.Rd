@@ -7,11 +7,11 @@
 rmskbasicparser(gr)
 }
 \arguments{
-\item{gr}{A \link[GenomicRanges:GRanges-class]{GRanges} object with
+\item{gr}{A [`GRanges`][GenomicRanges::GRanges-class] object with
 RepeatMasker annotations from \link[AnnotationHub]{AnnotationHub}}
 }
 \value{
-A \link[GenomicRanges:GRanges-class]{GRanges} object.
+A [`GRanges`][GenomicRanges::GRanges-class] object.
 }
 \description{
 Parser of RepeatMasker annotations

@@ -64,11 +64,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Beatriz Calvo-Serra \email{beatriz.calvo@upf.edu}
+\strong{Maintainer}: Robert Castelo \email{robert.castelo@upf.edu}
 
 Authors:
 \itemize{
-  \item Robert Castelo \email{robert.castelo@upf.edu}
+  \item Beatriz Calvo-Serra \email{beatriz.calvo@upf.edu}
 }
 
 }

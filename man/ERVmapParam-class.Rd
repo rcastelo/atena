@@ -134,7 +134,7 @@ A \linkS4class{ERVmapParam} object.
 }
 \description{
 This is a class for storing parameters provided to the ERVmap algorithm.
-It is a subclass of the 'QuantifyParam-class'.
+It is a subclass of the [`QuantifyParam`] class.
 
 Build an object of the class \code{ERVmapParam}
 }
