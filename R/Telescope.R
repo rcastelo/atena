@@ -200,7 +200,7 @@ TelescopeParam <- function(bfl, teFeatures, aggregateby=character(0),
 
 #' @param object A \linkS4class{TelescopeParam} object.
 #'
-#' @importFrom GenomeInfoDb seqlevels
+#' @importFrom Seqinfo seqlevels
 #' @export
 #' @aliases show,TelescopeParam-method
 #' @rdname TelescopeParam-class
@@ -214,8 +214,8 @@ setMethod("show", "TelescopeParam",
                         length(object@features),
                         ifelse(is.null(names(object@features)),
                                 paste("on",
-                                    .pprintnames(seqlevels(object@features))),
-                                .pprintnames(names(object@features)))))
+                                    .pprintnames(seqlevels(features(object)))),
+                                .pprintnames(names(features(object))))))
             if (length(object@aggregateby) > 0)
                 cat(sprintf("# aggregated by: %s\n",
                             paste(object@aggregateby, collapse=", ")))
@@ -692,7 +692,7 @@ setMethod("qtex", "TelescopeParam",
 
 #' @importFrom S4Vectors Hits queryHits subjectHits
 #' @importFrom GenomicRanges pintersect
-#' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom Seqinfo seqlevels<- seqlevels
 .getOverlapLength <- function(alnreads, thisov, tspar) {
     features <- tspar@features
     seqlev <- unique(c(seqlevels(features), seqlevels(alnreads)))

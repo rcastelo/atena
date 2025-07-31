@@ -194,7 +194,7 @@ ERVmapParam <- function(bfl, teFeatures, aggregateby=character(0),
 #' @param object A \linkS4class{ERVmapParam} object.
 #'
 #' @importFrom methods show
-#' @importFrom GenomeInfoDb seqlevels
+#' @importFrom Seqinfo seqlevels
 #'
 #' @export
 #' @aliases show,ERVmapParam-method

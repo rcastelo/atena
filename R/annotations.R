@@ -255,7 +255,7 @@ rmskidentity <- function(gr) {
 #' @name OneCodeToFindThemAll
 #' @importFrom GenomicRanges strand width mcols "mcols<-"
 #' @importFrom BiocParallel bplapply SerialParam
-#' @importFrom GenomeInfoDb seqnames
+#' @importFrom Seqinfo seqnames
 #' @importFrom S4Vectors runValue
 #' @importFrom IRanges mean
 #' @export
@@ -1161,7 +1161,7 @@ getDNAtransposons <- function(annot, relLength=0.9, returnMask=FALSE) {
 #' @name rmskatenaparser
 #' @importFrom GenomicRanges strand width mcols "mcols<-" seqnames
 #' @importFrom IRanges mean
-#' @importFrom GenomeInfoDb seqlevels
+#' @importFrom Seqinfo seqlevels
 #' @export
 rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
   if (!is(gr, "GRanges"))
@@ -1261,7 +1261,7 @@ rmskatenaparser <- function(gr, strict= FALSE, insert=1000) {
 }
 
 #' @importFrom GenomicRanges start mcols "mcols<-"
-#' @importFrom GenomeInfoDb seqlevels
+#' @importFrom Seqinfo seqlevels
 .reconstructTEs_at <- function(ann, outside, inside, cons_length, insert) {
   # For LTRs and internal regions, we check for the presence (in the same 
   # strand) of internal regions and LTRs, respectively, between elements with 

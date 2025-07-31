@@ -115,7 +115,7 @@
 ##                           counts.
 
 #' @importFrom S4Vectors mcols Rle decode DataFrame
-#' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom Seqinfo seqlevels<- seqlevels
 #' @importFrom GenomicRanges mcols<- mcols
 .processFeatures <- function(teFeatures, teFeaturesobjname, geneFeatures,
                              geneFeaturesobjname, aggregateby,
@@ -389,7 +389,7 @@
 }
 
 
-#' @importFrom GenomeInfoDb seqlevels<- seqlevels
+#' @importFrom Seqinfo seqlevels<- seqlevels
 #' @importFrom GenomeInfoDb seqlevelsStyle seqlevelsStyle<-
 #' @importFrom GenomicRanges mcols<-
 .joinTEsGenes <- function(teFeatures, geneFeatures, geneFeaturesobjname) {
@@ -466,9 +466,8 @@
 }
 
 ## private function .matchSeqinfo()
-#' @importFrom GenomeInfoDb seqlengths keepSeqlevels seqlevelsStyle
-#' @importFrom GenomeInfoDb seqlevelsStyle<- seqinfo seqinfo<- seqlevels
-#' @importFrom GenomeInfoDb genome genome<-
+#' @importFrom Seqinfo seqlengths seqinfo seqinfo<- seqlevels genome genome<-
+#' @importFrom GenomeInfoDb keepSeqlevels seqlevelsStyle seqlevelsStyle<-
 .matchSeqinfo <- function(gal, features, verbose=TRUE) {
   stopifnot("GAlignments" %in% class(gal) ||
             "GAlignmentPairs" %in% class(gal) ||

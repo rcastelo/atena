@@ -186,7 +186,7 @@ atenaParam <- function(bfl, teFeatures, aggregateby=character(0),
 
 #' @param object A \linkS4class{atenaParam} object.
 #'
-#' @importFrom GenomeInfoDb seqlevels
+#' @importFrom Seqinfo seqlevels
 #' @export
 #' @aliases show,atenaParam-method
 #' @rdname atenaParam-class
@@ -200,8 +200,8 @@ setMethod("show", "atenaParam",
                         length(object@features),
                         ifelse(is.null(names(object@features)),
                                 paste("on",
-                                    .pprintnames(seqlevels(object@features))),
-                                .pprintnames(names(object@features)))))
+                                    .pprintnames(seqlevels(features(object)))),
+                                .pprintnames(names(features(object))))))
             if (length(object@aggregateby) > 0)
                 cat(sprintf("# aggregated by: %s\n",
                             paste(object@aggregateby, collapse=", ")))
