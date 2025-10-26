@@ -1,4 +1,13 @@
-CHANGES IN VERSION 1.14.0 (2024-04-14)
+CHANGES IN VERSION 1.14.0 (2025-10-26)
+--------------------------------------
+
+BUG FIXES
+
+    o Bugfix on annotaTEs() to handle the case then LC_TIME is other than C or English, raised in issue #8. A few fixes on documentation links.
+
+    o Switch some imports from GenomeInfoDb to the new Seqinfo package.
+
+CHANGES IN VERSION 1.14.0 (2025-04-14)
 --------------------------------------
 
 USER VISIBLE CHANGES
