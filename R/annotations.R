@@ -273,9 +273,9 @@ OneCodeToFindThemAll <- function(gr, dictionary=NULL, fuzzy=FALSE,
     stop("'gr' is empty")
   
   if (!is.null(dictionary)) {
-    if (!file.exists(dictionary))
-        stop("'dictionary' should be NULL or specify the name of a dictionary",
-        " file, see ?OneCodeToFindThemAll")
+    if (!is.data.frame(dictionary))
+        stop("'dictionary' should be either NULL or a two-column data frame",
+             " object, see ?OneCodeToFindThemAll")
   }
   
   if (is.null(dictionary)) {

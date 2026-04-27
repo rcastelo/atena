@@ -1,4 +1,11 @@
-CHANGES IN VERSION 1.14.0 (2025-10-26)
+CHANGES IN VERSION 1.18.0 (2026-04-27)
+--------------------------------------
+
+BUG FIXES
+
+    o Fix in OneCodeToFindThemAll() when the 'dictionary' argument is not NULL.
+
+CHANGES IN VERSION 1.16.0 (2025-10-26)
 --------------------------------------
 
 BUG FIXES

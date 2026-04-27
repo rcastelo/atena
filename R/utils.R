@@ -140,7 +140,7 @@
     if (length(aggregateby) > 0) {
         mask <- !aggregateby %in% colnames(mcols(teFeatures))
         if (any(mask)) {
-            fstr <- sprintf(paste("%%s not in metadata columns of the TE",
+            fstr <- sprintf(paste("%s not in metadata columns of the TE",
                                   "features object %s."), teFeaturesobjname)
             stop(sprintf(fstr, paste(aggregateby[mask], collapse=", ")))
         }
