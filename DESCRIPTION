@@ -1,7 +1,7 @@
 Package: atena
 Type: Package
 Title: Analysis of Transposable Elements
-Version: 1.19.0
+Version: 1.19.1
 Authors@R: c(
     person("Beatriz", "Calvo-Serra", email="beatriz.calvo@upf.edu",
            role=c("aut")),
@@ -51,7 +51,6 @@ biocViews: Transcription, Transcriptomics, RNASeq, Sequencing, Preprocessing, So
 VignetteBuilder: knitr
 URL: https://github.com/rcastelo/atena
 BugReports: https://github.com/rcastelo/atena/issues
-RoxygenNote: 7.3.2
 Collate: 
     'AllGenerics.R'
     'AllClasses.R'
@@ -65,3 +64,4 @@ Collate:
     'qtex.R'
     'utils.R'
     'zzz.R'
+Config/roxygen2/version: 8.0.0

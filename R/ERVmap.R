@@ -678,26 +678,26 @@ setMethod("qtex", "ERVmapParam",
 }
 
 #' @importFrom S4Vectors mcols first second List
-#' @importFrom GenomicAlignments cigar explodeCigarOpLengths
+#' @importFrom GenomicAlignments cigar
+#' @importFrom cigarillo explode_cigar_oplens
 .getAlignmentSumClipping <- function(aln) {
     sc <- NULL
     if (is(aln, "GAlignments"))
-        sc <- vapply(explodeCigarOpLengths(cigar(aln), ops=c("H", "S")), 
+        sc <- vapply(explode_cigar_oplens(cigar(aln), ops=c("H", "S")), 
                     FUN.VALUE = integer(1), FUN = sum)
     else if (is(aln, "GAlignmentPairs")) {
         ## take the ceiling of the mean of query widths from both mates
-        sc1 <- vapply(explodeCigarOpLengths(cigar(first(aln)),ops=c("H", "S")), 
-                    FUN.VALUE = integer(1), FUN = sum)
-        sc2 <- vapply(explodeCigarOpLengths(cigar(second(aln)), 
-                                            ops=c("H", "S")), 
-                        FUN.VALUE = integer(1), FUN = sum)
+        sc1 <- vapply(explode_cigar_oplens(cigar(first(aln)),ops=c("H", "S")),
+                      FUN.VALUE = integer(1), FUN = sum)
+        sc2 <- vapply(explode_cigar_oplens(cigar(second(aln)), ops=c("H", "S")),
+                      FUN.VALUE = integer(1), FUN = sum)
         sc1[is.na(sc1)] <- sc2[is.na(sc1)]
         sc2[is.na(sc2)] <- sc1[is.na(sc2)]
         sc <- ceiling((sc1 + sc2) / 2)
     } else if (is(aln, "GAlignmentsList")) {
-        sc <- vapply(explodeCigarOpLengths(cigar(unlist(aln, use.names=FALSE)),
-                                            ops=c("H", "S")),
-                        FUN.VALUE = integer(1), FUN = sum)
+        sc <- vapply(explode_cigar_oplens(cigar(unlist(aln, use.names=FALSE)),
+                                          ops=c("H", "S")),
+                     FUN.VALUE = integer(1), FUN = sum)
     } else
         stop(sprintf(".getAlignmentSumClipping: wrong class %s\n", class(aln)))
     

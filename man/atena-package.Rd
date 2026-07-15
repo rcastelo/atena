@@ -68,6 +68,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Robert Castelo \email{robert.castelo@upf.edu}
   \item Beatriz Calvo-Serra \email{beatriz.calvo@upf.edu}
 }
 
